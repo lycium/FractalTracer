@@ -304,9 +304,9 @@ struct Mandelbulb final : public DEObject
 			const Dual3f k1 = x4 + y4 + z4 - Dual3f(6) * y2*z2 - Dual3f(6) * x2*y2 + Dual3f(2) * z2*x2;
 			const Dual3f k4 = x2 - y2 + z2;
 
-			wx = Dual3f(p_os.x) + Dual3f( 64) * x*y*z * (x2 - z2) * k4 * (x4 - Dual3f(6) * x2*z2+z4) * k1*k2;
-			wy = Dual3f(p_os.y) + Dual3f(-16) * y2*k3*k4*k4 + k1*k1;
-			wz = Dual3f(p_os.z) + Dual3f( -8) * y*k4 * (x4*x4 - Dual3f(28) * x4*x2*z2 + Dual3f(70) * x4*z4 - Dual3f(28) * x2*z2*z4 + z4*z4) * k1*k2;
+			wx = wx + Dual3f( 64) * x*y*z * (x2 - z2) * k4 * (x4 - Dual3f(6) * x2*z2+z4) * k1*k2;
+			wy = wy + Dual3f(-16) * y2*k3*k4*k4 + k1*k1;
+			wz = wz + Dual3f( -8) * y*k4 * (x4*x4 - Dual3f(28) * x4*x2*z2 + Dual3f(70) * x4*z4 - Dual3f(28) * x2*z2*z4 + z4*z4) * k1*k2;
 
 			const float m = wx.v[0] * wx.v[0] + wy.v[0] * wy.v[0] + wz.v[0] * wz.v[0];
 			if (m > 16)
