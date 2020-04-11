@@ -283,7 +283,7 @@ struct Mandelbulb final : public DEObject
 			w.z = p_os.z +  -8 * y*k4*(x4*x4 - 28 * x4*x2*z2 + 70 * x4*z4 - 28 * x2*z2*z4 + z4*z4) * k1*k2;
 
 			m = dot(w, w);
-			if (m > 256)
+			if (m > 16)
 				break;
 		}
 
@@ -304,12 +304,12 @@ struct Mandelbulb final : public DEObject
 			const Dual3f k1 = x4 + y4 + z4 - Dual3f(6) * y2*z2 - Dual3f(6) * x2*y2 + Dual3f(2) * z2*x2;
 			const Dual3f k4 = x2 - y2 + z2;
 
-			wx = Dual3f(p_os.x) + Dual3f( 64) * x*y*z*(x2-z2)*k4*(x4 - Dual3f(6) * x2*z2+z4)*k1*k2;
+			wx = Dual3f(p_os.x) + Dual3f( 64) * x*y*z * (x2 - z2) * k4 * (x4 - Dual3f(6) * x2*z2+z4) * k1*k2;
 			wy = Dual3f(p_os.y) + Dual3f(-16) * y2*k3*k4*k4 + k1*k1;
-			wz = Dual3f(p_os.z) + Dual3f( -8) * y*k4*(x4*x4 - Dual3f(28) * x4*x2*z2 + Dual3f(70) * x4*z4 - Dual3f(28) * x2*z2*z4 + z4*z4) * k1*k2;
+			wz = Dual3f(p_os.z) + Dual3f( -8) * y*k4 * (x4*x4 - Dual3f(28) * x4*x2*z2 + Dual3f(70) * x4*z4 - Dual3f(28) * x2*z2*z4 + z4*z4) * k1*k2;
 
 			const float m = wx.v[0] * wx.v[0] + wy.v[0] * wy.v[0] + wz.v[0] * wz.v[0];
-			if (m > 256)
+			if (m > 16)
 				break;
 		}
 
@@ -323,7 +323,15 @@ struct Mandelbulb final : public DEObject
 			dot(p, jy),
 			dot(p, jz)
 		};
+
+#if 0 // Should work in theory? See https://www.evl.uic.edu/hypercomplex/html/book/book.pdf chapter 9.6
 		return 1.0f * dot(p, p) / length(dr);
+#else // Edit by claude to take into account polynomial-ness I guess
+		const float m = dot(p, p);
+		const float dz = length(dr);
+		return 0.25f * log(m) * m / dz;
+#endif
+
 #endif
 	}
 };

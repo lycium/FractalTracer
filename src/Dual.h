@@ -57,7 +57,7 @@ public:
 
 
 template <typename real, int vars>
-inline constexpr Dual<real, vars> pow(const Dual<real, vars> & d, const real e)
+inline constexpr Dual<real, vars> pow(const Dual<real, vars> & d, const real e) noexcept
 {
 	const real scale = std::pow(d.v[0], e - 1) * e;
 
