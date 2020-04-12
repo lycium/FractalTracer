@@ -84,7 +84,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Dual.h" />
+    <ClInclude Include="..\src\real.h" />
     <ClInclude Include="..\src\stb_image_write.h" />
+    <ClInclude Include="..\src\vec2.h" />
+    <ClInclude Include="..\src\vec3.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp" />

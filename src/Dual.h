@@ -55,6 +55,12 @@ public:
 	}
 };
 
+using Dual2f = Dual<float, 2>;
+using Dual3f = Dual<float, 3>;
+
+//using Dual2d = Dual<double, 2>;
+//using Dual3d = Dual<double, 3>;
+
 
 template <typename real, int vars>
 inline constexpr Dual<real, vars> pow(const Dual<real, vars> & d, const real e) noexcept
@@ -122,10 +128,3 @@ inline constexpr Dual<real, vars> tan(const Dual<real, vars> & d) noexcept
 		r.v[i + 1] = d.v[i + 1] * scale;
 	return r;
 }
-
-
-using Dual2f = Dual<float, 2>;
-using Dual3f = Dual<float, 3>;
-
-//using Dual2d = Dual<double, 2>;
-//using Dual3d = Dual<double, 3>;

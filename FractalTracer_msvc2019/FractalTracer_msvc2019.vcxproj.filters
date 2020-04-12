@@ -17,6 +17,15 @@
     <ClInclude Include="..\src\stb_image_write.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\real.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vec2.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vec3.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
