@@ -72,15 +72,52 @@ struct Sphere final : public Object
 };
 
 
+#define USE_SCALAR_DERIV 0
+
+
 // Base class for distance estimated (DE) objects bounded by a sphere
 struct DEObject : public Object
 {
 	vec3r centre = { 0, 0, 0 };
 	real  radius = 1; 
 
+#if USE_SCALAR_DERIV
 
 	// Get the distance estimate for point p in object space
 	virtual real getDE(const vec3r & p_os) const = 0;
+	// Numeric normal vector calculation by forward differencing
+	virtual vec3r getNormal(const vec3r & p) const noexcept override final
+	{
+		const vec3r p_os = p - centre;
+		const real  DE_s = 0.001f;
+		const real  DE_0 = getDE(p_os);
+		const vec3r grad =
+		{
+			getDE(p_os + vec3r{ DE_s, 0, 0}) - DE_0,
+			getDE(p_os + vec3r{ 0, DE_s, 0}) - DE_0,
+			getDE(p_os + vec3r{ 0, 0, DE_s}) - DE_0
+		};
+		return normalise(grad);
+	}
+
+#else
+
+	// Get the distance estimate and normal vector for point p in object space
+	virtual real getDE(const vec3r & p_os, vec3r & normal_out) const = 0;
+	virtual real getDE(const vec3r & p_os) const noexcept final
+	{
+		vec3r normal_ignored;
+		return getDE(p_os, normal_ignored);
+	}
+	virtual vec3r getNormal(const vec3r & p) const noexcept override final
+	{
+		vec3r normal;
+		real de_ignored = getDE(p, normal);
+		(void) de_ignored;
+		return normal;
+	}
+
+#endif
 
 	virtual real intersect(const Ray & r) const noexcept override final
 	{
@@ -113,30 +150,15 @@ struct DEObject : public Object
 		return -1; // No intersection found
 	}
 
-	virtual vec3r getNormal(const vec3r & p) const noexcept override final
-	{
-		const vec3r p_os = p - centre;
-		const real  DE_s = 0.001f;
-		const real  DE_0 = getDE(p_os);
-		const vec3r grad =
-		{
-			getDE(p_os + vec3r{ DE_s, 0, 0}) - DE_0,
-			getDE(p_os + vec3r{ 0, DE_s, 0}) - DE_0,
-			getDE(p_os + vec3r{ 0, 0, DE_s}) - DE_0
-		};
-		return normalise(grad);
-	}
 };
 
 
-
-#define USE_SCALAR_DERIV 0
-
 struct QuadraticJuliabulb final : public DEObject
 {
+#if USE_SCALAR_DERIV
+
 	virtual real getDE(const vec3r & p_os) const noexcept override final
 	{
-#if USE_SCALAR_DERIV
 		const vec3r c = vec3r{ -1.1412f, 0.11f,  0.1513f } * 1.0f;
 		vec3r z = p_os;
 		real r, dr = 1;
@@ -159,7 +181,12 @@ struct QuadraticJuliabulb final : public DEObject
 		}
 
 		return 0.0125f * std::log(r) * r / dr;
+	}
+
 #else
+
+	virtual real getDE(const vec3r & p_os, vec3r & normal) const noexcept override final
+	{
 		Dual3r zx(p_os.x, 0);
 		Dual3r zy(p_os.y, 1);
 		Dual3r zz(p_os.z, 2);
@@ -197,18 +224,21 @@ struct QuadraticJuliabulb final : public DEObject
 			dot(p, jy),
 			dot(p, jz)
 		};
+		normal = normalise(dr);
 		return 0.05f * dot(p, p) / length(dr);
-#endif
 	}
+
+#endif
 };
 
 
 // Inigo Quilez's distance estimator: https://www.iquilezles.org/www/articles/mandelbulb/mandelbulb.htm
 struct Mandelbulb final : public DEObject
 {
+#if USE_SCALAR_DERIV
+
 	virtual real getDE(const vec3r & p_os) const noexcept override final
 	{
-#if USE_SCALAR_DERIV
 		vec3r w = p_os;
 		real m = dot(w, w);
 		real dz = 1;
@@ -238,7 +268,12 @@ struct Mandelbulb final : public DEObject
 		}
 
 		return 0.25f * log(m) * sqrt(m) / dz;
+	}
+
 #else
+
+	virtual real getDE(const vec3r & p_os, vec3r & normal) const noexcept override final
+	{
 		const Dual3r cx(p_os.x, 0);
 		const Dual3r cy(p_os.y, 1);
 		const Dual3r cz(p_os.z, 2);
@@ -326,6 +361,7 @@ struct Mandelbulb final : public DEObject
 			// At some parts of the fractal, m can become NaN (hairs),
 			// which pollutes everything downstream.
 			// Calling code should deal with it.
+			normal = normalise(dr);
 			return de;
 		}
 		else
@@ -333,12 +369,13 @@ struct Mandelbulb final : public DEObject
 			// The derivatives have overflowed to infinity
 			// and then further operations on them yield NaN.
 			// Assuming m is finite it might as well return 0 here.
+			normal = vec3r{ 0,0,0 };
 			return 0;
 		}
 #endif
+	}
 
 #endif
-	}
 };
 
 
