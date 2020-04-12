@@ -283,15 +283,18 @@ struct Mandelbulb final : public DEObject
 			w.z = p_os.z +  -8 * y*k4*(x4*x4 - 28 * x4*x2*z2 + 70 * x4*z4 - 28 * x2*z2*z4 + z4*z4) * k1*k2;
 
 			m = dot(w, w);
-			if (m > 16)
+			if (m > 256)
 				break;
 		}
 
 		return 0.25f * log(m) * sqrt(m) / dz;
 #else
-		Dual3f wx(p_os.x, 0);
-		Dual3f wy(p_os.y, 1);
-		Dual3f wz(p_os.z, 2);
+		const Dual3f cx(p_os.x, 0);
+		const Dual3f cy(p_os.y, 1);
+		const Dual3f cz(p_os.z, 2);
+		Dual3f wx = cx;
+		Dual3f wy = cy;
+		Dual3f wz = cz;
 
 		for (int i = 0; i < 4; i++)
 		{
@@ -304,12 +307,12 @@ struct Mandelbulb final : public DEObject
 			const Dual3f k1 = x4 + y4 + z4 - Dual3f(6) * y2*z2 - Dual3f(6) * x2*y2 + Dual3f(2) * z2*x2;
 			const Dual3f k4 = x2 - y2 + z2;
 
-			wx = wx + Dual3f( 64) * x*y*z * (x2 - z2) * k4 * (x4 - Dual3f(6) * x2*z2+z4) * k1*k2;
-			wy = wy + Dual3f(-16) * y2*k3*k4*k4 + k1*k1;
-			wz = wz + Dual3f( -8) * y*k4 * (x4*x4 - Dual3f(28) * x4*x2*z2 + Dual3f(70) * x4*z4 - Dual3f(28) * x2*z2*z4 + z4*z4) * k1*k2;
+			wx = cx + Dual3f( 64) * x*y*z * (x2 - z2) * k4 * (x4 - Dual3f(6) * x2*z2+z4) * k1*k2;
+			wy = cy + Dual3f(-16) * y2*k3*k4*k4 + k1*k1;
+			wz = cz + Dual3f( -8) * y*k4 * (x4*x4 - Dual3f(28) * x4*x2*z2 + Dual3f(70) * x4*z4 - Dual3f(28) * x2*z2*z4 + z4*z4) * k1*k2;
 
 			const float m = wx.v[0] * wx.v[0] + wy.v[0] * wy.v[0] + wz.v[0] * wz.v[0];
-			if (m > 16)
+			if (m > 256)
 				break;
 		}
 
@@ -317,19 +320,22 @@ struct Mandelbulb final : public DEObject
 		const vec3f jx = vec3f{ wx.v[1], wy.v[1], wz.v[1] };
 		const vec3f jy = vec3f{ wx.v[2], wy.v[2], wz.v[2] };
 		const vec3f jz = vec3f{ wx.v[3], wy.v[3], wz.v[3] };
-		const vec3f dr =
+
+		const float len2 = dot(p, p);
+		const float len = sqrt(len2);
+		const vec3f u = p * (1 / len); // Normalise p first to avoid overflow in dot products
+
+		const vec3f dr = vec3f
 		{
-			dot(p, jx),
-			dot(p, jy),
-			dot(p, jz)
+			dot(u, jx),
+			dot(u, jy),
+			dot(u, jz)
 		};
 
 #if 0 // Should work in theory? See https://www.evl.uic.edu/hypercomplex/html/book/book.pdf chapter 9.6
-		return 1.0f * dot(p, p) / length(dr);
+		return 1.0f * len / length(dr);
 #else // Edit by claude to take into account polynomial-ness I guess
-		const float m = dot(p, p);
-		const float dz = length(dr);
-		return 0.25f * log(m) * m / dz;
+		return 0.25f * log(len2) * len / length(dr);
 #endif
 
 #endif
