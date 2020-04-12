@@ -174,7 +174,7 @@ struct QuadraticJuliabulb final : public DEObject
 			const Dual3r r2 = xy_r2 + zz * zz;
 			const Dual3r scale = Dual3r(1) - zz * zz / xy_r2;
 
-			const real len2 = zx.v[0] * zx.v[0] + zy.v[0] * zy.v[0] + zz.v[0] * zz.v[0];
+			const real len2 = r2.v[0];
 			if (len2 > 65536 * 4096)
 				break;
 
