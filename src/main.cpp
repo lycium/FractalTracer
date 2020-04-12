@@ -597,14 +597,18 @@ int main(int argc, char ** argv)
 		// Render image passes
 		for (int pass = 0; pass < passes; ++pass)
 		{
-			#pragma omp parallel for schedule(dynamic, 1)
+			const int npixels = image_width * image_height;
+			const int nthreads = 16; // FIXME hardcoded value
+			const int nchunks = nthreads * 10;
+			const int chunk_size = npixels / nchunks;
+			#pragma omp parallel for collapse(2) schedule(dynamic, chunk_size)
 			for (int y = 0; y < image_height; y++)
 			for (int x = 0; x < image_width;  x++)
 				image_HDR[y * image_width + x] += generateColour(x, y, frame, pass, image_width, image_height, frames, world);
 		}
 
 		// Tonemap and convert to LDR sRGB
-		#pragma omp parallel for
+		#pragma omp parallel for collapse(2)
 		for (int y = 0; y < image_height; y++)
 		for (int x = 0; x < image_width;  x++)
 		{
