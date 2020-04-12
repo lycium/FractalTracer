@@ -508,6 +508,9 @@ struct sRGBPixel
 
 int main(int argc, char ** argv)
 {
+	// squash -Wunused-parameter
+	(void) argc;
+	(void) argv;
 	std::vector<Sphere> spheres;
 	{
 		const real main_sphere_rad = 4;
