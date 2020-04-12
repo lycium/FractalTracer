@@ -4,3 +4,4 @@
 /FractalTracer_msvc2019/x64
 *.ipch
 /FractalTracer_msvc2019/*.png
+src/FractalTracer
