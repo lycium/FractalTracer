@@ -29,6 +29,9 @@ public:
 			v[i + 1] = (i == var_idx) ? static_cast<real>(1) : 0;
 	}
 
+	// Copy constructor
+	inline constexpr Dual(const Dual&) noexcept = default;
+
 	inline constexpr const Dual & operator=(const Dual & rhs) noexcept { for (int i = 0; i < vars + 1; ++i) v[i] = rhs.v[i]; return *this; }
 
 	inline constexpr Dual operator+(const Dual & rhs) const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = v[i] + rhs.v[i]; return r; }
