@@ -103,7 +103,7 @@ struct DEObject : public Object
 #else
 
 	// Get the distance estimate and normal vector for point p in object space
-	virtual real getDE(const vec3r & p_os, vec3r & normal_out) const = 0;
+	virtual real getDE(const vec3r & p_os, vec3r & normal_os_out) const = 0;
 	virtual real getDE(const vec3r & p_os) const noexcept final
 	{
 		vec3r normal_ignored;
@@ -185,7 +185,7 @@ struct QuadraticJuliabulb final : public DEObject
 
 #else
 
-	virtual real getDE(const vec3r & p_os, vec3r & normal) const noexcept override final
+	virtual real getDE(const vec3r & p_os, vec3r & normal_os_out) const noexcept override final
 	{
 		Dual3r zx(p_os.x, 0);
 		Dual3r zy(p_os.y, 1);
@@ -224,7 +224,7 @@ struct QuadraticJuliabulb final : public DEObject
 			dot(p, jy),
 			dot(p, jz)
 		};
-		normal = normalise(dr);
+		normal_os_out = normalise(dr);
 		return 0.05f * dot(p, p) / length(dr);
 	}
 
@@ -272,7 +272,7 @@ struct Mandelbulb final : public DEObject
 
 #else
 
-	virtual real getDE(const vec3r & p_os, vec3r & normal) const noexcept override final
+	virtual real getDE(const vec3r & p_os, vec3r & normal_os_out) const noexcept override final
 	{
 		const Dual3r cx(p_os.x, 0);
 		const Dual3r cy(p_os.y, 1);
@@ -361,7 +361,7 @@ struct Mandelbulb final : public DEObject
 			// At some parts of the fractal, m can become NaN (hairs),
 			// which pollutes everything downstream.
 			// Calling code should deal with it.
-			normal = normalise(dr);
+			normal_os_out = normalise(dr);
 			return de;
 		}
 		else
@@ -369,7 +369,7 @@ struct Mandelbulb final : public DEObject
 			// The derivatives have overflowed to infinity
 			// and then further operations on them yield NaN.
 			// Assuming m is finite it might as well return 0 here.
-			normal = vec3r{ 0,0,0 };
+			normal_os_out = vec3r{ 0,0,0 };
 			return 0;
 		}
 #endif
@@ -405,7 +405,7 @@ public:
 };
 
 
-inline real sRGB(const real u)
+inline float sRGB(const float u)
 {
 	return (u <= 0.0031308f) ? 12.92f * u : 1.055f * std::pow(u, 0.416667f) - 0.055f;
 }
@@ -565,10 +565,10 @@ int main(int argc, char ** argv)
 		spheres.push_back(s2);
 	}
 
-	//QuadraticJuliabulb mandelbulb;
-	Mandelbulb mandelbulb;
-	mandelbulb.radius = 4;
-	mandelbulb.colour = { 0.1f, 0.3f, 0.7f };
+	//QuadraticJuliabulb bulb;
+	Mandelbulb bulb;
+	bulb.radius = 4;
+	bulb.colour = { 0.1f, 0.3f, 0.7f };
 
 	// Set up the world
 	World world;
@@ -576,7 +576,7 @@ int main(int argc, char ** argv)
 		for (const Sphere & s : spheres)
 			world.objects.push_back((Object *)&s);
 
-		world.objects.push_back((Object *)&mandelbulb);
+		world.objects.push_back((Object *)&bulb);
 	}
 
 	const int image_multi  = 40;
@@ -597,18 +597,14 @@ int main(int argc, char ** argv)
 		// Render image passes
 		for (int pass = 0; pass < passes; ++pass)
 		{
-			const int npixels = image_width * image_height;
-			const int nthreads = 16; // FIXME hardcoded value
-			const int nchunks = nthreads * 10;
-			const int chunk_size = npixels / nchunks;
-			#pragma omp parallel for collapse(2) schedule(dynamic, chunk_size)
+			#pragma omp parallel for schedule(dynamic, 1)
 			for (int y = 0; y < image_height; y++)
 			for (int x = 0; x < image_width;  x++)
 				image_HDR[y * image_width + x] += generateColour(x, y, frame, pass, image_width, image_height, frames, world);
 		}
 
 		// Tonemap and convert to LDR sRGB
-		#pragma omp parallel for collapse(2)
+		#pragma omp parallel for
 		for (int y = 0; y < image_height; y++)
 		for (int x = 0; x < image_width;  x++)
 		{
