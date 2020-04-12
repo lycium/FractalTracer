@@ -12,6 +12,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+//#define float double
 #include "Dual.h"
 
 
@@ -176,7 +177,7 @@ inline float sdSphere(const vec3f & p, float r) { return length(p) - r; }
 inline float sdBox(const vec3f & p, const vec3f & b)
 {
 	const vec3f q = abs(p) - b;
-	return length(max(q, vec3f{ 0,0,0 })) + std::min(std::max(q.x, std::max(q.y, q.z)), 0.0f);
+	return length(max(q, vec3f{ 0,0,0 })) + std::min(std::max(q.x, std::max(q.y, q.z)), float(0));
 }
 
 
@@ -298,6 +299,7 @@ struct Mandelbulb final : public DEObject
 
 		for (int i = 0; i < 4; i++)
 		{
+
 			const Dual3f x = wx, x2 = x*x, x4 = x2*x2;
 			const Dual3f y = wy, y2 = y*y, y4 = y2*y2;
 			const Dual3f z = wz, z2 = z*z, z4 = z2*z2;
@@ -312,11 +314,16 @@ struct Mandelbulb final : public DEObject
 			wz = cz + Dual3f( -8) * y*k4 * (x4*x4 - Dual3f(28) * x4*x2*z2 + Dual3f(70) * x4*z4 - Dual3f(28) * x2*z2*z4 + z4*z4) * k1*k2;
 
 			const float m = wx.v[0] * wx.v[0] + wy.v[0] * wy.v[0] + wz.v[0] * wz.v[0];
+			// Computations above requires computing terms of size w^15.
+			// The largest representable single precision float is less than 2^128.
+			// (2 ** 127) ** (1 / 15) = 353.7698 =: R
+			// So if m < R, the next iteration should not overflow
 			if (m > 256)
 				break;
 		}
 
 		const vec3f p  = vec3f{ wx.v[0], wy.v[0], wz.v[0] };
+		// Jacobian derivative matrix
 		const vec3f jx = vec3f{ wx.v[1], wy.v[1], wz.v[1] };
 		const vec3f jy = vec3f{ wx.v[2], wy.v[2], wz.v[2] };
 		const vec3f jz = vec3f{ wx.v[3], wy.v[3], wz.v[3] };
@@ -325,6 +332,8 @@ struct Mandelbulb final : public DEObject
 		const float len = sqrt(len2);
 		const vec3f u = p * (1 / len); // Normalise p first to avoid overflow in dot products
 
+		// Vector-matrix norm: ||J||_u = |u.J|/|u|
+		// Ref: <https://fractalforums.org/fractal-image-gallery/18/burning-ship-distance-estimation/647/msg3207#msg3207>
 		const vec3f dr = vec3f
 		{
 			dot(u, jx),
@@ -335,9 +344,52 @@ struct Mandelbulb final : public DEObject
 #if 0 // Should work in theory? See https://www.evl.uic.edu/hypercomplex/html/book/book.pdf chapter 9.6
 		return 1.0f * len / length(dr);
 #else // Edit by claude to take into account polynomial-ness I guess
-		return 0.25f * log(len2) * len / length(dr);
+
+		const float len_dr = length(dr);
+
+		// The basic DE formula has a log for functions that escape like
+		// |z_{n+k}| ~ |z_n|^{p^k}
+		// Ref: <http://linas.org/art-gallery/mderive/mderive.html>
+		const float de_base = len * std::log(len) / len_dr;
+
+		// Koebe 1/4 theorem for complex-analytic functions implies that
+		// the distance estimate is accurate up to a factor of 2.  Mandelbulb
+		// is not complex-analytic (or even complex) but one might hope that
+		// similar arguments could apply.  Divide by 2 to get the lower bound.
+		const float koebe_factor = 1.0 / 2.0;
+
+#if 0
+		// The distance estimate needs a log(power) factor.
+		// Ref: <https://fractalforums.org/fractal-mathematics-and-new-theories/28/extension-of-numerical-de-bounds-to-other-powersdimensions/3004>
+		const float power_factor = 1.0 / std::log(8.0);
+		// Not sure if this is included in the derivative calculation
+#else
+		const float power_factor = 1.0;
 #endif
 
+		// Arbitrary factor "just in case" (traditional).
+		const float extra_factor = 1.0;
+
+		const float factor = koebe_factor * power_factor * extra_factor;
+
+		const float de = factor * de_base;
+
+		if (std::isnan(len_dr) || std::isinf(len_dr))
+		{
+			// The derivatives have overflowed to infinity
+			// and then further operations on them yield NaN.
+			// Assuming m is finite it might as well return 0 here.
+			return 0;
+		}
+		else
+		{
+			// At some parts of the fractal, m can become NaN (hairs),
+			// which pollutes everything downstream.
+			// Calling code should deal with it.
+			return de;
+		}
+
+#endif
 #endif
 	}
 };
@@ -409,21 +461,29 @@ double RadicalInverse(int a) noexcept
 
 inline float uintToUnitFloat(uint32_t v)
 {
-	// Trick from MTGP: generate an uniformly distributed single precision number in [1,2) and subtract 1
-	union
+	if (sizeof(float) != sizeof(uint32_t))
 	{
-		uint32_t u;
-		float f;
-	} x;
-	x.u = (v >> 9) | 0x3f800000u;
-	return x.f - 1.0f;
+		// This implementation is needed with the #define float double hack.
+		return float(v) / float(4294967296.0);
+	}
+	else
+	{
+		// Trick from MTGP: generate an uniformly distributed single precision number in [1,2) and subtract 1
+		union
+		{
+			uint32_t u;
+			float f;
+		} x;
+		x.u = (v >> 9) | 0x3f800000u;
+		return x.f - 1.0f;
+	}
 }
 
 
 inline float wrap01(float u, float v) { return (u + v < 1) ? u + v : u + v - 1; }
 
 
-vec3f generateColour(int x, int y, int pass, int width, int height, const World & world) noexcept
+vec3f generateColour(int x, int y, int frame, int pass, int width, int height, int frames, const World & world) noexcept
 {
 	const float aspect_ratio = width / (float)height;
 
@@ -432,17 +492,23 @@ vec3f generateColour(int x, int y, int pass, int width, int height, const World 
 	const float sensor_width  = 2 * std::tan(fov_rad / 2);
 	const float sensor_height = sensor_width / aspect_ratio;
 
-	const vec3f cam_pos = vec3f{ 4, 5, -10 } * 0.25f;
+	const float hash_random = uintToUnitFloat(hash(y * width + x)); // Use pixel idx to randomise Halton sequence
+	const float pixel_sample_x = wrap01((float)RadicalInverse<2>(pass), hash_random);
+	const float pixel_sample_y = wrap01((float)RadicalInverse<3>(pass), hash_random);
+	const float pixel_sample_t = wrap01((float)RadicalInverse<5>(pass), hash_random);
+
+	// Adjust shutter time in frames, for motion blur.
+	const float shutter_time = 0;
+	const float t = 2 * 3.14159265359f * (frame + shutter_time * pixel_sample_t) / frames;
+	const float co = std::cos(t);
+	const float si = std::sin(t);
+	const vec3f cam_pos = vec3f{ 4 * co + 10 * si, 5, -10 * co + 4 * si } * 0.25f;
 	const vec3f cam_lookat = { 0, 0, 0 };
 	const vec3f world_up = { 0, 1, 0 };
 
 	const vec3f cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3f cam_right = cross(world_up, cam_forward);
 	const vec3f cam_up = cross(cam_forward, cam_right);
-
-	const float hash_random = uintToUnitFloat(hash(y * width + x)); // Use pixel idx to randomise Halton sequence
-	const float pixel_sample_x = wrap01((float)RadicalInverse<2>(pass), hash_random);
-	const float pixel_sample_y = wrap01((float)RadicalInverse<3>(pass), hash_random);
 
 	const vec3f pixel_x = cam_right * (sensor_width / width);
 	const vec3f pixel_y = cam_up * -(sensor_height / height);
@@ -475,7 +541,7 @@ vec3f generateColour(int x, int y, int pass, int width, int height, const World 
 
 	// Compute reflected light (simple diffuse / Lambertian) with 1/distance^2 falloff
 	const float n_dot_l = dot(normal, light_dir);
-	const vec3f refl_colour = nearest_hit_obj->colour * std::max(0.0f, n_dot_l) / light_ln2 * 512;
+	const vec3f refl_colour = nearest_hit_obj->colour * std::max(float(0), n_dot_l) / light_ln2 * 512;
 
 	// Trace shadow ray from the hit point towards the light
 	const Ray shadow_ray = { hit_p, light_dir };
@@ -535,6 +601,7 @@ int main(int argc, char ** argv)
 	const int image_multi  = 80;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
+	const int frames = 1;
 
 	std::vector<vec3f>     image_HDR(image_width * image_height);
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
@@ -542,43 +609,56 @@ int main(int argc, char ** argv)
 
 	// Main progressive rendering loop. To take advantage of the progressive rendering on Windows,
 	//  install SumatraPDF viewer and open the derp.png file. It will auto-reload on update.
-	int pass = 0;
-	int target_passes = 1;
-	while (true)
+	for (int frame = 0; frame < frames; ++frame)
 	{
-		// Render image passes
-		for (; pass < target_passes; ++pass)
+		int target_passes = 1;
+		int pass = 0;
+		std::fill(image_HDR.begin(), image_HDR.end(), vec3f{0,0,0});
+		while (true)
 		{
-			#pragma omp parallel for schedule(dynamic, 1)
+			// Render image passes
+			for (; pass < target_passes; ++pass)
+			{
+				const int num_processors = 16; // FIXME
+				const int nchunks = num_processors * 10;
+				const int chunk_size = (image_width * image_height) / nchunks;
+				#pragma omp parallel for collapse(2) schedule(dynamic, chunk_size)
+				for (int y = 0; y < image_height; y++)
+				for (int x = 0; x < image_width;  x++)
+					image_HDR[y * image_width + x] += generateColour(x, y, frame, pass, image_width, image_height, frames, world);
+			}
+	
+			// Tonemap and convert to LDR sRGB
+			#pragma omp parallel for collapse(2)
 			for (int y = 0; y < image_height; y++)
 			for (int x = 0; x < image_width;  x++)
-				image_HDR[y * image_width + x] += generateColour(x, y, pass, image_width, image_height, world);
-		}
-
-		// Tonemap and convert to LDR sRGB
-		#pragma omp parallel for
-		for (int y = 0; y < image_height; y++)
-		for (int x = 0; x < image_width;  x++)
-		{
-			const int pixel_idx = y * image_width + x;
-			const float scale = 1.0f / pass;
-
-			const vec3f pixel_colour = image_HDR[pixel_idx];
-			image_LDR[pixel_idx] =
 			{
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.y * scale) * 256))),
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.z * scale) * 256)))
-			};
+				const int pixel_idx = y * image_width + x;
+				const float scale = 1.0f / pass;
+	
+				const vec3f pixel_colour = image_HDR[pixel_idx];
+				image_LDR[pixel_idx] =
+				{
+					(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
+					(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.y * scale) * 256))),
+					(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.z * scale) * 256)))
+				};
+			}
+	
+			// Save image
+			char filename[100];
+			snprintf(filename, 100, "%08d-%d.png", frame, pass);
+			stbi_write_png(filename, image_width, image_height, 3, &image_LDR[0], image_width * 3);
+			printf("saved %s with %d passes\n", filename, pass);
+			if (frames > 1)
+			{
+				break;
+			}
+			else
+			{
+				target_passes *= 2;
+			}
 		}
-
-		// Save image
-		stbi_write_png("derp.png", image_width, image_height, 3, &image_LDR[0], image_width * 3);
-		printf("saved derp.png with %d passes\n", pass);
-
-		target_passes *= 2;
 	}
-
-	//system("derp.png");
 	return 0;
 }
