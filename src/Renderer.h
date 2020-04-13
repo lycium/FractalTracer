@@ -97,7 +97,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 	const vec3r cam_lookat = { 0, 0, 0 };
 	const vec3r world_up = { 0, 1, 0 };
 
-	const real hash_random    = uintToUnitReal(hash(y * width + x)); // Use pixel idx to randomise Halton sequence
+	const real hash_random    = uintToUnitReal(hash(frame * width * height + y * width + x)); // Use pixel idx to randomise Halton sequence
 	const real pixel_sample_x = wrap01((real)RadicalInverse<2>(pass), hash_random);
 	const real pixel_sample_y = wrap01((real)RadicalInverse<3>(pass), hash_random);
 	const real pixel_sample_t = wrap01((real)RadicalInverse<5>(pass), hash_random);
