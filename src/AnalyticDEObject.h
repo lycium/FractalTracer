@@ -20,13 +20,17 @@ struct AnalyticDEObject : public SceneObject
 	virtual vec3r getNormal(const vec3r & p) const noexcept override final
 	{
 		const vec3r p_os = p - centre;
-		const real  DE_s = 0.001f; // TODO: make this depend on real type
-		const real  DE_0 = getDE(p_os);
+#if USE_DOUBLE
+		const real DE_s = 1e-8f;
+#else
+		const real DE_s = 1e-4f;
+#endif
+		const real DE_0 = getDE(p_os);
 		const vec3r grad =
 		{
-			getDE(p_os + vec3r{ DE_s, 0, 0}) - DE_0,
-			getDE(p_os + vec3r{ 0, DE_s, 0}) - DE_0,
-			getDE(p_os + vec3r{ 0, 0, DE_s}) - DE_0
+			getDE(p_os + vec3r{ DE_s, 0, 0 }) - DE_0,
+			getDE(p_os + vec3r{ 0, DE_s, 0 }) - DE_0,
+			getDE(p_os + vec3r{ 0, 0, DE_s }) - DE_0
 		};
 		return normalise(grad);
 	}

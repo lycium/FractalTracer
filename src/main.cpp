@@ -64,7 +64,9 @@ int main(int argc, char ** argv)
 		spheres.push_back(s2);
 	}
 
+	//MandelbulbAnalytic bulb;
 	MandelbulbDual bulb;
+	//QuadraticJuliabulbAnalytic bulb;
 	//QuadraticJuliabulbDual bulb;
 	bulb.radius = 4;
 	bulb.colour = { 0.1f, 0.3f, 0.7f };

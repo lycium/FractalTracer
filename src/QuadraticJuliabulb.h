@@ -5,7 +5,6 @@
 
 
 
-
 struct QuadraticJuliabulbAnalytic final : public AnalyticDEObject
 {
 	virtual real getDE(const vec3r & p_os) const noexcept override final
@@ -16,9 +15,9 @@ struct QuadraticJuliabulbAnalytic final : public AnalyticDEObject
 		for (int i = 0; i < 64 * 8; i++)
 		{
 			const real xy_r2 = z.x * z.x + z.y * z.y;
-			const real r2 = xy_r2 + z.z * z.z;
 			const real scale = 1 - z.z * z.z / xy_r2;
-			r = std::sqrt(r2);
+
+			r = std::sqrt(xy_r2 + z.z * z.z);
 			if (r > 256 * 64)
 				break;
 
@@ -46,11 +45,10 @@ struct QuadraticJuliabulbDual final : public DualDEObject
 		for (int i = 0; i < 64 * 8; i++)
 		{
 			const Dual3r xy_r2 = z.x * z.x + z.y * z.y;
-			const Dual3r r2 = xy_r2 + z.z * z.z;
 			const Dual3r scale = Dual3r(1) - z.z * z.z / xy_r2;
 
-			const real len2 = r2.v[0];
-			if (len2 > 65536 * 4096)
+			const real r2 = xy_r2.v[0] + z.z.v[0] * z.z.v[0];
+			if (r2 > 65536 * 4096)
 				break;
 
 			const Dual3r zx_ = (z.x * z.x - z.y * z.y) * Dual3r(scale) + c.x;

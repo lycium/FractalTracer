@@ -5,6 +5,7 @@
 
 
 // TODO: Add specialised functions for +-*/ with scalar (to avoid promotion to Dual)
+// TODO: Add more functions (e.g. asin, acos, atan)
 // Note that this is slightly suboptimal for single variable derivatives
 template <typename real, int vars>
 class Dual final
