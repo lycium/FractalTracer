@@ -2,6 +2,9 @@
 
 #include <cmath>
 
+#include "real.h"
+#include "Dual.h"
+
 
 
 template<typename real>
@@ -32,8 +35,13 @@ public:
 };
 
 using vec3i = vec3<int>;
+using vec3r = vec3<real>;
 using vec3f = vec3<float>;
 using vec3d = vec3<double>;
+
+using DualVec3r = vec3<Dual3r>;
+using DualVec3f = vec3<Dual3f>;
+using DualVec3d = vec3<Dual3d>;
 
 
 template<typename real>

@@ -1,10 +1,11 @@
 #pragma once
 
+#include "real.h"
+
+
+
 // TODO: Add specialised functions for +-*/ with scalar (to avoid promotion to Dual)
 // Note that this is slightly suboptimal for single variable derivatives
-
-
-
 template <typename real, int vars>
 class Dual final
 {
@@ -58,11 +59,13 @@ public:
 	}
 };
 
+using Dual2r = Dual<real, 2>;
 using Dual2f = Dual<float, 2>;
-using Dual3f = Dual<float, 3>;
+using Dual2d = Dual<double, 2>;
 
-//using Dual2d = Dual<double, 2>;
-//using Dual3d = Dual<double, 3>;
+using Dual3r = Dual<real, 3>;
+using Dual3f = Dual<float, 3>;
+using Dual3d = Dual<double, 3>;
 
 
 template <typename real, int vars>

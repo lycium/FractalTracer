@@ -55,7 +55,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <OpenMPSupport>true</OpenMPSupport>
+      <OpenMPSupport>false</OpenMPSupport>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -83,8 +83,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\src\AnalyticDEObject.h" />
     <ClInclude Include="..\src\Dual.h" />
+    <ClInclude Include="..\src\DualDEObject.h" />
+    <ClInclude Include="..\src\Mandelbulb.h" />
+    <ClInclude Include="..\src\QuadraticJuliabulb.h" />
+    <ClInclude Include="..\src\Ray.h" />
     <ClInclude Include="..\src\real.h" />
+    <ClInclude Include="..\src\Renderer.h" />
+    <ClInclude Include="..\src\SceneObject.h" />
+    <ClInclude Include="..\src\SimpleObjects.h" />
     <ClInclude Include="..\src\stb_image_write.h" />
     <ClInclude Include="..\src\vec2.h" />
     <ClInclude Include="..\src\vec3.h" />
