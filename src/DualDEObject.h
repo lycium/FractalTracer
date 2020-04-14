@@ -12,6 +12,49 @@ struct DualDEObject : public SceneObject
 	vec3r centre = { 0, 0, 0 };
 	real  radius = 1; 
 
+	real getLinearDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
+	{
+		// Extract the position vector and Jacobian
+		const vec3r p  = vec3r{ p_os.x.v[0], p_os.y.v[0], p_os.z.v[0] };
+		const vec3r jx = vec3r{ p_os.x.v[1], p_os.y.v[1], p_os.z.v[1] };
+		const vec3r jy = vec3r{ p_os.x.v[2], p_os.y.v[2], p_os.z.v[2] };
+		const vec3r jz = vec3r{ p_os.x.v[3], p_os.y.v[3], p_os.z.v[3] };
+
+		const real len2 = dot(p, p);
+		const real len = sqrt(len2);
+		const vec3r u = p * (1 / len); // Normalise p first to avoid overflow in dot products
+
+		// Vector-matrix norm: ||J||_u = |u.J|/|u|
+		// Ref: https://fractalforums.org/fractal-image-gallery/18/burning-ship-distance-estimation/647/msg3207#msg3207
+		const vec3r dr = vec3r
+		{
+			dot(u, jx),
+			dot(u, jy),
+			dot(u, jz)
+		};
+
+		// The basic DE formula has no log for functions that escape like |z_{n+k}| ~ |z_n|*{a^k}
+		const real len_dr = length(dr);
+
+		const real de = (len - radius) / len_dr;
+
+		if (std::isfinite(len_dr)) // TODO: this function is probably slow, find a replacement
+		{
+			// At some parts of the fractal, m can become NaN (hairs),
+			// which pollutes everything downstream.
+			// Calling code should deal with it.
+			normal_os_out = normalise(dr);
+			return de;
+		}
+		else
+		{
+			// The derivatives have overflowed to infinity
+			// and then further operations on them yield NaN.
+			// Assuming m is finite it might as well return 0 here.
+			normal_os_out = vec3r{ 0,0,0 };
+			return 0;
+		}
+	}
 
 	real getPolynomialDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
 	{
