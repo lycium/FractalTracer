@@ -35,9 +35,11 @@ public:
 	inline constexpr Dual(const Dual&) noexcept = default;
 
 	inline constexpr const Dual & operator=(const Dual & rhs) noexcept { for (int i = 0; i < vars + 1; ++i) v[i] = rhs.v[i]; return *this; }
+	inline constexpr const Dual & operator-=(const real & rhs) noexcept { v[0] -= rhs; return *this; }
 
 	inline constexpr Dual operator+(const Dual & rhs) const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = v[i] + rhs.v[i]; return r; }
 	inline constexpr Dual operator-(const Dual & rhs) const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = v[i] - rhs.v[i]; return r; }
+	inline constexpr Dual operator-() const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = -v[i]; return r; }
 
 	inline constexpr Dual operator*(const Dual & rhs) const noexcept
 	{
@@ -47,6 +49,7 @@ public:
 			r.v[i + 1] = v[0] * rhs.v[i + 1] + v[i + 1] * rhs.v[0]; // Product rule
 		return r;
 	}
+	inline constexpr const Dual & operator*=(const Dual & rhs) noexcept { *this = *this * rhs; return *this; }
 
 	inline constexpr Dual operator/(const Dual & rhs) const noexcept
 	{
@@ -134,4 +137,10 @@ inline constexpr Dual<real, vars> tan(const Dual<real, vars> & d) noexcept
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = d.v[i + 1] * scale;
 	return r;
+}
+
+template <typename real, int vars>
+inline constexpr Dual<real, vars> fabs(const Dual<real, vars> & d) noexcept
+{
+	return d.v[0] < 0 ? -d : d;
 }
