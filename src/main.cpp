@@ -25,6 +25,7 @@
 
 #include "Mandelbulb.h"
 #include "QuadraticJuliabulb.h"
+#include "MengerSponge.h"
 
 
 
@@ -69,6 +70,9 @@ int main(int argc, char ** argv)
 	//QuadraticJuliabulbAnalytic bulb;
 	//QuadraticJuliabulbDual bulb;
 	bulb.radius = 4;
+	//MengerSpongeAnalytic bulb;
+	//MengerSpongeDual bulb;
+	//bulb.radius = sqrt(3);
 	bulb.colour = { 0.1f, 0.3f, 0.7f };
 
 	// Set up the world
