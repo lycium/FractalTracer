@@ -7,16 +7,16 @@
 // TODO: Add specialised functions for +-*/ with scalar (to avoid promotion to Dual)
 // TODO: Add more functions (e.g. asin, acos, atan)
 // Note that this is slightly suboptimal for single variable derivatives
-template <typename real, int vars>
+template <typename real_type, int vars>
 class Dual final
 {
 public:
-	real v[vars + 1];
+	real_type v[vars + 1];
 
 	inline constexpr Dual() noexcept { }
 
 	// Constant constructor
-	inline constexpr Dual(const real s) noexcept
+	inline constexpr Dual(const real_type s) noexcept
 	{
 		v[0] = s;
 		for (int i = 0; i < vars; ++i)
@@ -24,18 +24,18 @@ public:
 	}
 
 	// Constructor with derivative for var_idx'th variable
-	inline constexpr Dual(const real s, const int var_idx) noexcept
+	inline constexpr Dual(const real_type s, const int var_idx) noexcept
 	{
 		v[0] = s;
 		for (int i = 0; i < vars; ++i)
-			v[i + 1] = (i == var_idx) ? static_cast<real>(1) : 0;
+			v[i + 1] = (i == var_idx) ? static_cast<real_type>(1) : 0;
 	}
 
 	// Copy constructor
-	inline constexpr Dual(const Dual&) noexcept = default;
+	inline constexpr Dual(const Dual &) noexcept = default;
 
 	inline constexpr const Dual & operator=(const Dual & rhs) noexcept { for (int i = 0; i < vars + 1; ++i) v[i] = rhs.v[i]; return *this; }
-	inline constexpr const Dual & operator-=(const real & rhs) noexcept { v[0] -= rhs; return *this; }
+	inline constexpr const Dual & operator-=(const real_type & rhs) noexcept { v[0] -= rhs; return *this; }
 
 	inline constexpr Dual operator+(const Dual & rhs) const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = v[i] + rhs.v[i]; return r; }
 	inline constexpr Dual operator-(const Dual & rhs) const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = v[i] - rhs.v[i]; return r; }
@@ -53,8 +53,8 @@ public:
 
 	inline constexpr Dual operator/(const Dual & rhs) const noexcept
 	{
-		const real inv_v0 = 1 / rhs.v[0];
-		const real scale = inv_v0 * inv_v0;
+		const real_type inv_v0 = 1 / rhs.v[0];
+		const real_type scale = inv_v0 * inv_v0;
 		Dual r;
 		r.v[0] = v[0] * inv_v0;
 		for (int i = 0; i < vars; ++i)
@@ -72,12 +72,12 @@ using Dual3f = Dual<float, 3>;
 using Dual3d = Dual<double, 3>;
 
 
-template <typename real, int vars>
-inline constexpr Dual<real, vars> pow(const Dual<real, vars> & d, const real e) noexcept
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> pow(const Dual<real_type, vars> & d, const real_type e) noexcept
 {
-	const real scale = std::pow(d.v[0], e - 1) * e;
+	const real_type scale = std::pow(d.v[0], e - 1) * e;
 
-	Dual<real, vars> r;
+	Dual<real_type, vars> r;
 	r.v[0] = std::pow(d.v[0], e);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = d.v[i + 1] * scale;
@@ -86,13 +86,13 @@ inline constexpr Dual<real, vars> pow(const Dual<real, vars> & d, const real e) 
 
 
 // Optimised version of pow for square root
-template <typename real, int vars>
-inline constexpr Dual<real, vars> sqrt(const Dual<real, vars> & d) noexcept
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> sqrt(const Dual<real_type, vars> & d) noexcept
 {
-	const real sqrt_v0 = std::sqrt(d.v[0]);
-	const real scale = static_cast<real>(0.5) / sqrt_v0;
+	const real_type sqrt_v0 = std::sqrt(d.v[0]);
+	const real_type scale = static_cast<real_type>(0.5) / sqrt_v0;
 
-	Dual<real, vars> r;
+	Dual<real_type, vars> r;
 	r.v[0] = sqrt_v0;
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = d.v[i + 1] * scale;
@@ -100,12 +100,12 @@ inline constexpr Dual<real, vars> sqrt(const Dual<real, vars> & d) noexcept
 }
 
 
-template <typename real, int vars>
-inline constexpr Dual<real, vars> sin(const Dual<real, vars> & d) noexcept
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> sin(const Dual<real_type, vars> & d) noexcept
 {
-	const real scale = std::cos(d.v[0]);
+	const real_type scale = std::cos(d.v[0]);
 
-	Dual<real, vars> r;
+	Dual<real_type, vars> r;
 	r.v[0] = std::sin(d.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = d.v[i + 1] * scale;
@@ -113,12 +113,12 @@ inline constexpr Dual<real, vars> sin(const Dual<real, vars> & d) noexcept
 }
 
 
-template <typename real, int vars>
-inline constexpr Dual<real, vars> cos(const Dual<real, vars> & d) noexcept
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> cos(const Dual<real_type, vars> & d) noexcept
 {
-	const real scale = -std::sin(d.v[0]);
+	const real_type scale = -std::sin(d.v[0]);
 
-	Dual<real, vars> r;
+	Dual<real_type, vars> r;
 	r.v[0] = std::cos(d.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = d.v[i + 1] * scale;
@@ -126,21 +126,22 @@ inline constexpr Dual<real, vars> cos(const Dual<real, vars> & d) noexcept
 }
 
 
-template <typename real, int vars>
-inline constexpr Dual<real, vars> tan(const Dual<real, vars> & d) noexcept
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> tan(const Dual<real_type, vars> & d) noexcept
 {
-	const real cos_v0 = std::cos(d.v[0]);
-	const real scale = 1 / (cos_v0 * cos_v0);
+	const real_type cos_v0 = std::cos(d.v[0]);
+	const real_type scale = 1 / (cos_v0 * cos_v0);
 
-	Dual<real, vars> r;
+	Dual<real_type, vars> r;
 	r.v[0] = std::tan(d.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = d.v[i + 1] * scale;
 	return r;
 }
 
-template <typename real, int vars>
-inline constexpr Dual<real, vars> fabs(const Dual<real, vars> & d) noexcept
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> fabs(const Dual<real_type, vars> & d) noexcept
 {
-	return d.v[0] < 0 ? -d : d;
+	return (d.v[0] < 0) ? -d : d;
 }
