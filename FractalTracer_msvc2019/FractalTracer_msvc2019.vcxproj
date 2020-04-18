@@ -87,6 +87,7 @@
     <ClInclude Include="..\src\Dual.h" />
     <ClInclude Include="..\src\DualDEObject.h" />
     <ClInclude Include="..\src\Mandelbulb.h" />
+    <ClInclude Include="..\src\MengerSponge.h" />
     <ClInclude Include="..\src\QuadraticJuliabulb.h" />
     <ClInclude Include="..\src\Ray.h" />
     <ClInclude Include="..\src\real.h" />
