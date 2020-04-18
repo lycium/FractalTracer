@@ -3,7 +3,7 @@
 #include "AnalyticDEObject.h"
 #include "DualDEObject.h"
 
-using std::swap;
+
 
 // knighty's distance estimator:
 // http://www.fractalforums.com/sierpinski-gasket/kaleidoscopic-(escape-time-ifs)/
@@ -19,21 +19,20 @@ struct MengerSpongeAnalytic final : public AnalyticDEObject
 
 		for (int i = 0; i < 16; i++)
 		{
-
 			z.x = fabs(z.x);
 			z.y = fabs(z.y);
 			z.z = fabs(z.z);
 
-			if (z.x - z.y < 0.0) swap(z.x, z.y);
-			if (z.x - z.z < 0.0) swap(z.x, z.z);
-			if (z.y - z.z < 0.0) swap(z.y, z.z);
+			if (z.x - z.y < 0) std::swap(z.x, z.y);
+			if (z.x - z.z < 0) std::swap(z.x, z.z);
+			if (z.y - z.z < 0) std::swap(z.y, z.z);
 
-			z *= 3;
+			z  *= 3;
 			dz *= 3;
 
-			z.x -= 2.0;
-			z.y -= 2.0;
-			if (z.z > 1.0) z.z -= 2.0;
+			z.x -= 2;
+			z.y -= 2;
+			if (z.z > 1) z.z -= 2;
 
 			m = dot(z, z);
 			if (m > 256)
@@ -58,15 +57,15 @@ struct MengerSpongeDual final : public DualDEObject
 			z.y = fabs(z.y);
 			z.z = fabs(z.z);
 
-			if (z.x.v[0] - z.y.v[0] < 0.0) swap(z.x, z.y);
-			if (z.x.v[0] - z.z.v[0] < 0.0) swap(z.x, z.z);
-			if (z.y.v[0] - z.z.v[0] < 0.0) swap(z.y, z.z);
+			if (z.x.v[0] - z.y.v[0] < 0) std::swap(z.x, z.y);
+			if (z.x.v[0] - z.z.v[0] < 0) std::swap(z.x, z.z);
+			if (z.y.v[0] - z.z.v[0] < 0) std::swap(z.y, z.z);
 
 			z *= 3;
 
-			z.x -= 2.0;
-			z.y -= 2.0;
-			if (z.z.v[0] > 1.0) z.z -= 2.0;
+			z.x -= 2;
+			z.y -= 2;
+			if (z.z.v[0] > 1) z.z -= 2;
 
 			const real m = z.x.v[0] * z.x.v[0] + z.y.v[0] * z.y.v[0] + z.z.v[0] * z.z.v[0];
 			if (m > 256)
