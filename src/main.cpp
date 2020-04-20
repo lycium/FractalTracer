@@ -42,6 +42,31 @@ struct sRGBPixel
 	uint8_t b;
 };
 
+void render_pass(std::vector<vec3f> &image_HDR, const int frame, const int pass, const int image_width, const int image_height, const int frames, const Scene &world)
+{
+	#pragma omp parallel for schedule(dynamic, 1)
+	for (int y = 0; y < image_height; y++)
+	for (int x = 0; x < image_width;  x++)
+		image_HDR[y * image_width + x] += generateColour(x, y, frame, pass, image_width, image_height, frames, world);
+}
+
+void tonemap(std::vector<sRGBPixel> &image_LDR, const std::vector<vec3f> &image_HDR, const int passes, const int image_width, const int image_height)
+{
+	const float scale = 1.0f / passes;
+	#pragma omp parallel for
+	for (int y = 0; y < image_height; y++)
+	for (int x = 0; x < image_width;  x++)
+	{
+		const int pixel_idx = y * image_width + x;
+		const vec3f pixel_colour = image_HDR[pixel_idx];
+		image_LDR[pixel_idx] =
+		{
+			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
+			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.y * scale) * 256))),
+			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.z * scale) * 256)))
+		};
+	}
+}
 
 int main(int argc, char ** argv)
 {
@@ -102,28 +127,11 @@ int main(int argc, char ** argv)
 		// Render image passes
 		for (int pass = 0; pass < passes; ++pass)
 		{
-			#pragma omp parallel for schedule(dynamic, 1)
-			for (int y = 0; y < image_height; y++)
-			for (int x = 0; x < image_width;  x++)
-				image_HDR[y * image_width + x] += generateColour(x, y, frame, pass, image_width, image_height, frames, world);
+			render_pass(image_HDR, frame, pass, image_width, image_height, frames, world);
 		}
 
 		// Tonemap and convert to LDR sRGB
-		#pragma omp parallel for
-		for (int y = 0; y < image_height; y++)
-		for (int x = 0; x < image_width;  x++)
-		{
-			const int pixel_idx = y * image_width + x;
-			const float scale = 1.0f / passes;
-
-			const vec3f pixel_colour = image_HDR[pixel_idx];
-			image_LDR[pixel_idx] =
-			{
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.y * scale) * 256))),
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.z * scale) * 256)))
-			};
-		}
+		tonemap(image_LDR, image_HDR, passes, image_width, image_height);
 
 		// Save frame
 		char filename[64];
