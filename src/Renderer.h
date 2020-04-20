@@ -102,7 +102,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 	const real pixel_sample_y = wrap01((real)RadicalInverse<3>(pass), hash_random);
 	const real pixel_sample_t = wrap01((real)RadicalInverse<5>(pass), hash_random);
 
-	const real time  = 2 * 3.14159265359f * (frame + pixel_sample_t) / frames;
+	const real time  = (frames <= 0) ? 0 : 2 * 3.14159265359f * (frame + pixel_sample_t) / frames;
 	const real cos_t = std::cos(time);
 	const real sin_t = std::sin(time);
 
