@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <climits> // for INT_MAX
 #include <cmath> // For std::sqrt and so on
 #include <vector>
 #include <string>
@@ -42,12 +43,44 @@ struct sRGBPixel
 	uint8_t b;
 };
 
+void render_pass(std::vector<vec3f> &image_HDR, const int frame, const int pass, const int image_width, const int image_height, const int frames, const Scene &world)
+{
+	#pragma omp parallel for schedule(dynamic, 1)
+	for (int y = 0; y < image_height; y++)
+	for (int x = 0; x < image_width;  x++)
+		image_HDR[y * image_width + x] += generateColour(x, y, frame, pass, image_width, image_height, frames, world);
+}
+
+void tonemap(std::vector<sRGBPixel> &image_LDR, const std::vector<vec3f> &image_HDR, const int passes, const int image_width, const int image_height)
+{
+	const float scale = 1.0f / passes;
+	#pragma omp parallel for
+	for (int y = 0; y < image_height; y++)
+	for (int x = 0; x < image_width;  x++)
+	{
+		const int pixel_idx = y * image_width + x;
+		const vec3f pixel_colour = image_HDR[pixel_idx];
+		image_LDR[pixel_idx] =
+		{
+			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
+			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.y * scale) * 256))),
+			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.z * scale) * 256)))
+		};
+	}
+}
 
 int main(int argc, char ** argv)
 {
-	// Squash -Wunused-parameter
-	(void) argc;
-	(void) argv;
+	// parse command line arguments
+	enum { mode_progressive, mode_animation } mode = mode_animation;
+	if (argc > 1)
+	{
+		if (std::string(argv[1]) == "--progressive")
+		{
+			mode = mode_progressive;
+		}
+	}
+
 	std::vector<Sphere> spheres;
 	{
 		const real main_sphere_rad = 4;
@@ -87,49 +120,64 @@ int main(int argc, char ** argv)
 	const int image_multi  = 40;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
-	const int frames = 30 * 8;
-	const int passes = 2 * 3 * 5;
-	printf("Rendering %d frames at resolution %d x %d with %d passes\n", frames, image_width, image_height, passes);
-
 
 	std::vector<vec3f>     image_HDR(image_width * image_height);
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
 
-	for (int frame = 0; frame < frames; ++frame)
+	switch (mode)
 	{
-		std::fill(image_HDR.begin(), image_HDR.end(), vec3f{ 0,0,0 });
-
-		// Render image passes
-		for (int pass = 0; pass < passes; ++pass)
+		case mode_animation:
 		{
-			#pragma omp parallel for schedule(dynamic, 1)
-			for (int y = 0; y < image_height; y++)
-			for (int x = 0; x < image_width;  x++)
-				image_HDR[y * image_width + x] += generateColour(x, y, frame, pass, image_width, image_height, frames, world);
-		}
-
-		// Tonemap and convert to LDR sRGB
-		#pragma omp parallel for
-		for (int y = 0; y < image_height; y++)
-		for (int x = 0; x < image_width;  x++)
-		{
-			const int pixel_idx = y * image_width + x;
-			const float scale = 1.0f / passes;
-
-			const vec3f pixel_colour = image_HDR[pixel_idx];
-			image_LDR[pixel_idx] =
+			const int frames = 30 * 8;
+			const int passes = 2 * 3 * 5;
+			printf("Rendering %d frames at resolution %d x %d with %d passes\n", frames, image_width, image_height, passes);
+			for (int frame = 0; frame < frames; ++frame)
 			{
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.y * scale) * 256))),
-				(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.z * scale) * 256)))
-			};
+				std::fill(image_HDR.begin(), image_HDR.end(), vec3f{ 0,0,0 });
+		
+				// Render image passes
+				for (int pass = 0; pass < passes; ++pass)
+				{
+					render_pass(image_HDR, frame, pass, image_width, image_height, frames, world);
+				}
+		
+				// Tonemap and convert to LDR sRGB
+				tonemap(image_LDR, image_HDR, passes, image_width, image_height);
+		
+				// Save frame
+				char filename[64];
+				snprintf(filename, 64, "frame_%08d.png", frame);
+				stbi_write_png(filename, image_width, image_height, 3, &image_LDR[0], image_width * 3);
+				printf("Saved %s\n", filename);
+			}
+			break;
 		}
 
-		// Save frame
-		char filename[64];
-		snprintf(filename, 64, "frame_%08d.png", frame);
-		stbi_write_png(filename, image_width, image_height, 3, &image_LDR[0], image_width * 3);
-		printf("Saved %s\n", filename);
+		case mode_progressive:
+		{
+			printf("Progressive rendering at resolution %d x %d with doubling passes\n", image_width, image_height);
+			int pass = 0;
+			std::fill(image_HDR.begin(), image_HDR.end(), vec3f{ 0,0,0 });
+			for (int passes = 1; true; passes <<= 1)
+			{
+				// Render image passes
+				for (; pass < passes; ++pass)
+				{
+					// frame/frames 0/INT_MAX to reduce motion blur for still image
+					render_pass(image_HDR, 0, pass, image_width, image_height, INT_MAX, world);
+				}
+
+				// Tonemap and convert to LDR sRGB
+				tonemap(image_LDR, image_HDR, passes, image_width, image_height);
+
+				// Save frame
+				char filename[64];
+				snprintf(filename, 64, "pass_%08d.png", pass);
+				stbi_write_png(filename, image_width, image_height, 3, &image_LDR[0], image_width * 3);
+				printf("Saved %s\n", filename);
+			}
+			break;
+		}
 	}
 
 	return 0;
