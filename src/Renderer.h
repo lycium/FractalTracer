@@ -88,13 +88,14 @@ inline real wrap01(real u, real v) { return (u + v < 1) ? u + v : u + v - 1; }
 
 inline vec3f generateColour(int x, int y, int frame, int pass, int width, int height, int frames, const Scene & world) noexcept
 {
+	constexpr real two_pi = static_cast<real>(6.283185307179586476925286766559);
 	constexpr int max_bounces = 3;
 	constexpr int num_primes = 6;
-	const static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
+	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
 
 	const real aspect_ratio = width / (real)height;
 	const real fov_deg = 80.0f;
-	const real fov_rad = fov_deg * 3.14159265359f / 180; // Convert from degrees to radians
+	const real fov_rad = fov_deg * two_pi / 360; // Convert from degrees to radians
 	const real sensor_width  = 2 * std::tan(fov_rad / 2);
 	const real sensor_height = sensor_width / aspect_ratio;
 
@@ -106,7 +107,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 	const real pixel_sample_y = wrap01((real)RadicalInverse(pass, primes[1]), hash_random);
 	const real pixel_sample_t = wrap01((real)RadicalInverse(pass, primes[2]), hash_random);
 
-	const real time  = (frames <= 0) ? 0 : 2 * 3.14159265359f * (frame + pixel_sample_t) / frames;
+	const real time  = (frames <= 0) ? 0 : two_pi * (frame + pixel_sample_t) / frames;
 	const real cos_t = std::cos(time);
 	const real sin_t = std::sin(time);
 
@@ -119,19 +120,16 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 	const vec3r pixel_y = cam_up * -(sensor_height / height);
 	const vec3r pixel_v = cam_forward + (pixel_x * (x - width * 0.5f + pixel_sample_x)) + (pixel_y * (y - height * 0.5f + pixel_sample_y));
 
-	const Ray camera_ray = { cam_pos, normalise(pixel_v) };
-
-	Ray ray = camera_ray;
-	vec3f throughput = 1;
+	Ray ray = { cam_pos, normalise(pixel_v) };
 	vec3f contribution = 0;
-
+	vec3f throughput = 1;
 	int bounce = 0;
 	while (true)
 	{
 		// Do intersection test
 		const auto [nearest_hit_obj, nearest_hit_t] = world.nearestIntersection(ray);
 
-		// Did we hit anything? If not, immediately return black
+		// Did we hit anything? If not, return skylight colour
 		if (nearest_hit_obj == nullptr)
 		{
 			const vec3f sky_up = vec3f{ 0.02f, 0.05f, 0.1f } * 2;
@@ -164,8 +162,8 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 			const Ray shadow_ray = { hit_p, light_dir };
 			const auto [shadow_nearest_hit_obj, shadow_nearest_hit_t] = world.nearestIntersection(shadow_ray);
 
-			// If we hit anything (valid hit idx and length <= length from hit point to light),
-			//  we are in shadow, and no light is reflected
+			// If we didn't hit anything (null hit obj or length >= length from hit point to light),
+			//  add the directly reflected light to the path contribution
 			if (shadow_nearest_hit_obj == nullptr || shadow_nearest_hit_t >= light_len)
 				contribution += throughput * refl_colour;
 		}
@@ -177,7 +175,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 		const real refl_sample_y = wrap01((real)RadicalInverse(pass, primes[(3 + bounce * 2 + 1) % num_primes]), hash_random);
 
 		// Generate uniform point on sphere, see https://mathworld.wolfram.com/SpherePointPicking.html
-		const real a = refl_sample_x * static_cast<real>(6.283185307179586476925286766559);
+		const real a = refl_sample_x * two_pi;
 		const real s = 2 * std::sqrt(std::max(static_cast<real>(0), refl_sample_y * (1 - refl_sample_y)));
 		const vec3r sphere =
 		{
