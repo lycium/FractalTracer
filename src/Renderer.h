@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <vector>
 #include <algorithm>
 
@@ -7,9 +8,9 @@
 
 
 
-class Scene
+// Eventually this should go in its own header file...
+struct Scene
 {
-public:
 	std::pair<const SceneObject *, real> nearestIntersection(const Ray & r) const noexcept
 	{
 		const SceneObject * nearest_obj = nullptr;
@@ -30,6 +31,12 @@ public:
 
 
 	std::vector<SceneObject *> objects;
+};
+
+
+struct ThreadControl
+{
+	std::atomic<int> next_bucket = 0;
 };
 
 
@@ -86,14 +93,14 @@ inline real uintToUnitReal(uint32_t v)
 inline real wrap01(real u, real v) { return (u + v < 1) ? u + v : u + v - 1; }
 
 
-inline vec3f generateColour(int x, int y, int frame, int pass, int width, int height, int frames, const Scene & world) noexcept
+inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yres, int frames, Scene & scene) noexcept
 {
 	constexpr real two_pi = static_cast<real>(6.283185307179586476925286766559);
 	constexpr int max_bounces = 3;
 	constexpr int num_primes = 6;
 	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
 
-	const real aspect_ratio = width / (real)height;
+	const real aspect_ratio = xres / (real)yres;
 	const real fov_deg = 80.0f;
 	const real fov_rad = fov_deg * two_pi / 360; // Convert from degrees to radians
 	const real sensor_width  = 2 * std::tan(fov_rad / 2);
@@ -102,7 +109,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 	const vec3r cam_lookat = { 0, 0, 0 };
 	const vec3r world_up = { 0, 1, 0 };
 
-	const real hash_random    = uintToUnitReal(hash(frame * width * height + y * width + x)); // Use pixel idx to randomise Halton sequence
+	const real hash_random    = uintToUnitReal(hash(frame * xres * yres + y * xres + x)); // Use pixel idx to randomise Halton sequence
 	const real pixel_sample_x = wrap01((real)RadicalInverse(pass, primes[0]), hash_random);
 	const real pixel_sample_y = wrap01((real)RadicalInverse(pass, primes[1]), hash_random);
 	const real pixel_sample_t = wrap01((real)RadicalInverse(pass, primes[2]), hash_random);
@@ -116,9 +123,9 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);
 
-	const vec3r pixel_x = cam_right * (sensor_width / width);
-	const vec3r pixel_y = cam_up * -(sensor_height / height);
-	const vec3r pixel_v = cam_forward + (pixel_x * (x - width * 0.5f + pixel_sample_x)) + (pixel_y * (y - height * 0.5f + pixel_sample_y));
+	const vec3r pixel_x = cam_right * (sensor_width / xres);
+	const vec3r pixel_y = cam_up * -(sensor_height / yres);
+	const vec3r pixel_v = cam_forward + (pixel_x * (x - xres * 0.5f + pixel_sample_x)) + (pixel_y * (y - yres * 0.5f + pixel_sample_y));
 
 	Ray ray = { cam_pos, normalise(pixel_v) };
 	vec3f contribution = 0;
@@ -127,7 +134,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 	while (true)
 	{
 		// Do intersection test
-		const auto [nearest_hit_obj, nearest_hit_t] = world.nearestIntersection(ray);
+		const auto [nearest_hit_obj, nearest_hit_t] = scene.nearestIntersection(ray);
 
 		// Did we hit anything? If not, return skylight colour
 		if (nearest_hit_obj == nullptr)
@@ -160,7 +167,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 
 			// Trace shadow ray from the hit point towards the light
 			const Ray shadow_ray = { hit_p, light_dir };
-			const auto [shadow_nearest_hit_obj, shadow_nearest_hit_t] = world.nearestIntersection(shadow_ray);
+			const auto [shadow_nearest_hit_obj, shadow_nearest_hit_t] = scene.nearestIntersection(shadow_ray);
 
 			// If we didn't hit anything (null hit obj or length >= length from hit point to light),
 			//  add the directly reflected light to the path contribution
@@ -196,4 +203,38 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int width, int he
 	}
 
 	return contribution;
+}
+
+
+void renderThreadFunction(
+	ThreadControl * const thread_control,
+	vec3f * const image_HDR,
+	int frame, int pass, int xres, int yres, int frames, const Scene * const scene_) noexcept
+{
+	// Make a local copy of the world for this thread, needed because it will get modified during init
+	Scene scene = *scene_;
+
+	// Get rounded up number of buckets in x and y
+	constexpr int bucket_size = 32;
+	const int x_buckets = (xres + bucket_size - 1) / bucket_size;
+	const int y_buckets = (yres + bucket_size - 1) / bucket_size;
+	const int num_buckets = x_buckets * y_buckets;
+
+	while (true)
+	{
+		// Get the next bucket index atomically and exit if we're done
+		const int bucket = thread_control->next_bucket.fetch_add(1);
+		if (bucket >= num_buckets)
+			break;
+
+		// Get pixel ranges for current bucket
+		const int bucket_y  = bucket / x_buckets;
+		const int bucket_x  = bucket - x_buckets * bucket_y;
+		const int bucket_x0 = bucket_x * bucket_size, bucket_x1 = std::min(bucket_x0 + bucket_size, xres);
+		const int bucket_y0 = bucket_y * bucket_size, bucket_y1 = std::min(bucket_y0 + bucket_size, yres);
+
+		for (int y = bucket_y0; y < bucket_y1; ++y)
+		for (int x = bucket_x0; x < bucket_x1; ++x)
+			image_HDR[y * xres + x] += generateColour(x, y, frame, pass, xres, yres, frames, scene);
+	}
 }

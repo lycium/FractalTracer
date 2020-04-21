@@ -8,6 +8,7 @@
 #include <chrono> // For timing
 #include <vector>
 #include <string>
+#include <thread>
 #include <algorithm> // For std::pair and std::min and max
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -44,24 +45,28 @@ struct sRGBPixel
 };
 
 
-void renderPass(std::vector<vec3f> & image_HDR, const int frame, const int pass, const int image_width, const int image_height, const int frames, const Scene & world) noexcept
+void renderPass(
+	std::vector<std::thread> & threads, std::vector<vec3f> & image_HDR,
+	const int frame, const int pass, const int xres, const int yres, const int frames, const Scene & scene) noexcept
 {
-	#pragma omp parallel for schedule(dynamic, 1)
-	for (int y = 0; y < image_height; y++)
-	for (int x = 0; x < image_width;  x++)
-		image_HDR[y * image_width + x] += generateColour(x, y, frame, pass, image_width, image_height, frames, world);
+	ThreadControl thread_control;
+
+	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &image_HDR[0], frame, pass, xres, yres, frames, &scene);
+	for (std::thread & t : threads) t.join();
 }
 
 
-void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & image_HDR, const int passes, const int image_width, const int image_height) noexcept
+void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & image_HDR, const int passes, const int xres, const int yres) noexcept
 {
 	const float scale = 1.0f / passes;
+
 	#pragma omp parallel for
-	for (int y = 0; y < image_height; y++)
-	for (int x = 0; x < image_width;  x++)
+	for (int y = 0; y < yres; y++)
+	for (int x = 0; x < xres; x++)
 	{
-		const int pixel_idx = y * image_width + x;
+		const int pixel_idx = y * xres + x;
 		const vec3f pixel_colour = image_HDR[pixel_idx];
+
 		image_LDR[pixel_idx] =
 		{
 			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
@@ -74,6 +79,7 @@ void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & imag
 
 int main(int argc, char ** argv)
 {
+	const int  num_threads = (int)std::thread::hardware_concurrency();
 	const bool time_frames = true;
 
 	// Parse command line arguments
@@ -81,9 +87,7 @@ int main(int argc, char ** argv)
 	if (argc > 1)
 	{
 		if (std::string(argv[1]) == "--animation")
-		{
 			mode = mode_animation;
-		}
 	}
 
 	std::vector<Sphere> spheres;
@@ -129,6 +133,8 @@ int main(int argc, char ** argv)
 	std::vector<vec3f>     image_HDR(image_width * image_height);
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
 
+	std::vector<std::thread> threads(num_threads);
+
 	const auto save_tonemapped_frame = [&](int frame, int passes)
 	{
 		// Tonemap and convert to LDR sRGB
@@ -157,7 +163,7 @@ int main(int argc, char ** argv)
 
 				// Render image passes
 				for (int pass = 0; pass < passes; ++pass)
-					renderPass(image_HDR, frame, pass, image_width, image_height, frames, world);
+					renderPass(threads, image_HDR, frame, pass, image_width, image_height, frames, world);
 
 				if (time_frames)
 				{
@@ -185,7 +191,7 @@ int main(int argc, char ** argv)
 				// Render image passes
 				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
 				for (; pass < target_passes; ++pass)
-					renderPass(image_HDR, 0, pass, image_width, image_height, 0, world);
+					renderPass(threads, image_HDR, 0, pass, image_width, image_height, 0, world);
 
 				save_tonemapped_frame(0, pass);
 
