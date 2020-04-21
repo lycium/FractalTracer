@@ -36,6 +36,8 @@ struct Scene
 
 struct ThreadControl
 {
+	const int num_passes;
+
 	std::atomic<int> next_bucket = 0;
 };
 
@@ -209,7 +211,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 void renderThreadFunction(
 	ThreadControl * const thread_control,
 	vec3f * const image_HDR,
-	int frame, int pass, int xres, int yres, int frames, const Scene * const scene_) noexcept
+	int frame, int base_pass, int xres, int yres, int frames, const Scene * const scene_) noexcept
 {
 	// Make a local copy of the world for this thread, needed because it will get modified during init
 	Scene scene = *scene_;
@@ -219,22 +221,25 @@ void renderThreadFunction(
 	const int x_buckets = (xres + bucket_size - 1) / bucket_size;
 	const int y_buckets = (yres + bucket_size - 1) / bucket_size;
 	const int num_buckets = x_buckets * y_buckets;
+	const int num_passes = thread_control->num_passes;
 
 	while (true)
 	{
 		// Get the next bucket index atomically and exit if we're done
 		const int bucket = thread_control->next_bucket.fetch_add(1);
-		if (bucket >= num_buckets)
+		if (bucket >= num_buckets * num_passes)
 			break;
 
-		// Get pixel ranges for current bucket
-		const int bucket_y  = bucket / x_buckets;
-		const int bucket_x  = bucket - x_buckets * bucket_y;
+		// Get sub-pass and pixel ranges for current bucket
+		const int sub_pass  = bucket / num_buckets;
+		const int bucket_p  = bucket - num_buckets * sub_pass;
+		const int bucket_y  = bucket_p / x_buckets;
+		const int bucket_x  = bucket_p - x_buckets * bucket_y;
 		const int bucket_x0 = bucket_x * bucket_size, bucket_x1 = std::min(bucket_x0 + bucket_size, xres);
 		const int bucket_y0 = bucket_y * bucket_size, bucket_y1 = std::min(bucket_y0 + bucket_size, yres);
 
 		for (int y = bucket_y0; y < bucket_y1; ++y)
 		for (int x = bucket_x0; x < bucket_x1; ++x)
-			image_HDR[y * xres + x] += generateColour(x, y, frame, pass, xres, yres, frames, scene);
+			image_HDR[y * xres + x] += generateColour(x, y, frame, base_pass + sub_pass, xres, yres, frames, scene);
 	}
 }

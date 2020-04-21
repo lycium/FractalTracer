@@ -45,13 +45,13 @@ struct sRGBPixel
 };
 
 
-void renderPass(
+void renderPasses(
 	std::vector<std::thread> & threads, std::vector<vec3f> & image_HDR,
-	const int frame, const int pass, const int xres, const int yres, const int frames, const Scene & scene) noexcept
+	const int frame, const int base_pass, int num_passes, const int xres, const int yres, const int frames, const Scene & scene) noexcept
 {
-	ThreadControl thread_control;
+	ThreadControl thread_control = { num_passes };
 
-	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &image_HDR[0], frame, pass, xres, yres, frames, &scene);
+	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &image_HDR[0], frame, base_pass, xres, yres, frames, &scene);
 	for (std::thread & t : threads) t.join();
 }
 
@@ -161,9 +161,7 @@ int main(int argc, char ** argv)
 
 				std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
-				// Render image passes
-				for (int pass = 0; pass < passes; ++pass)
-					renderPass(threads, image_HDR, frame, pass, image_width, image_height, frames, world);
+				renderPasses(threads, image_HDR, frame, 0, passes, image_width, image_height, frames, world);
 
 				if (time_frames)
 				{
@@ -188,13 +186,12 @@ int main(int argc, char ** argv)
 			int target_passes = 1;
 			while (pass < max_passes)
 			{
-				// Render image passes
 				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
-				for (; pass < target_passes; ++pass)
-					renderPass(threads, image_HDR, 0, pass, image_width, image_height, 0, world);
+				renderPasses(threads, image_HDR, 0, pass, target_passes - pass, image_width, image_height, 0, world);
 
-				save_tonemapped_frame(0, pass);
+				save_tonemapped_frame(0, target_passes);
 
+				pass = target_passes;
 				target_passes = std::min(target_passes << 1, max_passes);
 			}
 
