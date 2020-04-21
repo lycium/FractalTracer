@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include <cmath> // For std::sqrt and so on
+#include <chrono> // For timing
 #include <vector>
 #include <string>
 #include <algorithm> // For std::pair and std::min and max
@@ -73,6 +74,8 @@ void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & imag
 
 int main(int argc, char ** argv)
 {
+	const bool time_frames = true;
+
 	// Parse command line arguments
 	enum { mode_progressive, mode_animation } mode = mode_progressive;
 	if (argc > 1)
@@ -150,9 +153,18 @@ int main(int argc, char ** argv)
 			{
 				std::fill(image_HDR.begin(), image_HDR.end(), vec3f{ 0,0,0 });
 
+				std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+
 				// Render image passes
 				for (int pass = 0; pass < passes; ++pass)
 					renderPass(image_HDR, frame, pass, image_width, image_height, frames, world);
+
+				if (time_frames)
+				{
+					std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+					std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+					printf("Frame took %.3f seconds to render.\n", time_span.count());
+				}
 
 				save_tonemapped_frame(frame, passes);
 			}
