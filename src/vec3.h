@@ -31,6 +31,7 @@ public:
 
 	inline const vec3 & operator+=(const vec3 & rhs) { x += rhs.x; y += rhs.y; z += rhs.z; return *this; }
 	inline const vec3 & operator-=(const vec3 & rhs) { x -= rhs.x; y -= rhs.y; z -= rhs.z; return *this; }
+	inline const vec3 & operator*=(const vec3 & rhs) { x *= rhs.x; y *= rhs.y; z *= rhs.z; return *this; }
 	inline const vec3 & operator*=(const real_type rhs) { x *= rhs; y *= rhs; z *= rhs; return *this; }
 };
 

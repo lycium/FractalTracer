@@ -99,7 +99,7 @@ int main(int argc, char ** argv)
 		const real bigrad = 1024;
 		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
 		s2.radius = bigrad;
-		s2.colour = { 0.6f, 0.3f, 0.2f };
+		s2.colour = vec3f{ 0.6f, 0.3f, 0.2f } * 0.5f;
 		spheres.push_back(s2);
 	}
 
@@ -174,7 +174,7 @@ int main(int argc, char ** argv)
 
 		case mode_progressive:
 		{
-			const int max_passes = 2*2 * 3*3 * 5*5; // 900 max passes instead of going super forever
+			const int max_passes = 2 * 3 * 5 * 7 * 11; // Set a reasonable max number of passes instead of going forever
 			printf("Progressive rendering at resolution %d x %d with doubling passes to max %d\n", image_width, image_height, max_passes);
 			std::fill(image_HDR.begin(), image_HDR.end(), vec3f{ 0,0,0 });
 
