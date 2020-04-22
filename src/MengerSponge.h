@@ -72,6 +72,10 @@ struct MengerSpongeDual final : public DualDEObject
 				break;
 		}
 
+#if 1
+		return getHybridDE(3, 1, z, normal_os_out);
+#else
 		return getLinearDE(z, normal_os_out);
+#endif
 	}
 };
