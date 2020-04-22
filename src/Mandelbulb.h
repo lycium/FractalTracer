@@ -75,6 +75,10 @@ struct MandelbulbDual final : public DualDEObject
 				break;
 		}
 
+#if 1
+		return getHybridDE(1, 8, w, normal_os_out);
+#else
 		return getPolynomialDE(w, normal_os_out);
+#endif
 	}
 };
