@@ -125,6 +125,74 @@ struct DualDEObject : public SceneObject
 #endif
 	}
 
+	real getHybridDE(const real &a, const real &p, const DualVec3r & w, vec3r & normal_os_out) const noexcept
+	{
+		// Extract the position vector and Jacobian
+		const vec3r v  = vec3r{ w.x.v[0], w.y.v[0], w.z.v[0] };
+		const vec3r jx = vec3r{ w.x.v[1], w.y.v[1], w.z.v[1] };
+		const vec3r jy = vec3r{ w.x.v[2], w.y.v[2], w.z.v[2] };
+		const vec3r jz = vec3r{ w.x.v[3], w.y.v[3], w.z.v[3] };
+
+		const real len2 = dot(v, v);
+		const real len = sqrt(len2);
+		const vec3r u = v * (1 / len); // Normalise p first to avoid overflow in dot products
+
+		// Vector-matrix norm: ||J||_u = |u.J|/|u|
+		// Ref: https://fractalforums.org/fractal-image-gallery/18/burning-ship-distance-estimation/647/msg3207#msg3207
+		const vec3r dr = vec3r
+		{
+			dot(u, jx),
+			dot(u, jy),
+			dot(u, jz)
+		};
+		const real len_dr = length(dr);
+
+		// The hybrid DE formula
+		// Ref: https://mathr.co.uk/de
+		const real de_base
+			= p == 1
+			? (len / len_dr) * log(a)
+			: a == 1
+			? (len / len_dr) * log(p) * log(len)
+			: (len / len_dr) * (log(p) / (p - 1)) * (log(a) + (p - 1) * log(len));
+
+		// Koebe 1/4 theorem for complex analytic functions says d is
+		// valid up to a factor of 2 either way, we need the lower bound.
+		// Mandelbulb etc are not complex-analytic, but hope for the best...
+		const real koebe_factor = 0.5f;
+
+		// Distance estimate needs a log(power) factor taken out.
+		// Not sure of the justification, but it seems to work better this way,
+		// and it makes it match the other DE modes.
+#if 1
+		const real power_factor
+			= p == 1
+			? 1
+			: 1 / log(p);
+#else
+		const real power_factor = 1;
+#endif
+
+		const real de = koebe_factor * power_factor * de_base;
+
+		if (std::isfinite(len_dr)) // TODO: this function is probably slow, find a replacement
+		{
+			// At some parts of the fractal, m can become NaN (hairs),
+			// which pollutes everything downstream.
+			// Calling code should deal with it.
+			normal_os_out = normalise(dr);
+			return de;
+		}
+		else
+		{
+			// The derivatives have overflowed to infinity
+			// and then further operations on them yield NaN.
+			// Assuming m is finite it might as well return 0 here.
+			normal_os_out = vec3r{ 0,0,0 };
+			return 0;
+		}
+	}
+
 	// Get the distance estimate and normal vector for point p in object space
 	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept = 0;
 
