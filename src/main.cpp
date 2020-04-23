@@ -18,16 +18,8 @@
 #include "vec3.h"
 
 #include "Ray.h"
-#include "SceneObject.h"
+#include "Scene.h"
 #include "Renderer.h"
-
-#include "SimpleObjects.h"
-#include "AnalyticDEObject.h"
-#include "DualDEObject.h"
-
-#include "Mandelbulb.h"
-#include "QuadraticJuliabulb.h"
-#include "MengerSponge.h"
 
 
 
@@ -90,41 +82,29 @@ int main(int argc, char ** argv)
 			mode = mode_animation;
 	}
 
-	std::vector<Sphere> spheres;
+	Scene scene;
 	{
 		const real main_sphere_rad = 4;
 		//Sphere s;
 		//s.centre = { 0, 0, 0 };
 		//s.radius = main_sphere_rad;
 		//s.colour = { 0.1f, 0.3f, 0.7f };
-		//spheres.push_back(s);
+		//scene_storage.spheres.push_back(s);
 
 		Sphere s2;
 		const real bigrad = 1024;
 		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
 		s2.radius = bigrad;
 		s2.colour = vec3f{ 0.6f, 0.3f, 0.2f } * 0.5f;
-		spheres.push_back(s2);
+		scene.spheres.push_back(s2);
+
+		MandelbulbDual bulb;
+		bulb.radius = 4;
+		bulb.colour = { 0.1f, 0.3f, 0.7f };
+
+		scene.dual_mandelbulbs.push_back(bulb);
 	}
-
-	//MandelbulbAnalytic bulb;
-	MandelbulbDual bulb;
-	//QuadraticJuliabulbAnalytic bulb;
-	//QuadraticJuliabulbDual bulb;
-	bulb.radius = 4;
-	//MengerSpongeAnalytic bulb;
-	//MengerSpongeDual bulb;
-	//bulb.radius = sqrt(3);
-	bulb.colour = { 0.1f, 0.3f, 0.7f };
-
-	// Set up the world
-	Scene world;
-	{
-		for (const Sphere & s : spheres)
-			world.objects.push_back((SceneObject *)&s);
-
-		world.objects.push_back((SceneObject *)&bulb);
-	}
+	scene.init();
 
 	const int image_multi  = 80;
 	const int image_width  = image_multi * 16;
@@ -161,7 +141,7 @@ int main(int argc, char ** argv)
 
 				std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
-				renderPasses(threads, image_HDR, frame, 0, passes, image_width, image_height, frames, world);
+				renderPasses(threads, image_HDR, frame, 0, passes, image_width, image_height, frames, scene);
 
 				if (time_frames)
 				{
@@ -187,7 +167,7 @@ int main(int argc, char ** argv)
 			while (pass < max_passes)
 			{
 				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
-				renderPasses(threads, image_HDR, 0, pass, target_passes - pass, image_width, image_height, 0, world);
+				renderPasses(threads, image_HDR, 0, pass, target_passes - pass, image_width, image_height, 0, scene);
 
 				save_tonemapped_frame(0, target_passes);
 

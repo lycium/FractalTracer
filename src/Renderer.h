@@ -4,34 +4,8 @@
 #include <vector>
 #include <algorithm>
 
-#include "SceneObject.h"
+#include "Scene.h"
 
-
-
-// Eventually this should go in its own header file...
-struct Scene
-{
-	std::pair<const SceneObject *, real> nearestIntersection(const Ray & r) const noexcept
-	{
-		const SceneObject * nearest_obj = nullptr;
-		real nearest_t = real_inf;
-
-		for (const SceneObject * const o : objects)
-		{
-			const real hit_t = o->intersect(r);
-			if (hit_t > ray_epsilon && hit_t < nearest_t)
-			{
-				nearest_obj = o;
-				nearest_t = hit_t;
-			}
-		}
-
-		return { nearest_obj, nearest_t };
-	}
-
-
-	std::vector<SceneObject *> objects;
-};
 
 
 struct ThreadControl
