@@ -125,7 +125,7 @@ struct DualDEObject : public SceneObject
 #endif
 	}
 
-	real getHybridDE(const real &a, const real &p, const DualVec3r & w, vec3r & normal_os_out) const noexcept
+	real getHybridDE(const real & a, const real & p, const DualVec3r & w, vec3r & normal_os_out) const noexcept
 	{
 		// Extract the position vector and Jacobian
 		const vec3r v  = vec3r{ w.x.v[0], w.y.v[0], w.z.v[0] };
@@ -149,12 +149,10 @@ struct DualDEObject : public SceneObject
 
 		// The hybrid DE formula
 		// Ref: https://mathr.co.uk/de
-		const real de_base
-			= p == 1
-			? (len / len_dr) * log(a)
-			: a == 1
-			? (len / len_dr) * log(p) * log(len)
-			: (len / len_dr) * (log(p) / (p - 1)) * (log(a) + (p - 1) * log(len));
+		const real k = len / len_dr;
+		const real de_base =
+			(p == 1) ? k * log(a) :
+			(a == 1) ? k * log(p) * log(len) : k * (log(p) / (p - 1)) * (log(a) + (p - 1) * log(len));
 
 		// Koebe 1/4 theorem for complex analytic functions says d is
 		// valid up to a factor of 2 either way, we need the lower bound.
@@ -165,10 +163,7 @@ struct DualDEObject : public SceneObject
 		// Not sure of the justification, but it seems to work better this way,
 		// and it makes it match the other DE modes.
 #if 1
-		const real power_factor
-			= p == 1
-			? 1
-			: 1 / log(p);
+		const real power_factor = (p == 1) ? 1 : 1 / log(p);
 #else
 		const real power_factor = 1;
 #endif
