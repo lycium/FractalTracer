@@ -12,6 +12,7 @@ struct DualDEObject : public SceneObject
 	vec3r centre = { 0, 0, 0 };
 	real  radius = 1; 
 
+
 	real getLinearDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
 	{
 		// Extract the position vector and Jacobian
@@ -125,7 +126,7 @@ struct DualDEObject : public SceneObject
 #endif
 	}
 
-	real getHybridDE(const real & a, const real & p, const DualVec3r & w, vec3r & normal_os_out) const noexcept
+	real getHybridDE(const real a, const real p, const DualVec3r & w, vec3r & normal_os_out) const noexcept
 	{
 		// Extract the position vector and Jacobian
 		const vec3r v  = vec3r{ w.x.v[0], w.y.v[0], w.z.v[0] };
@@ -189,10 +190,10 @@ struct DualDEObject : public SceneObject
 	}
 
 	// Get the distance estimate and normal vector for point p in object space
-	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept = 0;
+	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept = 0;
 
 	// Dual numbers provide exact normals as part of the evaluation
-	virtual vec3r getNormal(const vec3r & p) const noexcept override final
+	virtual vec3r getNormal(const vec3r & p) noexcept override final
 	{
 		const DualVec3r p_dual(Dual3r(p.x, 0), Dual3r(p.y, 1), Dual3r(p.z, 2));
 
@@ -202,7 +203,7 @@ struct DualDEObject : public SceneObject
 		return normal_os;
 	}
 
-	virtual real intersect(const Ray & r) const noexcept override final
+	virtual real intersect(const Ray & r) noexcept override final
 	{
 		const vec3r s = r.o - centre;
 		const real  b = dot(s, r.d);
@@ -236,4 +237,77 @@ struct DualDEObject : public SceneObject
 
 		return -1; // No intersection found
 	}
+};
+
+
+struct IterationFunction
+{
+	virtual void init(const DualVec3r & p_0) noexcept { }
+	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept = 0;
+
+	virtual IterationFunction * clone() const = 0;
+};
+
+
+struct GeneralDualDE final : public DualDEObject
+{
+	GeneralDualDE() = default;
+
+	// Copy constructor
+	GeneralDualDE(const GeneralDualDE & v)
+	{
+		funcs.resize(v.funcs.size());
+		for (size_t i = 0; i < v.funcs.size(); ++i)
+			funcs[i] = v.funcs[i]->clone();
+
+		max_iters = v.max_iters;
+		bailout_radius2 = v.bailout_radius2;
+	}
+
+	virtual ~GeneralDualDE()
+	{
+		for (IterationFunction * f : funcs)
+			delete f;
+	}
+
+
+	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
+	{
+		DualVec3r p = p_os;
+
+		const int num_funcs = (int)funcs.size();
+		for (int i = 0; i < num_funcs; ++i)
+			funcs[i]->init(p);
+
+		int curr_func = 0;
+		for (int i = 0; i < max_iters; i++)
+		{
+			DualVec3r p_new;
+			funcs[curr_func]->eval(p, p_new);
+			p = p_new;
+
+			const real r2 = p.x.v[0] * p.x.v[0] + p.y.v[0] * p.y.v[0] + p.z.v[0] * p.z.v[0];
+			if (r2 > bailout_radius2)
+				break;
+
+			// Increment next function idx with wraparound
+			curr_func = (curr_func < num_funcs - 1) ? curr_func + 1 : 0;
+		}
+
+#if 1
+		return getHybridDE(1, 8, p, normal_os_out);
+#else
+		return getPolynomialDE(w, normal_os_out);
+#endif
+	}
+
+	virtual SceneObject * clone() const override
+	{
+		return new GeneralDualDE(*this);
+	}
+
+
+	std::vector<IterationFunction *> funcs;
+	int max_iters = 4;
+	real bailout_radius2 = 256;
 };

@@ -8,7 +8,7 @@
 // Inigo Quilez's distance estimator: https://www.iquilezles.org/www/articles/mandelbulb/mandelbulb.htm
 struct MandelbulbAnalytic final : public AnalyticDEObject
 {
-	virtual real getDE(const vec3r & p_os) const noexcept override final
+	virtual real getDE(const vec3r & p_os) noexcept override final
 	{
 		vec3r w = p_os;
 		real m = dot(w, w);
@@ -40,12 +40,17 @@ struct MandelbulbAnalytic final : public AnalyticDEObject
 
 		return 0.25f * log(m) * sqrt(m) / dz;
 	}
+
+	virtual SceneObject * clone() const override
+	{
+		return new MandelbulbAnalytic(*this);
+	}
 };
 
 
 struct MandelbulbDual final : public DualDEObject
 {
-	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept override final
+	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
 	{
 		const DualVec3r c(p_os);
 		DualVec3r w = c;
@@ -81,4 +86,43 @@ struct MandelbulbDual final : public DualDEObject
 		return getPolynomialDE(w, normal_os_out);
 #endif
 	}
+
+	virtual SceneObject * clone() const override
+	{
+		return new MandelbulbDual(*this);
+	}
+};
+
+
+struct DualMandelbulbIteration final : public IterationFunction
+{
+	virtual void init(const DualVec3r & p_0) noexcept override final
+	{
+		c = p_0;
+	}
+
+	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
+	{
+		const Dual3r x = p_in.x, x2 = x*x, x4 = x2*x2;
+		const Dual3r y = p_in.y, y2 = y*y, y4 = y2*y2;
+		const Dual3r z = p_in.z, z2 = z*z, z4 = z2*z2;
+
+		const Dual3r k3 = x2 + z2;
+		const Dual3r k2 = Dual3r(1) / sqrt(k3*k3*k3*k3*k3*k3*k3);
+		const Dual3r k1 = x4 + y4 + z4 - Dual3r(6) * y2*z2 - Dual3r(6) * x2*y2 + Dual3r(2) * z2*x2;
+		const Dual3r k4 = x2 - y2 + z2;
+
+		p_out = DualVec3r(
+			c.x + Dual3r( 64) * x*y*z * (x2 - z2) * k4 * (x4 - Dual3r(6) * x2*z2+z4) * k1*k2,
+			c.y + Dual3r(-16) * y2*k3*k4*k4 + k1*k1,
+			c.z + Dual3r( -8) * y*k4 * (x4*x4 - Dual3r(28) * x4*x2*z2 + Dual3r(70) * x4*z4 - Dual3r(28) * x2*z2*z4 + z4*z4) * k1*k2);
+	}
+
+	virtual IterationFunction * clone() const override
+	{
+		return new DualMandelbulbIteration(*this);
+	}
+
+protected:
+	DualVec3r c;
 };

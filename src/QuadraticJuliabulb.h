@@ -7,7 +7,7 @@
 
 struct QuadraticJuliabulbAnalytic final : public AnalyticDEObject
 {
-	virtual real getDE(const vec3r & p_os) const noexcept override final
+	virtual real getDE(const vec3r & p_os) noexcept override final
 	{
 		const vec3r c = vec3r{ -1.1412f, 0.11f,  0.1513f } * 1.0f;
 		vec3r z = p_os;
@@ -32,12 +32,17 @@ struct QuadraticJuliabulbAnalytic final : public AnalyticDEObject
 
 		return 0.125f * std::log(r) * r / dr;
 	}
+
+	virtual SceneObject * clone() const override
+	{
+		return new QuadraticJuliabulbAnalytic(*this);
+	}
 };
 
 
 struct QuadraticJuliabulbDual final : public DualDEObject
 {
-	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept override final
+	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
 	{
 		const DualVec3r c(-1.1412f, 0.11f, 0.1513f);
 		DualVec3r z = p_os;
@@ -63,5 +68,10 @@ struct QuadraticJuliabulbDual final : public DualDEObject
 #else
 		return 0.125f * getPolynomialDE(z, normal_os_out);
 #endif
+	}
+
+	virtual SceneObject * clone() const override
+	{
+		return new QuadraticJuliabulbDual(*this);
 	}
 };

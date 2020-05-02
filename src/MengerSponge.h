@@ -11,7 +11,7 @@
 // https://github.com/buddhi1980/mandelbulber2/blob/517423cc5b9ac960464cbcde612a0d8c61df3375/mandelbulber2/formula/definition/fractal_menger_sponge.cpp
 struct MengerSpongeAnalytic final : public AnalyticDEObject
 {
-	virtual real getDE(const vec3r & p_os) const noexcept override final
+	virtual real getDE(const vec3r & p_os) noexcept override final
 	{
 		vec3r z = p_os;
 		real m = dot(z, z);
@@ -42,12 +42,17 @@ struct MengerSpongeAnalytic final : public AnalyticDEObject
 		// from a distance it looks like a sphere
 		return (sqrt(m) - radius) / dz;
 	}
+
+	virtual SceneObject * clone() const override
+	{
+		return new MengerSpongeAnalytic(*this);
+	}
 };
 
 
 struct MengerSpongeDual final : public DualDEObject
 {
-	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept override final
+	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
 	{
 		DualVec3r z(p_os);
 
@@ -77,5 +82,10 @@ struct MengerSpongeDual final : public DualDEObject
 #else
 		return getLinearDE(z, normal_os_out);
 #endif
+	}
+
+	virtual SceneObject * clone() const override
+	{
+		return new MengerSpongeDual(*this);
 	}
 };

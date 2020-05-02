@@ -10,7 +10,7 @@ struct Sphere final : public SceneObject
 	real  radius = 1; 
 
 
-	virtual real intersect(const Ray & r) const noexcept override
+	virtual real intersect(const Ray & r) noexcept override
 	{
 		const vec3r s = r.o - centre;
 		const real  b = dot(s, r.d);
@@ -26,8 +26,15 @@ struct Sphere final : public SceneObject
 		return (t1 >= 0) ? t1 : t2;
 	}
 
-	virtual vec3r getNormal(const vec3r & p) const noexcept override
+	virtual vec3r getNormal(const vec3r & p) noexcept override
 	{
 		return (p - centre) * (1 / radius);
+	}
+
+	virtual SceneObject * clone() const override
+	{
+		Sphere * o = new Sphere;
+		*o = *this;
+		return o;
 	}
 };

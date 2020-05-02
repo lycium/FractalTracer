@@ -66,12 +66,18 @@ inline real uintToUnitReal(uint32_t v)
 }
 
 
-inline real wrap01(real u, real v) { return (u + v < 1) ? u + v : u + v - 1; }
+inline real wrap1r(real u, real v) { return (u + v < 1) ? u + v : u + v - 1; }
 
+inline int wrap6i(int & v)
+{
+	const int o = v;
+	const int u = o + 1;
+	v = (u < 6)	? u : 0;
+	return o;
+}
 
 inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yres, int frames, Scene & scene) noexcept
 {
-	constexpr real two_pi = static_cast<real>(6.283185307179586476925286766559);
 	constexpr int max_bounces = 3;
 	constexpr int num_primes = 6;
 	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
@@ -86,9 +92,9 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 	const vec3r world_up = { 0, 1, 0 };
 
 	const real hash_random    = uintToUnitReal(hash(frame * xres * yres + y * xres + x)); // Use pixel idx to randomise Halton sequence
-	const real pixel_sample_x = wrap01((real)RadicalInverse(pass, primes[0]), hash_random);
-	const real pixel_sample_y = wrap01((real)RadicalInverse(pass, primes[1]), hash_random);
-	const real pixel_sample_t = wrap01((real)RadicalInverse(pass, primes[2]), hash_random);
+	const real pixel_sample_x = wrap1r((real)RadicalInverse(pass, primes[0]), hash_random);
+	const real pixel_sample_y = wrap1r((real)RadicalInverse(pass, primes[1]), hash_random);
+	const real pixel_sample_t = wrap1r((real)RadicalInverse(pass, primes[2]), hash_random);
 
 	const real time  = (frames <= 0) ? 0 : two_pi * (frame + pixel_sample_t) / frames;
 	const real cos_t = std::cos(time);
@@ -103,10 +109,15 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 	const vec3r pixel_y = cam_up * -(sensor_height / yres);
 	const vec3r pixel_v = cam_forward + (pixel_x * (x - xres * 0.5f + pixel_sample_x)) + (pixel_y * (y - yres * 0.5f + pixel_sample_y));
 
+	// Useful for debugging
+	//if (x == xres/2 && y == yres/2)
+	//	int a = 9;
+
 	Ray ray = { cam_pos, normalise(pixel_v) };
 	vec3f contribution = 0;
 	vec3f throughput = 1;
 	int bounce = 0;
+	int dim = 3;
 	while (true)
 	{
 		// Do intersection test
@@ -128,6 +139,9 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 		// Get the normal at the intersction point from the surface we hit
 		const vec3r normal = nearest_hit_obj->getNormal(hit_p);
 
+		// Add emission
+		contribution += throughput * nearest_hit_obj->emission;
+
 		// Do direct lighting from a fixed point light
 		{
 			// Compute vector from intersection point to light
@@ -139,23 +153,27 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 
 			// Compute reflected light (simple diffuse / Lambertian) with 1/distance^2 falloff
 			const real n_dot_l = dot(normal, light_dir);
-			const vec3f refl_colour = nearest_hit_obj->colour * std::max(0.0f, (float)n_dot_l) / (float)light_ln2 * 420;
 
-			// Trace shadow ray from the hit point towards the light
-			const Ray shadow_ray = { hit_p, light_dir };
-			const auto [shadow_nearest_hit_obj, shadow_nearest_hit_t] = scene.nearestIntersection(shadow_ray);
+			if (n_dot_l > 0)
+			{
+				const vec3f refl_colour = nearest_hit_obj->albedo * std::max(0.0f, (float)n_dot_l) / (float)light_ln2 * 420;
 
-			// If we didn't hit anything (null hit obj or length >= length from hit point to light),
-			//  add the directly reflected light to the path contribution
-			if (shadow_nearest_hit_obj == nullptr || shadow_nearest_hit_t >= light_len)
-				contribution += throughput * refl_colour;
+				// Trace shadow ray from the hit point towards the light
+				const Ray shadow_ray = { hit_p, light_dir };
+				const auto [shadow_nearest_hit_obj, shadow_nearest_hit_t] = scene.nearestIntersection(shadow_ray);
+
+				// If we didn't hit anything (null hit obj or length >= length from hit point to light),
+				//  add the directly reflected light to the path contribution
+				if (shadow_nearest_hit_obj == nullptr || shadow_nearest_hit_t >= light_len)
+					contribution += throughput * refl_colour;
+			}
 		}
 
 		if (++bounce > max_bounces)
 			break;
 
-		const real refl_sample_x = wrap01((real)RadicalInverse(pass, primes[(3 + bounce * 2 + 0) % num_primes]), hash_random);
-		const real refl_sample_y = wrap01((real)RadicalInverse(pass, primes[(3 + bounce * 2 + 1) % num_primes]), hash_random);
+		const real refl_sample_x = wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
+		const real refl_sample_y = wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
 
 		// Generate uniform point on sphere, see https://mathworld.wolfram.com/SpherePointPicking.html
 		const real a = refl_sample_x * two_pi;
@@ -171,7 +189,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 		const vec3r new_dir_cosine = normalise(normal + sphere);
 
 		// Multiply the throughput by the surface reflection
-		throughput *= nearest_hit_obj->colour;
+		throughput *= nearest_hit_obj->albedo;
 
 		// Start next bounce from the hit position in the scattered ray direction
 		ray.o = hit_p;
@@ -188,7 +206,7 @@ void renderThreadFunction(
 	int frame, int base_pass, int xres, int yres, int frames, const Scene * const scene_) noexcept
 {
 	// Make a local copy of the world for this thread, needed because it will get modified during init
-	Scene scene = *scene_;
+	Scene scene(*scene_);
 
 	// Get rounded up number of buckets in x and y
 	constexpr int bucket_size = 32;

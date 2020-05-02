@@ -14,10 +14,10 @@ struct AnalyticDEObject : public SceneObject
 
 
 	// Get the distance estimate for point p in object space
-	virtual real getDE(const vec3r & p_os) const noexcept = 0;
+	virtual real getDE(const vec3r & p_os) noexcept = 0;
 
 	// Numeric normal vector calculation by forward differencing
-	virtual vec3r getNormal(const vec3r & p) const noexcept override final
+	virtual vec3r getNormal(const vec3r & p) noexcept override final
 	{
 		const vec3r p_os = p - centre;
 #if USE_DOUBLE
@@ -35,7 +35,7 @@ struct AnalyticDEObject : public SceneObject
 		return normalise(grad);
 	}
 
-	virtual real intersect(const Ray & r) const noexcept override final
+	virtual real intersect(const Ray & r) noexcept override final
 	{
 		const vec3r s = r.o - centre;
 		const real  b = dot(s, r.d);

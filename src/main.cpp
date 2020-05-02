@@ -39,7 +39,7 @@ struct sRGBPixel
 
 void renderPasses(
 	std::vector<std::thread> & threads, std::vector<vec3f> & image_HDR,
-	const int frame, const int base_pass, int num_passes, const int xres, const int yres, const int frames, const Scene & scene) noexcept
+	const int frame, const int base_pass, int num_passes, const int xres, const int yres, const int frames, Scene & scene) noexcept
 {
 	ThreadControl thread_control = { num_passes };
 
@@ -72,7 +72,7 @@ void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & imag
 int main(int argc, char ** argv)
 {
 	const int  num_threads = (int)std::thread::hardware_concurrency();
-	const bool time_frames = true;
+	const bool time_frames = false;
 
 	// Parse command line arguments
 	enum { mode_progressive, mode_animation } mode = mode_progressive;
@@ -88,23 +88,60 @@ int main(int argc, char ** argv)
 		//Sphere s;
 		//s.centre = { 0, 0, 0 };
 		//s.radius = main_sphere_rad;
-		//s.colour = { 0.1f, 0.3f, 0.7f };
-		//scene_storage.spheres.push_back(s);
+		//s.albedo = { 0.1f, 0.3f, 0.7f };
+		//scene.objects.push_back(s.clone());
 
 		Sphere s2;
 		const real bigrad = 1024;
 		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
 		s2.radius = bigrad;
-		s2.colour = vec3f{ 0.6f, 0.3f, 0.2f } * 0.5f;
-		scene.spheres.push_back(s2);
+		s2.albedo = vec3f{ 0.6f, 0.3f, 0.2f } * 0.5f;
 
+		scene.objects.push_back(s2.clone());
+
+#if 1
 		MandelbulbDual bulb;
 		bulb.radius = 4;
-		bulb.colour = { 0.1f, 0.3f, 0.7f };
+		bulb.albedo = { 0.1f, 0.3f, 0.7f };
+		scene.objects.push_back(bulb.clone());
+#else
+		DualMandelbulbIteration mbi;
 
-		scene.dual_mandelbulbs.push_back(bulb);
+		GeneralDualDE hybrid;
+		hybrid.radius = 4;
+		hybrid.albedo = { 0.1f, 0.3f, 0.7f };
+		hybrid.funcs.push_back(mbi.clone());
+
+		scene.objects.push_back(hybrid.clone());
+#endif
+
+		// Test adding sphere lights
+		const int num_sphere_lights = 0;//1 << 7;
+		for (int i = 0; i < num_sphere_lights; ++i)
+		{
+			const real offset = 0.61803398874989484820458683436564f;
+			const real refl_sample_x = wrap1r(i / (real)num_sphere_lights, offset);
+			//const real refl_sample_x = wrap1r((real)RadicalInverse(i, 3), offset);
+			const real refl_sample_y = wrap1r((real)RadicalInverse(i, 2), offset);
+
+			// Generate uniform point on sphere, see https://mathworld.wolfram.com/SpherePointPicking.html
+			const real a = refl_sample_x * two_pi;
+			const real s = 2 * std::sqrt(std::max(static_cast<real>(0), refl_sample_y * (1 - refl_sample_y)));
+			const vec3r sphere =
+			{
+				std::cos(a) * s,
+				std::sin(a) * s,
+				1 - 2 * refl_sample_y
+			};
+
+			Sphere sp;
+			sp.centre = sphere * 1.0f;
+			sp.radius = 0.05f;
+			sp.albedo = 0.65f;
+			//sp.emission = 1;
+			scene.objects.push_back(sp.clone());
+		}
 	}
-	scene.init();
 
 	const int image_multi  = 80;
 	const int image_width  = image_multi * 16;

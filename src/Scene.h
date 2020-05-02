@@ -12,26 +12,30 @@
 
 struct Scene
 {
-	void init()
-	{
-		objects.resize(0);
+	Scene() = default;
 
-		for (auto & o : spheres)                 objects.push_back((SceneObject *)&o);
-		for (auto & o : analytic_mandelbulbs)    objects.push_back((SceneObject *)&o);
-		for (auto & o : dual_mandelbulbs)        objects.push_back((SceneObject *)&o);
-		for (auto & o : analytic_juliabulbs)     objects.push_back((SceneObject *)&o);
-		for (auto & o : dual_juliabulbs)         objects.push_back((SceneObject *)&o);
-		for (auto & o : analytic_menger_sponges) objects.push_back((SceneObject *)&o);
-		for (auto & o : dual_menger_sponges)     objects.push_back((SceneObject *)&o);
+	// Copy constructor
+	Scene(const Scene & s)
+	{
+		objects.resize(s.objects.size());
+
+		for (size_t i = 0; i < s.objects.size(); ++i)
+			objects[i] = s.objects[i]->clone();
 	}
 
-
-	std::pair<const SceneObject *, real> nearestIntersection(const Ray & r) const noexcept
+	// Scene owns all the object pointers, so delete them
+	~Scene()
 	{
-		const SceneObject * nearest_obj = nullptr;
+		for (SceneObject * const o : objects)
+			delete o;
+	}
+
+	std::pair<SceneObject *, real> nearestIntersection(const Ray & r) noexcept
+	{
+		SceneObject * nearest_obj = nullptr;
 		real nearest_t = real_inf;
 
-		for (const SceneObject * const o : objects)
+		for (SceneObject * const o : objects)
 		{
 			const real hit_t = o->intersect(r);
 			if (hit_t > ray_epsilon && hit_t < nearest_t)
@@ -45,17 +49,5 @@ struct Scene
 	}
 
 
-	std::vector<Sphere> spheres;
-
-	std::vector<MandelbulbAnalytic> analytic_mandelbulbs;
-	std::vector<MandelbulbDual> dual_mandelbulbs;
-
-	std::vector<QuadraticJuliabulbAnalytic> analytic_juliabulbs;
-	std::vector<QuadraticJuliabulbDual> dual_juliabulbs;
-
-	std::vector<MengerSpongeAnalytic> analytic_menger_sponges;
-	std::vector<MengerSpongeDual> dual_menger_sponges;
-
-protected:
 	std::vector<SceneObject *> objects;
 };
