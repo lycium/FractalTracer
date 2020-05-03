@@ -92,6 +92,7 @@
     <ClInclude Include="..\src\Amazingbox.h" />
     <ClInclude Include="..\src\Mandelbulb.h" />
     <ClInclude Include="..\src\MengerSponge.h" />
+    <ClInclude Include="..\src\Octopus.h" />
     <ClInclude Include="..\src\QuadraticJuliabulb.h" />
     <ClInclude Include="..\src\Ray.h" />
     <ClInclude Include="..\src\real.h" />
