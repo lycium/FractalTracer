@@ -97,7 +97,7 @@ int main(int argc, char ** argv)
 		s2.radius = bigrad;
 		s2.albedo = vec3f{ 0.6f, 0.3f, 0.2f } * 0.5f;
 
-		scene.objects.push_back(s2.clone());
+		//scene.objects.push_back(s2.clone());
 
 #if 0
 		MandelbulbDual bulb;
@@ -106,17 +106,21 @@ int main(int argc, char ** argv)
 		scene.objects.push_back(bulb.clone());
 #else
 		DualMandelbulbIteration mbi;
+		DualMengerSpongeIteration msi;
 
 		GeneralDualDE hybrid;
-		hybrid.radius = 4;
+		hybrid.radius = 1.25;
 		hybrid.albedo = { 0.1f, 0.3f, 0.7f };
+		hybrid.max_iters = 16;
+
 		hybrid.funcs.push_back(mbi.clone());
+		hybrid.funcs.push_back(msi.clone());
 
 		scene.objects.push_back(hybrid.clone());
 #endif
 
 		// Test adding sphere lights
-		const int num_sphere_lights = 0;//1 << 7;
+		const int num_sphere_lights = 1 << 7;
 		for (int i = 0; i < num_sphere_lights; ++i)
 		{
 			const real offset = 0.61803398874989484820458683436564f;
@@ -137,13 +141,13 @@ int main(int argc, char ** argv)
 			Sphere sp;
 			sp.centre = sphere * 1.0f;
 			sp.radius = 0.05f;
-			sp.albedo = 0.65f;
-			//sp.emission = 1;
+			sp.albedo = 0.0f;
+			sp.emission = 4;
 			scene.objects.push_back(sp.clone());
 		}
 	}
 
-	const int image_multi  = 80;
+	const int image_multi  = 120;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
 

@@ -126,8 +126,8 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 		// Did we hit anything? If not, return skylight colour
 		if (nearest_hit_obj == nullptr)
 		{
-			const vec3f sky_up = vec3f{ 0.02f, 0.05f, 0.1f } * 2;
-			const vec3f sky_hz = vec3f{ 0.05f, 0.07f, 0.1f } * 2;
+			const vec3f sky_up = vec3f{ 53, 112, 128 } * (1.0f / 255) * 0.25f;
+			const vec3f sky_hz = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.25f;
 			const vec3f sky = sky_hz + (sky_up - sky_hz) * std::max(static_cast<real>(0), ray.d.y);
 			contribution += throughput * sky;
 			break;
@@ -139,10 +139,20 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 		// Get the normal at the intersction point from the surface we hit
 		const vec3r normal = nearest_hit_obj->getNormal(hit_p);
 
+		vec3f albedo = nearest_hit_obj->albedo;
+		if (nearest_hit_obj == scene.objects[0])
+		{
+			const float height = (float)-hit_p.y * 0.5f + 0.5f;
+			if (height < 0.6f) albedo = vec3f{ 255, 244, 99 } * (1.0f / 255);
+			else if (height < 0.7f) albedo = 0.95f;
+			else albedo = vec3f{ 178, 110, 45 } * (1.0f / 255);
+		}
+
 		// Add emission
 		contribution += throughput * nearest_hit_obj->emission;
 
 		// Do direct lighting from a fixed point light
+		if (false)
 		{
 			// Compute vector from intersection point to light
 			const vec3r light_pos = { 8, 12, -6 };
@@ -156,7 +166,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 
 			if (n_dot_l > 0)
 			{
-				const vec3f refl_colour = nearest_hit_obj->albedo * std::max(0.0f, (float)n_dot_l) / (float)light_ln2 * 420;
+				const vec3f refl_colour = albedo * std::max(0.0f, (float)n_dot_l) / (float)light_ln2 * 420;
 
 				// Trace shadow ray from the hit point towards the light
 				const Ray shadow_ray = { hit_p, light_dir };
@@ -189,7 +199,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 		const vec3r new_dir_cosine = normalise(normal + sphere);
 
 		// Multiply the throughput by the surface reflection
-		throughput *= nearest_hit_obj->albedo;
+		throughput *= albedo;
 
 		// Start next bounce from the hit position in the scattered ray direction
 		ray.o = hit_p;

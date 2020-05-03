@@ -89,3 +89,32 @@ struct MengerSpongeDual final : public DualDEObject
 		return new MengerSpongeDual(*this);
 	}
 };
+
+
+struct DualMengerSpongeIteration final : public IterationFunction
+{
+	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
+	{
+		DualVec3r z(
+			fabs(p_in.x),
+			fabs(p_in.y),
+			fabs(p_in.z));
+
+		if (z.x.v[0] - z.y.v[0] < 0) std::swap(z.x, z.y);
+		if (z.x.v[0] - z.z.v[0] < 0) std::swap(z.x, z.z);
+		if (z.y.v[0] - z.z.v[0] < 0) std::swap(z.y, z.z);
+
+		z *= 3;
+
+		z.x -= 2;
+		z.y -= 2;
+		if (z.z.v[0] > 1) z.z -= 2;
+
+		p_out = z;
+	}
+
+	virtual IterationFunction * clone() const override
+	{
+		return new DualMengerSpongeIteration(*this);
+	}
+};
