@@ -72,7 +72,7 @@ inline int wrap6i(int & v)
 {
 	const int o = v;
 	const int u = o + 1;
-	v = (u < 6)	? u : 0;
+	v = (u < 6) ? u : 0;
 	return o;
 }
 

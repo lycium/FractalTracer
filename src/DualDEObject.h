@@ -254,7 +254,7 @@ struct GeneralDualDE final : public DualDEObject
 	GeneralDualDE() = default;
 
 	// Copy constructor
-	GeneralDualDE(const GeneralDualDE & v)
+	GeneralDualDE(const GeneralDualDE & v) : DualDEObject(v)
 	{
 		funcs.resize(v.funcs.size());
 		for (size_t i = 0; i < v.funcs.size(); ++i)

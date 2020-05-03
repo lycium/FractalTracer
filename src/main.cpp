@@ -99,7 +99,7 @@ int main(int argc, char ** argv)
 
 		scene.objects.push_back(s2.clone());
 
-#if 1
+#if 0
 		MandelbulbDual bulb;
 		bulb.radius = 4;
 		bulb.albedo = { 0.1f, 0.3f, 0.7f };
