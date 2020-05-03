@@ -1,8 +1,7 @@
 /FractalTracer_msvc2019/.vs/FractalTracer_msvc2019/v16/*.db
 /FractalTracer_msvc2019/.vs/FractalTracer_msvc2019/v16/*.opendb
-/FractalTracer_msvc2019/*.user
 /FractalTracer_msvc2019/x64
-*.ipch
+/FractalTracer_msvc2019/*.user
 /FractalTracer_msvc2019/*.png
 src/FractalTracer
-*.png
+*.ipch
