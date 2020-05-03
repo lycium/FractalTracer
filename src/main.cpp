@@ -14,6 +14,12 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
+#if _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#endif
+
 #include "vec2.h"
 #include "vec3.h"
 
@@ -77,6 +83,9 @@ void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & imag
 
 int main(int argc, char ** argv)
 {
+#if _WIN32
+	SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+#endif
 	const int  num_threads = (int)std::thread::hardware_concurrency();
 	const bool time_frames = false;
 

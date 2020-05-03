@@ -79,7 +79,7 @@ inline int wrap6i(int & v)
 inline float sign(float v) { return (v >= 0) ? 1.0f : -1.0f; }
 
 // Convert uniform distribution into triangle-shaped distribution
-// From https://www.shadertoy.com/view/Md3XRf
+// From https://www.shadertoy.com/view/4t2SDh
 inline float triDist(float v)
 {
 	const float orig = v * 2 - 1;
