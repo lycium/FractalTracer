@@ -197,16 +197,16 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 			// Compute vector from intersection point to light
 			const vec3r light_pos = { 8, 12, -6 };
 			const vec3r light_vec = light_pos - hit_p;
-			const real  light_ln2 = dot(light_vec, light_vec);
-			const real  light_len = std::sqrt(light_ln2);
-			const vec3r light_dir = light_vec * (1 / light_len);
 
 			// Compute reflected light (simple diffuse / Lambertian) with 1/distance^2 falloff
-			const real n_dot_l = dot(normal, light_dir);
-
+			const real n_dot_l = dot(normal, light_vec);
 			if (n_dot_l > 0)
 			{
-				const vec3f refl_colour = albedo * std::max(0.0f, (float)n_dot_l) / (float)light_ln2 * 420;
+				const real  light_ln2 = dot(light_vec, light_vec);
+				const real  light_len = std::sqrt(light_ln2);
+				const vec3r light_dir = light_vec * (1 / light_len);
+
+				const vec3f refl_colour = albedo * (float)n_dot_l / (float)(light_ln2 * light_len) * 420;
 
 				// Trace shadow ray from the hit point towards the light
 				const Ray shadow_ray = { hit_p, light_dir };

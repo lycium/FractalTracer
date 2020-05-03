@@ -127,7 +127,7 @@ int main(int argc, char ** argv)
 
 		GeneralDualDE hybrid;
 		hybrid.radius = main_sphere_rad;
-		hybrid.fudge_factor = 0.5;
+		hybrid.step_scale = 0.5;
 		hybrid.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.use_fresnel = true;
 		hybrid.max_iters = 16;

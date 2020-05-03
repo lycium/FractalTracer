@@ -11,7 +11,7 @@ struct DualDEObject : public SceneObject
 {
 	vec3r centre = { 0, 0, 0 };
 	real  radius = 1; 
-	real  fudge_factor = 1; // Method of last resort to prevent overstepping
+	real  step_scale = 1; // Method of last resort to prevent overstepping
 
 
 	real getLinearDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
@@ -227,7 +227,7 @@ struct DualDEObject : public SceneObject
 			const DualVec3r p_os_dual(Dual3r(p_os.x, 0), Dual3r(p_os.y, 1), Dual3r(p_os.z, 2));
 	
 			vec3r normal_ignored;
-			const real DE = getDE(p_os_dual, normal_ignored) * fudge_factor;
+			const real DE = getDE(p_os_dual, normal_ignored) * step_scale;
 			(void) normal_ignored;
 			t += DE;
 
