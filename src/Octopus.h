@@ -6,18 +6,18 @@
 // Ref: http://www.fractalforums.com/mandelbulb-3d/custom-formulas-and-transforms-release-t17106/msg65751/#msg65751
 struct DualOctopusIteration final : public IterationFunction
 {
-	real xz_mul = 1.25;
+	real xz_mul = 1.25f;
 	real sq_mul = 1;
-	DualVec3r c = DualVec3r{ 0.0f, 0.0f, 0.0f };
+	DualVec3r c = { 0.0f, 0.0f, 0.0f };
 	bool julia_mode = true;
 
-	virtual void init(const DualVec3r& p_0) noexcept override final
+	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
 		if (!julia_mode)
 			c = p_0;
 	}
 
-	virtual void eval(const DualVec3r& p_in, DualVec3r& p_out) const noexcept override final
+	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
 		p_out = DualVec3r(
 			c.x - p_in.x * p_in.z * xz_mul,
@@ -25,9 +25,8 @@ struct DualOctopusIteration final : public IterationFunction
 			c.z + p_in.y);
 	}
 
-	virtual IterationFunction* clone() const override
+	virtual IterationFunction * clone() const override
 	{
 		return new DualOctopusIteration(*this);
 	}
-
 };
