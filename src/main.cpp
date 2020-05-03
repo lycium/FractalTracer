@@ -99,7 +99,7 @@ int main(int argc, char ** argv)
 
 	Scene scene;
 	{
-		const real main_sphere_rad = 1.25f;
+		const real main_sphere_rad = 2.0f;
 
 		Sphere s;
 		s.centre = { 0, 0, 0 };
@@ -126,13 +126,16 @@ int main(int argc, char ** argv)
 		DualCubicbulbIteration cbi;
 
 		GeneralDualDE hybrid;
-		hybrid.radius = 1.25;
+		hybrid.radius = main_sphere_rad;
+		hybrid.fudge_factor = 0.5;
 		hybrid.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.use_fresnel = true;
 		hybrid.max_iters = 16;
 
+		hybrid.sequence = { 1, 1, 0, 1, 0, 1 };
+
 		//hybrid.funcs.push_back(mbi.clone());
-		//hybrid.funcs.push_back(msi.clone());
+		hybrid.funcs.push_back(msi.clone());
 		hybrid.funcs.push_back(cbi.clone());
 
 		scene.objects.push_back(hybrid.clone());

@@ -11,6 +11,7 @@ struct DualDEObject : public SceneObject
 {
 	vec3r centre = { 0, 0, 0 };
 	real  radius = 1; 
+	real  fudge_factor = 1; // Method of last resort to prevent overstepping
 
 
 	real getLinearDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
@@ -65,7 +66,7 @@ struct DualDEObject : public SceneObject
 		const vec3r jy = vec3r{ p_os.x.v[2], p_os.y.v[2], p_os.z.v[2] };
 		const vec3r jz = vec3r{ p_os.x.v[3], p_os.y.v[3], p_os.z.v[3] };
 
-		const real len2 = dot(p, p); 
+		const real len2 = dot(p, p);
 		const real len = sqrt(len2);
 		const vec3r u = p * (1 / len); // Normalise p first to avoid overflow in dot products
 
@@ -226,7 +227,7 @@ struct DualDEObject : public SceneObject
 			const DualVec3r p_os_dual(Dual3r(p_os.x, 0), Dual3r(p_os.y, 1), Dual3r(p_os.z, 2));
 	
 			vec3r normal_ignored;
-			const real DE = getDE(p_os_dual, normal_ignored);
+			const real DE = getDE(p_os_dual, normal_ignored) * fudge_factor;
 			(void) normal_ignored;
 			t += DE;
 
@@ -256,6 +257,8 @@ struct GeneralDualDE final : public DualDEObject
 	// Copy constructor
 	GeneralDualDE(const GeneralDualDE & v) : DualDEObject(v)
 	{
+		sequence = v.sequence;
+
 		funcs.resize(v.funcs.size());
 		for (size_t i = 0; i < v.funcs.size(); ++i)
 			funcs[i] = v.funcs[i]->clone();
@@ -275,15 +278,16 @@ struct GeneralDualDE final : public DualDEObject
 	{
 		DualVec3r p = p_os;
 
+		const int seq_len = (int)sequence.size();
 		const int num_funcs = (int)funcs.size();
 		for (int i = 0; i < num_funcs; ++i)
 			funcs[i]->init(p);
 
-		int curr_func = 0;
+		int seq_idx = 0;
 		for (int i = 0; i < max_iters; i++)
 		{
 			DualVec3r p_new;
-			funcs[curr_func]->eval(p, p_new);
+			funcs[sequence[seq_idx]]->eval(p, p_new);
 			p = p_new;
 
 			const real r2 = p.x.v[0] * p.x.v[0] + p.y.v[0] * p.y.v[0] + p.z.v[0] * p.z.v[0];
@@ -291,7 +295,7 @@ struct GeneralDualDE final : public DualDEObject
 				break;
 
 			// Increment next function idx with wraparound
-			curr_func = (curr_func < num_funcs - 1) ? curr_func + 1 : 0;
+			seq_idx = (seq_idx < seq_len - 1) ? seq_idx + 1 : 0;
 		}
 
 #if 1
@@ -307,7 +311,9 @@ struct GeneralDualDE final : public DualDEObject
 	}
 
 
+	std::vector<char> sequence;
 	std::vector<IterationFunction *> funcs;
+
 	int max_iters = 4;
 	real bailout_radius2 = 256;
 };
