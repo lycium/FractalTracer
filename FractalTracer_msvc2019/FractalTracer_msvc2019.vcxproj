@@ -89,6 +89,7 @@
     <ClInclude Include="..\src\Cubicbulb.h" />
     <ClInclude Include="..\src\Dual.h" />
     <ClInclude Include="..\src\DualDEObject.h" />
+    <ClInclude Include="..\src\Amazingbox.h" />
     <ClInclude Include="..\src\Mandelbulb.h" />
     <ClInclude Include="..\src\MengerSponge.h" />
     <ClInclude Include="..\src\QuadraticJuliabulb.h" />
