@@ -262,6 +262,10 @@ struct GeneralDualDE final : public DualDEObject
 
 		max_iters = v.max_iters;
 		bailout_radius2 = v.bailout_radius2;
+		albedo = v.albedo;
+		centre = v.centre;
+		emission = v.emission;
+		radius = v.radius;
 	}
 
 	virtual ~GeneralDualDE()
