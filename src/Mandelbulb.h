@@ -5,7 +5,8 @@
 
 
 
-// Inigo Quilez's distance estimator: https://www.iquilezles.org/www/articles/mandelbulb/mandelbulb.htm
+// Inigo Quilez's power 8 Mandelbulb distance estimator
+// Ref: https://www.iquilezles.org/www/articles/mandelbulb/mandelbulb.htm
 struct MandelbulbAnalytic final : public AnalyticDEObject
 {
 	virtual real getDE(const vec3r & p_os) noexcept override final
@@ -63,19 +64,14 @@ struct MandelbulbDual final : public DualDEObject
 
 			const Dual3r k3 = x2 + z2;
 			const Dual3r k2 = Dual3r(1) / sqrt(k3*k3*k3*k3*k3*k3*k3);
-			const Dual3r k1 = x4 + y4 + z4 - Dual3r(6) * y2*z2 - Dual3r(6) * x2*y2 + Dual3r(2) * z2*x2;
+			const Dual3r k1 = x4 + y4 + z4 - y2*z2 * 6 - x2*y2 * 6 + z2*x2 * 2;
 			const Dual3r k4 = x2 - y2 + z2;
 
-			w.x = c.x + Dual3r( 64) * x*y*z * (x2 - z2) * k4 * (x4 - Dual3r(6) * x2*z2+z4) * k1*k2;
-			w.y = c.y + Dual3r(-16) * y2*k3*k4*k4 + k1*k1;
-			w.z = c.z + Dual3r( -8) * y*k4 * (x4*x4 - Dual3r(28) * x4*x2*z2 + Dual3r(70) * x4*z4 - Dual3r(28) * x2*z2*z4 + z4*z4) * k1*k2;
+			w.x = c.x + x*y*z * 64 * (x2 - z2) * k4 * (x4 - x2*z2 * 6 + z4) * k1*k2;
+			w.y = c.y + y2*k3*k4*k4 * -16 + k1*k1;
+			w.z = c.z + y*k4 * (x4*x4 - x4*x2*z2 * 28 + x4*z4 * 70 - x2*z2*z4 * 28 + z4*z4) * k1*k2 * -8;
 
 			const real m = w.x.v[0] * w.x.v[0] + w.y.v[0] * w.y.v[0] + w.z.v[0] * w.z.v[0];
-
-			// Computations above requires computing terms of size w^15.
-			// The largest representable single precision float is less than 2^128.
-			// (2 ** 127) ** (1 / 15) = 353.7698 =: R
-			// So if m < R, the next iteration should not overflow
 			if (m > 256)
 				break;
 		}
@@ -109,13 +105,13 @@ struct DualMandelbulbIteration final : public IterationFunction
 
 		const Dual3r k3 = x2 + z2;
 		const Dual3r k2 = Dual3r(1) / sqrt(k3*k3*k3*k3*k3*k3*k3);
-		const Dual3r k1 = x4 + y4 + z4 - Dual3r(6) * y2*z2 - Dual3r(6) * x2*y2 + Dual3r(2) * z2*x2;
+		const Dual3r k1 = x4 + y4 + z4 - y2*z2 * 6 - x2*y2 * 6 + z2*x2 * 2;
 		const Dual3r k4 = x2 - y2 + z2;
 
 		p_out = DualVec3r(
-			c.x + Dual3r( 64) * x*y*z * (x2 - z2) * k4 * (x4 - Dual3r(6) * x2*z2+z4) * k1*k2,
-			c.y + Dual3r(-16) * y2*k3*k4*k4 + k1*k1,
-			c.z + Dual3r( -8) * y*k4 * (x4*x4 - Dual3r(28) * x4*x2*z2 + Dual3r(70) * x4*z4 - Dual3r(28) * x2*z2*z4 + z4*z4) * k1*k2);
+			c.x + x*y*z * 64 * (x2 - z2) * k4 * (x4 - x2*z2 * 6 + z4) * k1*k2,
+			c.y + y2*k3*k4*k4 * -16 + k1*k1,
+			c.z + y*k4 * (x4*x4 - x4*x2*z2 * 28 + x4*z4 * 70 - x2*z2*z4 * 28 + z4*z4) * k1*k2 * -8);
 	}
 
 	virtual IterationFunction * clone() const override

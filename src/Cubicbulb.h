@@ -2,34 +2,36 @@
 
 #include "DualDEObject.h"
 
+
+
 // Cubicbulb formula
-// based on implementations by quasihedron and dark-beam 
-// Details: https://www.deviantart.com/quasihedron/art/JIT-QH2017-CubicBulb-20170210-662776379
+// Based on implementations by quasihedron and dark-beam 
+// Ref: https://www.deviantart.com/quasihedron/art/JIT-QH2017-CubicBulb-20170210-662776379
 struct DualCubicbulbIteration final : public IterationFunction
 {
-	Dual3r YMul = 3.0;
-	Dual3r ZMul = 3.0;
-	Dual3r AuxMul = 1.0;
-	DualVec3r c = { -0.5, -0.5, -0.25 };
-	bool JuliaMode = true;
+	real y_mul = 3;
+	real z_mul = 3;
+	real aux_mul = 1;
+	DualVec3r c = { -0.5f, -0.5f, -0.25f };
+	bool julia_mode = true;
 
-	virtual void init(const DualVec3r& p_0) noexcept override final
+
+	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
-		if(!JuliaMode)
+		if (!julia_mode)
 			c = p_0;
 	}
 
-	virtual void eval(const DualVec3r& p_in, DualVec3r& p_out) const noexcept override final
+	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
 		p_out = DualVec3r(
-			c.x + p_in.x * p_in.x * p_in.x - YMul * p_in.x * p_in.y * p_in.y - ZMul * p_in.x * p_in.z * p_in.z,
-			c.y + -p_in.y * p_in.y * p_in.y + YMul * p_in.y * p_in.x * p_in.x - AuxMul * p_in.y * p_in.z * p_in.z,
-			c.z + p_in.z * p_in.z * p_in.z - ZMul * p_in.z * p_in.x * p_in.x + AuxMul * p_in.z * p_in.y * p_in.y);
+			 c.x + p_in.x * p_in.x * p_in.x - p_in.x * p_in.y * p_in.y * y_mul - p_in.x * p_in.z * p_in.z * z_mul,
+			 c.y - p_in.y * p_in.y * p_in.y + p_in.y * p_in.x * p_in.x * y_mul - p_in.y * p_in.z * p_in.z * aux_mul,
+			 c.z + p_in.z * p_in.z * p_in.z - p_in.z * p_in.x * p_in.x * z_mul + p_in.z * p_in.y * p_in.y * aux_mul);
 	}
 
-	virtual IterationFunction* clone() const override
+	virtual IterationFunction * clone() const override
 	{
 		return new DualCubicbulbIteration(*this);
 	}
-
 };

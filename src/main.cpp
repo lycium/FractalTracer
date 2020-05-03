@@ -21,6 +21,12 @@
 #include "Scene.h"
 #include "Renderer.h"
 
+#include "SimpleObjects.h"
+#include "Mandelbulb.h"
+#include "QuadraticJuliabulb.h"
+#include "MengerSponge.h"
+#include "Cubicbulb.h"
+
 
 
 inline float sRGB(const float u)
@@ -84,20 +90,21 @@ int main(int argc, char ** argv)
 
 	Scene scene;
 	{
-		const real main_sphere_rad = 4;
-		//Sphere s;
-		//s.centre = { 0, 0, 0 };
-		//s.radius = main_sphere_rad;
-		//s.albedo = { 0.1f, 0.3f, 0.7f };
+		const real main_sphere_rad = 1.25f;
+
+		Sphere s;
+		s.centre = { 0, 0, 0 };
+		s.radius = main_sphere_rad;
+		s.albedo = { 0.1f, 0.3f, 0.7f };
 		//scene.objects.push_back(s.clone());
 
 		Sphere s2;
-		const real bigrad = 1024;
+		const real bigrad = 128;
 		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
 		s2.radius = bigrad;
-		s2.albedo = vec3f{ 0.6f, 0.3f, 0.2f } * 0.5f;
+		s2.albedo = vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
 
-		//scene.objects.push_back(s2.clone());
+		scene.objects.push_back(s2.clone());
 
 #if 0
 		MandelbulbDual bulb;
@@ -107,20 +114,23 @@ int main(int argc, char ** argv)
 #else
 		DualMandelbulbIteration mbi;
 		DualMengerSpongeIteration msi;
+		DualCubicbulbIteration cbi;
 
 		GeneralDualDE hybrid;
 		hybrid.radius = 1.25;
 		hybrid.albedo = { 0.1f, 0.3f, 0.7f };
+		hybrid.use_fresnel = true;
 		hybrid.max_iters = 16;
 
-		hybrid.funcs.push_back(mbi.clone());
-		hybrid.funcs.push_back(msi.clone());
+		//hybrid.funcs.push_back(mbi.clone());
+		//hybrid.funcs.push_back(msi.clone());
+		hybrid.funcs.push_back(cbi.clone());
 
 		scene.objects.push_back(hybrid.clone());
 #endif
 
 		// Test adding sphere lights
-		const int num_sphere_lights = 1 << 7;
+		const int num_sphere_lights = 0;//1 << 5;
 		for (int i = 0; i < num_sphere_lights; ++i)
 		{
 			const real offset = 0.61803398874989484820458683436564f;
@@ -172,8 +182,8 @@ int main(int argc, char ** argv)
 	{
 		case mode_animation:
 		{
-			const int frames = 30 * 8;
-			const int passes = 2 * 3 * 5;
+			const int frames = 30 * 4;
+			const int passes = 2 * 3 * 5 * 7;
 			printf("Rendering %d frames at resolution %d x %d with %d passes\n", frames, image_width, image_height, passes);
 
 			for (int frame = 0; frame < frames; ++frame)

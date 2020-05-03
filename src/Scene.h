@@ -3,10 +3,6 @@
 #include <vector>
 
 #include "SceneObject.h"
-#include "SimpleObjects.h"
-#include "Mandelbulb.h"
-#include "QuadraticJuliabulb.h"
-#include "MengerSponge.h"
 
 
 
