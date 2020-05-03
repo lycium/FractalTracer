@@ -5,3 +5,4 @@
 /FractalTracer_msvc2019/*.png
 src/FractalTracer
 *.ipch
+*.suo
