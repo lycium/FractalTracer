@@ -39,7 +39,7 @@ struct MandelbulbAnalytic final : public AnalyticDEObject
 				break;
 		}
 
-		return 0.25f * log(m) * sqrt(m) / dz;
+		return 0.25f * log(m) * sqrt(m) / dz;// * 0.25f;
 	}
 
 	virtual SceneObject * clone() const override

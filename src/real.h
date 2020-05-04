@@ -2,9 +2,8 @@
 
 #include <limits>
 
+#define USE_DOUBLE 1
 
-
-#define USE_DOUBLE 0
 
 
 // From PBRT

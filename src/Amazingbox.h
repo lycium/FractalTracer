@@ -12,7 +12,7 @@ struct DualAmazingboxIteration final : public IterationFunction
 	real min_r2 = 0.5f;
 	real fix_r2 = 1;
 	real fold_limit = 1;
-	DualVec3r c = { 2.5f, 0.0f, 2.5f };
+	DualVec3r c = { 2.5f, -0.7f, 2.15f };
 	bool julia_mode = false;
 
 
@@ -38,7 +38,7 @@ struct DualAmazingboxIteration final : public IterationFunction
 	}
 
 protected:
-	inline DualVec3r boxFold(DualVec3r & const p_in) const
+	inline DualVec3r boxFold(const DualVec3r & p_in) const
 	{
 		return DualVec3r(
 			clamp(p_in.x, -fold_limit, fold_limit) * 2 - p_in.x,
@@ -46,7 +46,7 @@ protected:
 			clamp(p_in.z, -fold_limit, fold_limit) * 2 - p_in.z);
 	}
 
-	inline DualVec3r sphereFold(DualVec3r & const p_in) const
+	inline DualVec3r sphereFold(const DualVec3r & p_in) const
 	{
 		const real r2 = p_in.x.v[0] * p_in.x.v[0] + p_in.y.v[0] * p_in.y.v[0] + p_in.z.v[0] * p_in.z.v[0];
 		return

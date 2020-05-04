@@ -11,6 +11,7 @@ struct AnalyticDEObject : public SceneObject
 {
 	vec3r centre = { 0, 0, 0 };
 	real  radius = 1; 
+	real  step_scale = 1; // Method of last resort to prevent overstepping
 
 
 	// Get the distance estimate for point p in object space
@@ -55,7 +56,7 @@ struct AnalyticDEObject : public SceneObject
 		while (t < t2)
 		{
 			const vec3r p_os = s + r.d * t;
-			const real DE = getDE(p_os);
+			const real DE = getDE(p_os) * step_scale;
 			t += DE;
 
 			// If we're close enough to the surface, return a valid intersection

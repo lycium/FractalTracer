@@ -6,8 +6,8 @@
 
 
 #if USE_DOUBLE
-constexpr static real ray_epsilon = 3e-9; // Ignore intersections closer than this to avoid self-intersection artifacts
-constexpr static real DE_thresh = 2e-10; // Nearest intersection distance for DE objects
+constexpr static real ray_epsilon = 3e-5; // Ignore intersections closer than this to avoid self-intersection artifacts
+constexpr static real DE_thresh = 2e-6; // Nearest intersection distance for DE objects
 #else
 constexpr static real ray_epsilon = 3e-4f;
 constexpr static real DE_thresh = 2e-5f;

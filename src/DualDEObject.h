@@ -10,7 +10,7 @@
 struct DualDEObject : public SceneObject
 {
 	vec3r centre = { 0, 0, 0 };
-	real  radius = 1; 
+	real  radius = 1;
 	real  step_scale = 1; // Method of last resort to prevent overstepping
 
 
@@ -220,6 +220,7 @@ struct DualDEObject : public SceneObject
 		if (t2 <= ray_epsilon) return -1;
 
 		// Ray could be inside bounding sphere, start from ray epsilon
+		const real thresh = DE_thresh;
 		real t = std::max(ray_epsilon, t1);
 		while (t < t2)
 		{
@@ -232,7 +233,7 @@ struct DualDEObject : public SceneObject
 			t += DE;
 
 			// If we're close enough to the surface, return a valid intersection
-			if (DE < DE_thresh)
+			if (DE < thresh)
 				return t;
 		}
 
