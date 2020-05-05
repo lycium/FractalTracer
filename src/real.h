@@ -20,4 +20,5 @@ constexpr real OneMinusEpsilon = FloatOneMinusEpsilon;
 
 
 constexpr real real_inf = std::numeric_limits<real>::infinity();
+constexpr real pi = static_cast<real>(3.141592653589793238462643383279);
 constexpr real two_pi = static_cast<real>(6.283185307179586476925286766559);

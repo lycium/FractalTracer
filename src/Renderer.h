@@ -92,7 +92,7 @@ inline real triDist(real v)
 
 inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yres, int frames, Scene & scene) noexcept
 {
-	constexpr int max_bounces = 8;
+	constexpr int max_bounces = 3;
 	constexpr int num_primes = 6;
 	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
 

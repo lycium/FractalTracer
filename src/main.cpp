@@ -34,6 +34,7 @@
 #include "Cubicbulb.h"
 #include "Amazingbox.h"
 #include "Octopus.h"
+#include "RiemannSphere.h"
 
 
 
@@ -118,7 +119,7 @@ int main(int argc, char ** argv)
 
 		scene.objects.push_back(s2.clone());
 
-#if 1
+#if 0
 		MandelbulbDual bulb;
 		bulb.radius = 1.5f;
 		bulb.step_scale = 0.5f; //1;
@@ -126,22 +127,23 @@ int main(int argc, char ** argv)
 		bulb.mat.use_fresnel = true;
 		scene.objects.push_back(bulb.clone());
 #else
-		DualMandelbulbIteration mbi;
+		/*DualMandelbulbIteration mbi;
 		DualMengerSpongeIteration msi;
 		DualCubicbulbIteration cbi;
 		DualAmazingboxIteration ai;
-		DualOctopusIteration oi;
+		DualOctopusIteration oi;*/
+		DualRiemannSphereIteration rsi;
 
 		GeneralDualDE hybrid;
 		hybrid.radius = 2;
 		hybrid.step_scale = 0.5;
-		hybrid.albedo = { 0.1f, 0.3f, 0.7f };
+		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.mat.use_fresnel = true;
-		hybrid.mat.max_iters = 16;
+		hybrid.max_iters = 16;
 
 		hybrid.sequence = { 0 };
 
-		hybrid.funcs.push_back(ai.clone());
+		hybrid.funcs.push_back(rsi.clone());
 		//hybrid.funcs.push_back(oi.clone());
 		//hybrid.funcs.push_back(mbi.clone());
 		//hybrid.funcs.push_back(msi.clone());
@@ -178,7 +180,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	const int image_multi  = 160;
+	const int image_multi  = 50;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
 

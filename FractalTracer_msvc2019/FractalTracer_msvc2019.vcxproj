@@ -98,6 +98,7 @@
     <ClInclude Include="..\src\Ray.h" />
     <ClInclude Include="..\src\real.h" />
     <ClInclude Include="..\src\Renderer.h" />
+    <ClInclude Include="..\src\RiemannSphere.h" />
     <ClInclude Include="..\src\Scene.h" />
     <ClInclude Include="..\src\SceneObject.h" />
     <ClInclude Include="..\src\SimpleObjects.h" />
