@@ -39,7 +39,7 @@ using vec2r = vec2<real>;
 using vec2f = vec2<float>;
 using vec2d = vec2<double>;
 
-using DualVec2r = vec2<real>;
+using DualVec2r = vec2<Dual2r>;
 using DualVec2f = vec2<Dual2f>;
 using DualVec2d = vec2<Dual2d>;
 
@@ -49,12 +49,21 @@ inline real_type dot(const vec2<real_type> & lhs, const vec2<real_type> & rhs) {
 
 
 template<typename real_type>
-inline real_type length(const vec2<real_type> & v) { return length(v); }
+inline real_type length2(const vec2<real_type> & v) { return dot(v, v); }
+
+
+template<typename real_type>
+inline real_type length(const vec2<real_type> & v) { return std::sqrt(length(v)); }
 
 
 template<typename real_type>
 inline vec2<real_type> normalise(const vec2<real_type> & v, const real_type len = 1) { return v * (len / length(v)); }
 
 
-inline static vec2f toVec2f(const vec2d & v) { return vec2f((float)v.x, (float)v.y); }
-inline static vec2d toVec2d(const vec2f & v) { return vec2d(v.x, v.y); }
+inline vec2f toVec2f(const vec2d & v) { return vec2f((float)v.x, (float)v.y); }
+inline vec2d toVec2d(const vec2f & v) { return vec2d(v.x, v.y); }
+
+
+// Overrides for squared length and length of dual vectors, since the dual part does nothing
+inline real length2(const DualVec2r & v) { return v.x.v[0] * v.x.v[0] + v.y.v[0] * v.y.v[0]; }
+inline real length (const DualVec2r & v) { return std::sqrt(length2(v)); }

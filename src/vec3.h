@@ -50,7 +50,11 @@ inline real_type dot(const vec3<real_type> & lhs, const vec3<real_type> & rhs) {
 
 
 template<typename real_type>
-inline real_type length(const vec3<real_type> & v) { return std::sqrt(dot(v, v)); }
+inline real_type length2(const vec3<real_type> & v) { return dot(v, v); }
+
+
+template<typename real_type>
+inline real_type length(const vec3<real_type> & v) { return std::sqrt(length2(v)); }
 
 
 template<typename real_type>
@@ -63,3 +67,8 @@ inline vec3<real_type> cross(const vec3<real_type> & a, const vec3<real_type> & 
 
 inline vec3f toVec3f(const vec3d & v) { return vec3f((float)v.x, (float)v.y, (float)v.z); }
 inline vec3d toVec3d(const vec3f & v) { return vec3d(v.x, v.y, v.z); }
+
+
+// Overrides for squared length and length of dual vectors, since the dual part does nothing
+inline real length2(const DualVec3r & v) { return v.x.v[0] * v.x.v[0] + v.y.v[0] * v.y.v[0] + v.z.v[0] * v.z.v[0]; }
+inline real length (const DualVec3r & v) { return std::sqrt(length2(v)); }
