@@ -86,6 +86,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\src\AnalyticDEObject.h" />
+    <ClInclude Include="..\src\BenesiPine2.h" />
     <ClInclude Include="..\src\Cubicbulb.h" />
     <ClInclude Include="..\src\Dual.h" />
     <ClInclude Include="..\src\DualDEObject.h" />

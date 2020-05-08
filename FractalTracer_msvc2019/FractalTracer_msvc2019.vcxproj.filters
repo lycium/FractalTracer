@@ -71,6 +71,9 @@
     <ClInclude Include="..\src\RiemannSphere.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\BenesiPine2.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
