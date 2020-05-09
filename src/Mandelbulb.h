@@ -114,6 +114,9 @@ struct DualMandelbulbIteration final : public IterationFunction
 			c.z + y*k4 * (x4*x4 - x4*x2*z2 * 28 + x4*z4 * 70 - x2*z2*z4 * 28 + z4*z4) * k1*k2 * -8);
 	}
 
+	virtual real getPower() const noexcept override final
+	{ return 8;}
+
 	virtual IterationFunction * clone() const override
 	{
 		return new DualMandelbulbIteration(*this);

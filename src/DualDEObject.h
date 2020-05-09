@@ -12,6 +12,7 @@ struct DualDEObject : public SceneObject
 	vec3r centre = { 0, 0, 0 };
 	real  radius = 1;
 	real  step_scale = 1; // Method of last resort to prevent overstepping
+	real  max_pow = 1;//used by getHybridDE1
 
 
 	real getLinearDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
@@ -127,6 +128,11 @@ struct DualDEObject : public SceneObject
 #endif
 	}
 
+	//A DE for hybrids. Ref: https://mathr.co.uk/de
+	//a: scale (not used);
+	//p:power;
+	//w:current pos & Jacobian;
+	//normal_os_output: normal vector to output
 	real getHybridDE(const real a, const real p, const DualVec3r & w, vec3r & normal_os_out) const noexcept
 	{
 		// Extract the position vector and Jacobian
@@ -159,7 +165,7 @@ struct DualDEObject : public SceneObject
 		// Koebe 1/4 theorem for complex analytic functions says d is
 		// valid up to a factor of 2 either way, we need the lower bound.
 		// Mandelbulb etc are not complex-analytic, but hope for the best...
-		const real koebe_factor = 0.5f;
+		//const real koebe_factor = 0.5f; // K: should not be used IMHO. We already have step_scale
 
 		// Distance estimate needs a log(power) factor taken out.
 		// Not sure of the justification, but it seems to work better this way,
@@ -170,7 +176,85 @@ struct DualDEObject : public SceneObject
 		const real power_factor = 1;
 #endif
 
-		const real de = koebe_factor * power_factor * de_base;
+		const real de = /*koebe_factor **/ power_factor * de_base;
+
+		if (std::isfinite(len_dr)) // TODO: this function is probably slow, find a replacement
+		{
+			// At some parts of the fractal, m can become NaN (hairs),
+			// which pollutes everything downstream.
+			// Calling code should deal with it.
+			normal_os_out = normalise(dr);
+			return de;
+		}
+		else
+		{
+			// The derivatives have overflowed to infinity
+			// and then further operations on them yield NaN.
+			// Assuming m is finite it might as well return 0 here.
+			normal_os_out = vec3r{ 0,0,0 };
+			return 0;
+		}
+	}
+
+	//Another DE for hybrids:
+	//a:--------------- estimate of the bounding volume size of the whole fractal;
+	//p:--------------- product of formulas' powers;
+	//pmax:------------ product of formulas' powers for all iterations;
+	//w:--------------- current pos & Jacobian;
+	//normal_os_output: normal vector to output
+	real getHybridDE1(const real p, const DualVec3r & w, vec3r & normal_os_out) const noexcept
+	{
+		// Extract the position vector and Jacobian
+		const vec3r v  = vec3r{ w.x.v[0], w.y.v[0], w.z.v[0] };
+		const vec3r jx = vec3r{ w.x.v[1], w.y.v[1], w.z.v[1] };
+		const vec3r jy = vec3r{ w.x.v[2], w.y.v[2], w.z.v[2] };
+		const vec3r jz = vec3r{ w.x.v[3], w.y.v[3], w.z.v[3] };
+
+		const real len2 = dot(v, v);
+		const real len = sqrt(len2);
+		const vec3r u = v * (1 / len); // Normalise p first to avoid overflow in dot products
+
+		// Vector-matrix norm: ||J||_u = |u.J|/|u|
+		// Ref: https://fractalforums.org/fractal-image-gallery/18/burning-ship-distance-estimation/647/msg3207#msg3207
+		// ------
+		// K: It is possible to directly use a norm of the jacobian instead :)
+		//    In practice, max(length(ji)) works well. Unfortunately there are some problems with functions like abs()--> discontinuity
+		//    Another thing worth to try is to evaluate dr in the direction of the ray.
+#if 1
+		const vec3r dr = vec3r
+		{
+			dot(u, jx),
+			dot(u, jy),
+			dot(u, jz)
+		};
+		const real len_dr = length(dr);
+#else
+		const vec3r dr = vec3r
+		{
+			dot(u, jx),
+			dot(u, jy),
+			dot(u, jz)
+		};
+		const real len_dr = std::max( length(jx) , std::max( length(jy) , length(jz) ) ) ;//std::sqrt( (jx,jx) + dot(jy,jy) + dot(jz,jz));
+#endif
+		
+		const real k = len / len_dr;
+		const real de_base = (p > 10000 ) ?
+								k * (log(len) - p/max_pow * log(radius)) :                        //d1 = ff * r / dr * (log(r) - p/max_pow * log(bvr) ) = ff * r / dr * log(r) * (1 - p/max_pow * log(bvr) / log(r) );
+								k * p * (1 - std::pow(radius , 1/max_pow) / std::pow(len , 1/p)); //d2 = ff * r / dr * p * (1 - ( bvr^(1/max_pow) / r^(1/p) ));
+		//Strictly speaking the terms (1 - ( bvr^(1/max_pow) / r^(1/p) )) and (1 - p/max_pow * log(bvr) / log(r))
+		//are not absolutely required because at the limit of high iteration counts they approach 1.
+		//but they give more accurate results for low iteration count.
+		//Notice that the formula is different from the one in the document. Here the formulas were tweaked for finite/low bail out radius.
+		//Ok, it seems a little over complicated. Next, we can try to see if it can be simplified without getting visible artifacts.
+		//Notice also that when the formulas have power == 1, we use only the second formula which reduces to : k * (1 - a / len ) = (len - a ) / len_dr
+		
+		
+		// Interpreted as a Lipschitz constant
+		const real koebe_factor = 1.f; // Should be a parameter ?
+
+		const real de = koebe_factor * de_base;
+
 
 		if (std::isfinite(len_dr)) // TODO: this function is probably slow, find a replacement
 		{
@@ -246,6 +330,7 @@ struct IterationFunction
 {
 	virtual void init(const DualVec3r & p_0) noexcept { }
 	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept = 0;
+	virtual real getPower() const noexcept = 0;
 
 	virtual IterationFunction * clone() const = 0;
 };
@@ -277,9 +362,12 @@ struct GeneralDualDE final : public DualDEObject
 
 	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
 	{
+		//needed for getHybrid1
+		real current_pow = 1;
+
 		DualVec3r p = p_os;
 
-		const int seq_len = (int)sequence.size();
+		//const int seq_len = (int)sequence.size();
 		const int num_funcs = (int)funcs.size();
 		for (int i = 0; i < num_funcs; ++i)
 			funcs[i]->init(p);
@@ -290,19 +378,23 @@ struct GeneralDualDE final : public DualDEObject
 			DualVec3r p_new;
 			funcs[sequence[seq_idx]]->eval(p, p_new);
 			p = p_new;
+			current_pow *= funcs[sequence[seq_idx]]->getPower();
 
 			const real r2 = p.x.v[0] * p.x.v[0] + p.y.v[0] * p.y.v[0] + p.z.v[0] * p.z.v[0];
 			if (r2 > bailout_radius2)
 				break;
 
 			// Increment next function idx with wraparound
-			seq_idx = (seq_idx < seq_len - 1) ? seq_idx + 1 : 0;
+			seq_idx = nextFunIndex(seq_idx); //(seq_idx < seq_len - 1) ? seq_idx + 1 : 0;
 		}
-
+#if 1
+		return getHybridDE1(current_pow, p, normal_os_out); //ToDo : bounding volume ! (1st argument)
+#else
 #if 1
 		return getHybridDE(1, 8, p, normal_os_out);
 #else
 		return getPolynomialDE(w, normal_os_out);
+#endif
 #endif
 	}
 
@@ -311,10 +403,27 @@ struct GeneralDualDE final : public DualDEObject
 		return new GeneralDualDE(*this);
 	}
 
+	//K: Next function index : may ultimately allow for more "complicated" sequences ?
+	int nextFunIndex(int seq_idx)
+	{
+		return (seq_idx < (int)sequence.size() - 1) ? seq_idx + 1 : 0;
+	}
+
+	//K: Computes the power at max iterations. 
+	void computeMaxPower()
+	{
+		max_pow = 1;
+		int seq_idx = 0;
+		for(int i=0; i<max_iters; i++)
+		{
+			max_pow *= funcs[sequence[seq_idx]]->getPower();
+			seq_idx = nextFunIndex(seq_idx);
+		}
+	}
 
 	std::vector<char> sequence;
 	std::vector<IterationFunction *> funcs;
 
 	int max_iters = 4;
-	real bailout_radius2 = 256;
+	real bailout_radius2 = 65536;
 };
