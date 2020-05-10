@@ -146,6 +146,7 @@ inline constexpr Dual<real_type, vars> fabs(const Dual<real_type, vars> & d) noe
 	return (d.v[0] < 0) ? -d : d;
 }
 
+
 template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> clamp(const Dual<real_type, vars> & p, const real_type min, const real_type max) noexcept
 {

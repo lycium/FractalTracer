@@ -9,15 +9,19 @@
 // http://www.fractalforums.com/sierpinski-gasket/kaleidoscopic-(escape-time-ifs)/
 // simplified implementation:
 // https://github.com/buddhi1980/mandelbulber2/blob/517423cc5b9ac960464cbcde612a0d8c61df3375/mandelbulber2/formula/definition/fractal_menger_sponge.cpp
-struct MengerSpongeAnalytic final : public AnalyticDEObject
+struct MengerSpongeCAnalytic final : public AnalyticDEObject
 {
+	real scale = 3;
+	vec3r scale_centre = 1;
+
+
 	virtual real getDE(const vec3r & p_os) noexcept override final
 	{
 		vec3r z = p_os;
 		real m = dot(z, z);
 		real dz = 1;
 
-		for (int i = 0; i < 16; i++)
+		for (int i = 0; i < 12; i++)
 		{
 			z.x = fabs(z.x);
 			z.y = fabs(z.y);
@@ -27,31 +31,37 @@ struct MengerSpongeAnalytic final : public AnalyticDEObject
 			if (z.x - z.z < 0) std::swap(z.x, z.z);
 			if (z.y - z.z < 0) std::swap(z.y, z.z);
 
-			z  *= 3;
-			dz *= 3;
+            real t = std::min((real)0, -z.z + (real)0.5 * scale_centre.y * (scale - 1) / scale);
+            z.z += 2. * t;
 
-			z.x -= 2;
-			z.y -= 2;
-			if (z.z > 1) z.z -= 2;
+            z.x = scale * z.x - scale_centre.x * (scale - 1);
+            z.y = scale * z.y - scale_centre.y * (scale - 1);
+            z.z = scale * z.z;
+            
+			dz *= scale;
 
 			m = dot(z, z);
 			if (m > 256)
 				break;
 		}
 
-		// from a distance it looks like a sphere
-		return (sqrt(m) - radius) / dz;
+		// From a distance it looks like a sphere
+		return (std::sqrt(m) - radius) / dz;
 	}
 
 	virtual SceneObject * clone() const override
 	{
-		return new MengerSpongeAnalytic(*this);
+		return new MengerSpongeCAnalytic(*this);
 	}
 };
 
 
-struct MengerSpongeDual final : public DualDEObject
+struct MengerSpongeCDual final : public DualDEObject
 {
+	real scale = 3;
+	vec3r scale_centre = 1;
+
+
 	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
 	{
 		DualVec3r z(p_os);
@@ -66,11 +76,12 @@ struct MengerSpongeDual final : public DualDEObject
 			if (z.x.v[0] - z.z.v[0] < 0) std::swap(z.x, z.z);
 			if (z.y.v[0] - z.z.v[0] < 0) std::swap(z.y, z.z);
 
-			z *= 3;
+            real t = std::min((real)0, ((real)0.5 * scale_centre.y * (scale - 1) / scale) - z.z.v[0]) ;
+            z.z = z.z + 2 * t;
 
-			z.x -= 2;
-			z.y -= 2;
-			if (z.z.v[0] > 1) z.z -= 2;
+			z.x *= scale; z.x -= scale_centre.x * (scale - 1);
+            z.y *= scale; z.y -= scale_centre.y * (scale - 1);
+            z.z *= scale;
 
 			const real m = z.x.v[0] * z.x.v[0] + z.y.v[0] * z.y.v[0] + z.z.v[0] * z.z.v[0];
 			if (m > 256)
@@ -86,13 +97,17 @@ struct MengerSpongeDual final : public DualDEObject
 
 	virtual SceneObject * clone() const override
 	{
-		return new MengerSpongeDual(*this);
+		return new MengerSpongeCDual(*this);
 	}
 };
 
 
-struct DualMengerSpongeIteration final : public IterationFunction
+struct DualMengerSpongeCIteration final : public IterationFunction
 {
+	real scale = 3;
+	vec3r scale_centre = { 1, 1, 1 };
+
+
 	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
 		DualVec3r z(
@@ -104,11 +119,12 @@ struct DualMengerSpongeIteration final : public IterationFunction
 		if (z.x.v[0] - z.z.v[0] < 0) std::swap(z.x, z.z);
 		if (z.y.v[0] - z.z.v[0] < 0) std::swap(z.y, z.z);
 
-		z *= 3;
+		real t = std::min((real)0, ((real)0.5 * scale_centre.y * (scale - 1) / scale) - z.z.v[0]) ;
+        z.z = z.z + 2 * t;
 
-		z.x -= 2;
-		z.y -= 2;
-		if (z.z.v[0] > 1) z.z -= 2;
+		z.x *= scale; z.x -= scale_centre.x * (scale - 1);
+        z.y *= scale; z.y -= scale_centre.y * (scale - 1);
+        z.z *= scale;
 
 		p_out = z;
 	}
@@ -117,6 +133,6 @@ struct DualMengerSpongeIteration final : public IterationFunction
 
 	virtual IterationFunction * clone() const override
 	{
-		return new DualMengerSpongeIteration(*this);
+		return new DualMengerSpongeCIteration(*this);
 	}
 };

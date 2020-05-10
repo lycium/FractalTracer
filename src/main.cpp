@@ -31,10 +31,12 @@
 #include "Mandelbulb.h"
 #include "QuadraticJuliabulb.h"
 #include "MengerSponge.h"
+#include "MengerSpongeC.h"
 #include "Cubicbulb.h"
 #include "Amazingbox.h"
 #include "Octopus.h"
-#include "RiemannSphere.h"
+#include "PseudoKleinian.h"
+
 
 
 
@@ -107,51 +109,52 @@ int main(int argc, char ** argv)
 		Sphere s;
 		s.centre = { 0, 0, 0 };
 		s.radius = main_sphere_rad;
-		s.mat.albedo = { 0.1f, 0.3f, 0.7f };
+		s.mat.albedo = { 0.1f, 0.1f, 0.7f };
 		//scene.objects.push_back(s.clone());
 
 		Sphere s2;
 		const real bigrad = 128;
 		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
 		s2.radius = bigrad;
-		s2.mat.albedo = vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
+		s2.mat.albedo = vec3f{ 0.3f, 0.3f, 0.3f } * 1.0f;
 		s2.mat.use_fresnel = true;
 
 		scene.objects.push_back(s2.clone());
 
 #if 0
-		MandelbulbDual bulb;
-		bulb.radius = 1.5f;
-		bulb.step_scale = 0.5f; //1;
-		bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
+		MengerSpongeCAnalytic bulb; //MandelbulbDual bulb;
+		bulb.radius = 2.25f;
+		bulb.step_scale = 1; //0.5f; //
+		bulb.mat.albedo = { 0.4f, 0.3f, 0.1f };//{ 0.1f, 0.3f, 0.7f };
 		bulb.mat.use_fresnel = true;
 		scene.objects.push_back(bulb.clone());
 #else
-		/*DualMandelbulbIteration mbi;
-		DualMengerSpongeIteration msi;
+		DualPseudoKleinianIteration pki;
+		DualMandelbulbIteration mbi;
+		DualMengerSpongeCIteration msi; //msi.stc.x = 1.5f; msi.stc.y = 0.75f; msi.scale = 2.8f;
 		DualCubicbulbIteration cbi;
-		DualAmazingboxIteration ai;
-		DualOctopusIteration oi;*/
-		DualRiemannSphereIteration rsi;
+		DualAmazingboxIteration ai; ai.scale = 1.75f;
+		DualOctopusIteration oi;
 
-		GeneralDualDE hybrid;
-		hybrid.radius = 2;
-		hybrid.step_scale = 0.5;
-		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
+		std::vector<IterationFunction *> iter_funcs;
+		iter_funcs.push_back(oi.clone());
+		//iter_funcs.push_back(pki.clone());
+		iter_funcs.push_back(mbi.clone());
+		//iter_funcs.push_back(msi.clone());
+		//iter_funcs.push_back(ai.clone());
+		//iter_funcs.push_back(cbi.clone());
+
+		const std::vector<char> iter_seq = { 0, 1 };
+
+		GeneralDualDE hybrid(iter_funcs, iter_seq, 16);
+
+		hybrid.radius = 2.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
+		hybrid.step_scale = 0.5; //1;
+		hybrid.mat.albedo = { 0.4f, 0.3f, 0.1f };
 		hybrid.mat.use_fresnel = true;
-		hybrid.max_iters = 16;
-
-		hybrid.sequence = { 0 };
-
-		hybrid.funcs.push_back(rsi.clone());
-		//hybrid.funcs.push_back(oi.clone());
-		//hybrid.funcs.push_back(mbi.clone());
-		//hybrid.funcs.push_back(msi.clone());
-		//hybrid.funcs.push_back(cbi.clone());
 
 		scene.objects.push_back(hybrid.clone());
 #endif
-
 		// Test adding sphere lights
 		const int num_sphere_lights = 0;//1 << 5;
 		for (int i = 0; i < num_sphere_lights; ++i)
@@ -180,7 +183,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	const int image_multi  = 50;
+	const int image_multi  = 80;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
 
