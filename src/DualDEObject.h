@@ -333,27 +333,21 @@ struct IterationFunction
 
 struct GeneralDualDE final : public DualDEObject
 {
-	std::vector<char> sequence;
-	std::vector<IterationFunction *> funcs;
+	const std::vector<IterationFunction *> funcs;
+	const std::vector<char> sequence;
 
-	int max_iters = 4;
-	real max_pow = 0; // Used by getHybridDEKnighty. Set to zero to trigger assert if computeMaxPower not called.
+	const int max_iters;
+	const real max_pow;
 
 
-	GeneralDualDE() = default;
+	GeneralDualDE(
+		const std::vector<IterationFunction *> funcs_,
+		const std::vector<char> & sequence_,
+		const int max_iters_) : funcs(funcs_), sequence(sequence_), max_iters(max_iters_), max_pow(getMaxPower()) { }
 
 	// Copy constructor
-	GeneralDualDE(const GeneralDualDE & v) : DualDEObject(v)
-	{
-		sequence = v.sequence;
-
-		funcs.resize(v.funcs.size());
-		for (size_t i = 0; i < v.funcs.size(); ++i)
-			funcs[i] = v.funcs[i]->clone();
-
-		max_iters = v.max_iters;
-		bailout_radius2 = v.bailout_radius2;
-	}
+	GeneralDualDE(const GeneralDualDE & v) :
+		DualDEObject(v), funcs(cloneFuncs(v)), sequence(v.sequence), max_iters(v.max_iters), max_pow(v.max_pow) { }
 
 	virtual ~GeneralDualDE()
 	{
@@ -363,7 +357,6 @@ struct GeneralDualDE final : public DualDEObject
 
 	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
 	{
-		assert(max_pow != 0); // If this triggers, means getMaxP
 		DualVec3r p = p_os;
 
 		const int seq_len = (int)sequence.size();
@@ -384,8 +377,7 @@ struct GeneralDualDE final : public DualDEObject
 			if (r2 > bailout_radius2)
 				break;
 
-			// Increment sequence idx with wraparound
-			seq_idx = (seq_idx < seq_len - 1) ? seq_idx + 1 : 0;
+			seq_idx = nextSeqIdx(seq_idx);
 		}
 #if 1
 		return getHybridDEKnighty(current_pow, max_pow, p, normal_os_out); // TODO: bounding volume! (1st argument)
@@ -403,18 +395,31 @@ struct GeneralDualDE final : public DualDEObject
 		return new GeneralDualDE(*this);
 	}
 
-	// Computes the power at max iterations.
-	// Must be called before getDE.
-	void computeMaxPower()
+private:
+	// Compute max_power and set bounding volume size of the fractal
+	real getMaxPower() const
 	{
 		int seq_idx = 0;
 		real max_p = 1;
 		for (int i = 0; i < max_iters; i++)
 		{
 			max_p *= funcs[sequence[seq_idx]]->getPower();
-			seq_idx = (seq_idx < (int)sequence.size() - 1) ? seq_idx + 1 : 0;
+			seq_idx = nextSeqIdx(seq_idx);
 		}
 
-		this->max_pow = max_p;
+		return max_p;
 	}
+
+	const std::vector<IterationFunction *> cloneFuncs(const GeneralDualDE & d) const
+	{
+		std::vector<IterationFunction *> f;
+		f.resize(d.funcs.size());
+		for (size_t i = 0; i < d.funcs.size(); ++i)
+			f[i] = d.funcs[i]->clone();
+
+		return f;
+	}
+
+	// Increment sequence idx with wraparound
+	inline int nextSeqIdx(int i) const { return (i < (int)sequence.size() - 1) ? i + 1 : 0; }
 };

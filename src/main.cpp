@@ -121,7 +121,7 @@ int main(int argc, char ** argv)
 
 		scene.objects.push_back(s2.clone());
 
-#if 1
+#if 0
 		MengerSpongeCAnalytic bulb; //MandelbulbDual bulb;
 		bulb.radius = 2.25f;
 		bulb.step_scale = 1; //0.5f; //
@@ -129,8 +129,6 @@ int main(int argc, char ** argv)
 		bulb.mat.use_fresnel = true;
 		scene.objects.push_back(bulb.clone());
 #else
-		GeneralDualDE hybrid;
-
 		DualPseudoKleinianIteration pki;
 		DualMandelbulbIteration mbi;
 		DualMengerSpongeCIteration msi; //msi.stc.x = 1.5f; msi.stc.y = 0.75f; msi.scale = 2.8f;
@@ -138,23 +136,22 @@ int main(int argc, char ** argv)
 		DualAmazingboxIteration ai; ai.scale = 1.75f;
 		DualOctopusIteration oi;
 
-		hybrid.radius = 1.25; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
+		std::vector<IterationFunction *> iter_funcs;
+		iter_funcs.push_back(oi.clone());
+		//iter_funcs.push_back(pki.clone());
+		iter_funcs.push_back(mbi.clone());
+		//iter_funcs.push_back(msi.clone());
+		//iter_funcs.push_back(ai.clone());
+		//iter_funcs.push_back(cbi.clone());
+
+		const std::vector<char> iter_seq = { 0, 1 };
+
+		GeneralDualDE hybrid(iter_funcs, iter_seq, 16);
+
+		hybrid.radius = 2.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
 		hybrid.step_scale = 0.5; //1;
 		hybrid.mat.albedo = { 0.4f, 0.3f, 0.1f };
 		hybrid.mat.use_fresnel = true;
-		hybrid.max_iters = 4;
-
-		hybrid.sequence = { 1 };
-
-		hybrid.funcs.push_back(pki.clone()); // 0th
-		hybrid.funcs.push_back(mbi.clone()); // 1st
-		hybrid.funcs.push_back(msi.clone()); // 2nd
-		hybrid.funcs.push_back(ai.clone());  // 3rd
-		hybrid.funcs.push_back(oi.clone());  // 4th
-		hybrid.funcs.push_back(cbi.clone()); // 5th
-
-		// Knighty: Compute max_power and set bounding volume size of the fractal before using the hybrid
-		hybrid.computeMaxPower(); // Must be called **after** pushing_back the formulas and defined the sequence!!!
 
 		scene.objects.push_back(hybrid.clone());
 #endif
