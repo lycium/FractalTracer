@@ -92,18 +92,15 @@ inline real triDist(real v)
 
 inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yres, int frames, Scene & scene) noexcept
 {
-	constexpr int max_bounces = 8;
+	constexpr int max_bounces = 5;
 	constexpr int num_primes = 6;
 	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
 
 	const real aspect_ratio = xres / (real)yres;
-	const real fov_deg = 80.0f;
+	const real fov_deg = 70.f;//10.0f;//
 	const real fov_rad = fov_deg * two_pi / 360; // Convert from degrees to radians
 	const real sensor_width  = 2 * std::tan(fov_rad / 2);
 	const real sensor_height = sensor_width / aspect_ratio;
-
-	const vec3r cam_lookat = { 0, 0, 0 };
-	const vec3r world_up = { 0, 1, 0 };
 
 	int dim = 0;
 	const real hash_random    = uintToUnitReal(hash(frame * xres * yres + y * xres + x)); // Use pixel idx to randomise Halton sequence
@@ -114,11 +111,13 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 	const real cos_t = std::cos(time);
 	const real sin_t = std::sin(time);
 
-	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, -1, -10 * cos_t + 4 * sin_t } * 0.25f;
+	const vec3r cam_lookat = { 0, 0, 0 };//{ 0, -0.1, -1 };//
+	const vec3r world_up = { 0, 1, 0 };
+	const vec3r cam_pos = { 2 , 1, -3 } ; //{ 0 , 0, -3 } ;//vec3r{ 4 * cos_t + 10 * sin_t, -1, -10 * cos_t + 4 * sin_t } * 0.25f;
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);
-
+	
 	const vec3r pixel_x = cam_right * (sensor_width / xres);
 	const vec3r pixel_y = cam_up * -(sensor_height / yres);
 	const vec3r pixel_v = cam_forward +
@@ -127,8 +126,8 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 
 	vec3r ray_p = cam_pos;
 	vec3r ray_d = normalise(pixel_v);
-#if 1 // Depth of field
-	const real focal_dist = length(cam_pos) * 0.75f;
+#if 0 // Depth of field
+	const real focal_dist = length(cam_pos - cam_lookat) * 0.75f;
 	const real lens_radius = 0.005f;
 
 	// Random point on disc
@@ -158,7 +157,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 		if (nearest_hit_obj == nullptr)
 		{
 			const vec3f sky_up = vec3f{ 53, 112, 128 } * (1.0f / 255) * 0.75f;
-			const vec3f sky_hz = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.85f;
+			const vec3f sky_hz = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
 			const float height = 1 - std::max(0.0f, (float)ray.d.y);
 			const float height2 = height * height;
 			const vec3f sky = sky_up + (sky_hz - sky_up) * height2 * height2 * height;
@@ -212,7 +211,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 				const real  light_len = std::sqrt(light_ln2);
 				const vec3r light_dir = light_vec * (1 / light_len);
 
-				const vec3f refl_colour = albedo * (float)n_dot_l / (float)(light_ln2 * light_len) * 420;
+				const vec3f refl_colour = albedo * (float)n_dot_l / (float)(light_ln2 * light_len) * 720; // 420;
 
 				// Trace shadow ray from the hit point towards the light
 				const Ray shadow_ray = { hit_p, light_dir };

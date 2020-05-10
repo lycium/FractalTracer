@@ -31,11 +31,39 @@
 #include "Mandelbulb.h"
 #include "QuadraticJuliabulb.h"
 #include "MengerSponge.h"
+#include "MengerSpongeC.h"
 #include "Cubicbulb.h"
 #include "Amazingbox.h"
 #include "Octopus.h"
 
+// Pseudo-Kleinian DE by Knighty
+struct DualPseudoKleinianIteration final : public IterationFunction
+{
+    real mins[4] = { -0.8323f, -0.694f, -0.5045f, 0.8067f };
+    real maxs[4] = {  0.8579f,  1.0883f, 0.8937f, 0.9411f };
 
+    virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
+    {
+        Dual3r px = p_in.x;
+        Dual3r py = p_in.y;
+        Dual3r pz = p_in.z;
+
+        px = clamp(px, mins[0], maxs[0]) * 2 - px;
+        py = clamp(py, mins[1], maxs[1]) * 2 - py;
+        pz = clamp(pz, mins[2], maxs[2]) * 2 - pz;
+
+        const real k = std::max(mins[3] / length2(DualVec3r{ px, py, pz }), (real)1);
+        p_out = DualVec3r(px, py, pz) * k;
+    }
+
+	virtual real getPower() const noexcept override final
+	{ return 1;}
+
+    virtual IterationFunction * clone() const override
+    {
+        return new DualPseudoKleinianIteration(*this);
+    }
+};
 
 inline float sRGB(const float u)
 {
@@ -106,50 +134,56 @@ int main(int argc, char ** argv)
 		Sphere s;
 		s.centre = { 0, 0, 0 };
 		s.radius = main_sphere_rad;
-		s.mat.albedo = { 0.1f, 0.3f, 0.7f };
+		s.mat.albedo = { 0.1f, 0.1f, 0.7f };
 		//scene.objects.push_back(s.clone());
 
 		Sphere s2;
 		const real bigrad = 128;
 		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
 		s2.radius = bigrad;
-		s2.mat.albedo = vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
+		s2.mat.albedo = vec3f{ 0.3f, 0.3f, 0.3f } * 1.0f;
 		s2.mat.use_fresnel = true;
 
 		scene.objects.push_back(s2.clone());
 
 #if 1
-		MandelbulbDual bulb;
-		bulb.radius = 1.5f;
-		bulb.step_scale = 0.5f; //1;
-		bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
+		
+		MengerSpongeCAnalytic bulb; //MandelbulbDual bulb;
+		bulb.radius = 2.25f;
+		bulb.step_scale = 1; //0.5f; //
+		bulb.mat.albedo = { 0.4f, 0.3f, 0.1f };//{ 0.1f, 0.3f, 0.7f };
 		bulb.mat.use_fresnel = true;
 		scene.objects.push_back(bulb.clone());
 #else
+		GeneralDualDE hybrid;
+		
+		DualPseudoKleinianIteration pki;
 		DualMandelbulbIteration mbi;
-		DualMengerSpongeIteration msi;
+		DualMengerSpongeCIteration msi; //msi.stc.x = 1.5; msi.stc.y = 0.75; msi.scale = 2.8;
 		DualCubicbulbIteration cbi;
-		DualAmazingboxIteration ai;
+		DualAmazingboxIteration ai; ai.scale = 1.75;
 		DualOctopusIteration oi;
 
-		GeneralDualDE hybrid;
-		hybrid.radius = 2;
-		hybrid.step_scale = 0.5;
-		hybrid.albedo = { 0.1f, 0.3f, 0.7f };
+		hybrid.radius = 1.25;//for mandelbulb p8, bounding sphere have approximate radius of 1.2 or so
+		hybrid.step_scale = 0.5;//1;//
+		hybrid.mat.albedo = { 0.4f, 0.3f, 0.1f };
 		hybrid.mat.use_fresnel = true;
-		hybrid.mat.max_iters = 16;
+		hybrid.max_iters = 4;
 
-		hybrid.sequence = { 0 };
-
-		hybrid.funcs.push_back(ai.clone());
-		//hybrid.funcs.push_back(oi.clone());
-		//hybrid.funcs.push_back(mbi.clone());
-		//hybrid.funcs.push_back(msi.clone());
-		//hybrid.funcs.push_back(cbi.clone());
+		hybrid.sequence = { 1 };
+				
+		hybrid.funcs.push_back(pki.clone());// 0th
+		hybrid.funcs.push_back(mbi.clone());// 1st
+		hybrid.funcs.push_back(msi.clone());// 2nd
+		hybrid.funcs.push_back(ai.clone()); // 3rd
+		hybrid.funcs.push_back(oi.clone()); // 4th
+		hybrid.funcs.push_back(cbi.clone());// 5th
+		
+		//K : Compute max_power and set bounding volume size of the fractal before using the hybrid
+		hybrid.computeMaxPower();//have to be called **after** pushing_back the formulas and defined the sequence !!!
 
 		scene.objects.push_back(hybrid.clone());
 #endif
-
 		// Test adding sphere lights
 		const int num_sphere_lights = 0;//1 << 5;
 		for (int i = 0; i < num_sphere_lights; ++i)
@@ -178,7 +212,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	const int image_multi  = 160;
+	const int image_multi  = 64;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
 
