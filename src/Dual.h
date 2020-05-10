@@ -13,6 +13,7 @@ class Dual final
 public:
 	real_type v[vars + 1];
 
+
 	inline constexpr Dual() noexcept { }
 
 	// Constant constructor
@@ -35,11 +36,58 @@ public:
 	inline constexpr Dual(const Dual &) noexcept = default;
 
 	inline constexpr const Dual & operator=(const Dual & rhs) noexcept { for (int i = 0; i < vars + 1; ++i) v[i] = rhs.v[i]; return *this; }
-	inline constexpr const Dual & operator-=(const real_type & rhs) noexcept { v[0] -= rhs; return *this; }
+
+	inline constexpr Dual operator-() const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = -v[i]; return r; }
 
 	inline constexpr Dual operator+(const Dual & rhs) const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = v[i] + rhs.v[i]; return r; }
 	inline constexpr Dual operator-(const Dual & rhs) const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = v[i] - rhs.v[i]; return r; }
-	inline constexpr Dual operator-() const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = -v[i]; return r; }
+
+	// Optimised method to avoid promiting RHS to Dual
+	inline constexpr Dual operator+(const real_type rhs) const noexcept
+	{
+		Dual r;
+		r.v[0] = v[0] + rhs;
+		for (int i = 0; i < vars; ++i)
+			r.v[i + 1] = v[i + 1];
+		return r;
+	}
+
+	inline constexpr const Dual & operator+=(const real_type rhs) noexcept { *this = *this + rhs; return *this; }
+
+	// Optimised method to avoid promiting RHS to Dual
+	inline constexpr Dual operator-(const real_type rhs) const noexcept
+	{
+		Dual r;
+		r.v[0] = v[0] - rhs;
+		for (int i = 0; i < vars; ++i)
+			r.v[i + 1] = v[i + 1];
+		return r;
+	}
+
+	inline constexpr const Dual & operator-=(const real_type rhs) noexcept { *this = *this + rhs; return *this; }
+
+	// Optimised method to avoid full product rule from promiting RHS to Dual
+	inline constexpr Dual operator*(const real_type rhs) const noexcept
+	{
+		Dual r;
+		for (int i = 0; i < vars + 1; ++i)
+			r.v[i] = v[0] * rhs;
+		return r;
+	}
+
+	inline constexpr const Dual & operator*=(const real_type rhs) noexcept { *this = *this * rhs; return *this; }
+
+	// Optimised method to avoid full quotient rule from promiting RHS to Dual
+	inline constexpr Dual operator/(const real_type rhs) const noexcept
+	{
+		const real_type inv = 1 / rhs;
+		Dual r;
+		for (int i = 0; i < vars + 1; ++i)
+			r.v[i] = v[i] * inv;
+		return r;
+	}
+
+	inline constexpr const Dual & operator/=(const real_type rhs) noexcept { *this = *this * (1 / rhs); return *this; }
 
 	inline constexpr Dual operator*(const Dual & rhs) const noexcept
 	{
@@ -49,6 +97,7 @@ public:
 			r.v[i + 1] = v[0] * rhs.v[i + 1] + v[i + 1] * rhs.v[0]; // Product rule
 		return r;
 	}
+
 	inline constexpr const Dual & operator*=(const Dual & rhs) noexcept { *this = *this * rhs; return *this; }
 
 	inline constexpr Dual operator/(const Dual & rhs) const noexcept
