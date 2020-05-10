@@ -121,7 +121,9 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 
 	const vec3r pixel_x = cam_right * (sensor_width / xres);
 	const vec3r pixel_y = cam_up * -(sensor_height / yres);
-	const vec3r pixel_v = cam_forward + (pixel_x * (x - xres * 0.5f + pixel_sample_x)) + (pixel_y * (y - yres * 0.5f + pixel_sample_y));
+	const vec3r pixel_v = cam_forward +
+		(pixel_x * (x - xres * 0.5f + pixel_sample_x + 0.5f)) +
+		(pixel_y * (y - yres * 0.5f + pixel_sample_y + 0.5f));
 
 	vec3r ray_p = cam_pos;
 	vec3r ray_d = normalise(pixel_v);
