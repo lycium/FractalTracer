@@ -78,7 +78,7 @@ struct MengerSpongeDual final : public DualDEObject
 		}
 
 #if 1
-		return getHybridDE(3, 1, z, normal_os_out);
+		return getHybridDEClaude(3, 1, z, normal_os_out);
 #else
 		return getLinearDE(z, normal_os_out);
 #endif
@@ -113,8 +113,7 @@ struct DualMengerSpongeIteration final : public IterationFunction
 		p_out = z;
 	}
 
-	virtual real getPower() const noexcept override final
-	{ return 1;}
+	virtual real getPower() const noexcept override final { return 1; }
 
 	virtual IterationFunction * clone() const override
 	{

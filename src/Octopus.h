@@ -25,8 +25,7 @@ struct DualOctopusIteration final : public IterationFunction
 			c.z + p_in.y);
 	}
 
-	virtual real getPower() const noexcept override final
-	{ return 2;}
+	virtual real getPower() const noexcept override final { return 2; }
 
 	virtual IterationFunction * clone() const override
 	{

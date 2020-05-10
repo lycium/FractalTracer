@@ -68,6 +68,12 @@
     <ClInclude Include="..\src\Material.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\MengerSpongeC.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\PseudoKleinian.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">

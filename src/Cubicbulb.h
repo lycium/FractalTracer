@@ -30,8 +30,7 @@ struct DualCubicbulbIteration final : public IterationFunction
 			 c.z + p_in.z * p_in.z * p_in.z - p_in.z * p_in.x * p_in.x * z_mul + p_in.z * p_in.y * p_in.y * aux_mul);
 	}
 
-	virtual real getPower() const noexcept override final
-	{ return 3;}
+	virtual real getPower() const noexcept override final { return 3; }
 
 	virtual IterationFunction * clone() const override
 	{

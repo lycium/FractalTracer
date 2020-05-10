@@ -97,7 +97,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
 
 	const real aspect_ratio = xres / (real)yres;
-	const real fov_deg = 70.f;//10.0f;//
+	const real fov_deg = 70.f;
 	const real fov_rad = fov_deg * two_pi / 360; // Convert from degrees to radians
 	const real sensor_width  = 2 * std::tan(fov_rad / 2);
 	const real sensor_height = sensor_width / aspect_ratio;
@@ -111,13 +111,13 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 	const real cos_t = std::cos(time);
 	const real sin_t = std::sin(time);
 
-	const vec3r cam_lookat = { 0, 0, 0 };//{ 0, -0.1, -1 };//
+	const vec3r cam_lookat = { 0, 0, 0 };
 	const vec3r world_up = { 0, 1, 0 };
-	const vec3r cam_pos = { 2 , 1, -3 } ; //{ 0 , 0, -3 } ;//vec3r{ 4 * cos_t + 10 * sin_t, -1, -10 * cos_t + 4 * sin_t } * 0.25f;
+	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.35f;
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);
-	
+
 	const vec3r pixel_x = cam_right * (sensor_width / xres);
 	const vec3r pixel_y = cam_up * -(sensor_height / yres);
 	const vec3r pixel_v = cam_forward +

@@ -64,7 +64,7 @@ struct QuadraticJuliabulbDual final : public DualDEObject
 		}
 
 #if 1
-		return getHybridDE(1, 2, z, normal_os_out);
+		return getHybridDEClaude(1, 2, z, normal_os_out);
 #else
 		return 0.125f * getPolynomialDE(z, normal_os_out);
 #endif

@@ -19,14 +19,14 @@ struct MandelbulbAnalytic final : public AnalyticDEObject
 		{
 			const real m2 = m * m;
 			const real m4 = m2 * m2;
-			dz = 8 * sqrt(m4 * m2 * m) * dz + 1;
+			dz = 8 * std::sqrt(m4 * m2 * m) * dz + 1;
 
 			const real x = w.x, x2 = x*x, x4 = x2*x2;
 			const real y = w.y, y2 = y*y, y4 = y2*y2;
 			const real z = w.z, z2 = z*z, z4 = z2*z2;
 
 			const real k3 = x2 + z2;
-			const real k2 = 1 / sqrt(k3*k3*k3*k3*k3*k3*k3);
+			const real k2 = 1 / std::sqrt(k3*k3*k3*k3*k3*k3*k3);
 			const real k1 = x4 + y4 + z4 - 6*y2*z2 - 6*x2*y2 + 2*z2*x2;
 			const real k4 = x2 - y2 + z2;
 
@@ -39,7 +39,7 @@ struct MandelbulbAnalytic final : public AnalyticDEObject
 				break;
 		}
 
-		return 0.25f * log(m) * sqrt(m) / dz;// * 0.25f;
+		return 0.25f * std::log(m) * std::sqrt(m) / dz;// * 0.25f;
 	}
 
 	virtual SceneObject * clone() const override
@@ -77,7 +77,7 @@ struct MandelbulbDual final : public DualDEObject
 		}
 
 #if 1
-		return getHybridDE(1, 8, w, normal_os_out);
+		return getHybridDEClaude(1, 8, w, normal_os_out);
 #else
 		return getPolynomialDE(w, normal_os_out);
 #endif
@@ -114,14 +114,13 @@ struct DualMandelbulbIteration final : public IterationFunction
 			c.z + y*k4 * (x4*x4 - x4*x2*z2 * 28 + x4*z4 * 70 - x2*z2*z4 * 28 + z4*z4) * k1*k2 * -8);
 	}
 
-	virtual real getPower() const noexcept override final
-	{ return 8;}
+	virtual real getPower() const noexcept override final { return 8; }
 
 	virtual IterationFunction * clone() const override
 	{
 		return new DualMandelbulbIteration(*this);
 	}
 
-protected:
+private:
 	DualVec3r c;
 };
