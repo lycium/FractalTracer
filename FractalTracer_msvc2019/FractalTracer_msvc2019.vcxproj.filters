@@ -80,6 +80,9 @@
     <ClInclude Include="..\src\PseudoKleinian.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\MandalayKIFS.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
