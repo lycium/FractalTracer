@@ -382,9 +382,9 @@ struct GeneralDualDE final : public DualDEObject
 		return getHybridDEKnighty(power_products[max_iter], power_products.back(), p, normal_os_out); // TODO: bounding volume! (1st argument)
 #else
 #if 1
-		return getHybridDE(1, 8, p, normal_os_out);
+		return getHybridDEClaude(1, 8, p, normal_os_out);
 #else
-		return getPolynomialDE(w, normal_os_out);
+		return getPolynomialDE(p, normal_os_out);
 #endif
 #endif
 	}
