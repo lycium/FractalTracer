@@ -91,7 +91,11 @@ int main(int argc, char ** argv)
 #if _WIN32
 	SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
 #endif
-	const int  num_threads = (int)std::thread::hardware_concurrency();
+#if _DEBUG
+	const int num_threads = 1;
+#else
+	const int num_threads = (int)std::thread::hardware_concurrency();
+#endif
 	const bool time_frames = false;
 
 	// Parse command line arguments
@@ -146,7 +150,8 @@ int main(int argc, char ** argv)
 
 		const std::vector<char> iter_seq = { 0, 1 };
 
-		GeneralDualDE hybrid(iter_funcs, iter_seq, 16);
+		const int max_iters = 16;
+		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
 
 		hybrid.radius = 2.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
 		hybrid.step_scale = 0.5; //1;

@@ -333,21 +333,21 @@ struct IterationFunction
 
 struct GeneralDualDE final : public DualDEObject
 {
+	const int max_iters;
+
 	const std::vector<IterationFunction *> funcs;
 	const std::vector<char> sequence;
-
-	const int max_iters;
-	const real max_pow;
+	const std::vector<real> power_products;
 
 
 	GeneralDualDE(
+		const int max_iters_,
 		const std::vector<IterationFunction *> funcs_,
-		const std::vector<char> & sequence_,
-		const int max_iters_) : funcs(funcs_), sequence(sequence_), max_iters(max_iters_), max_pow(getMaxPower()) { }
+		const std::vector<char> & sequence_) : max_iters(max_iters_), funcs(funcs_), sequence(sequence_), power_products(getPowerProducts()) { }
 
 	// Copy constructor
 	GeneralDualDE(const GeneralDualDE & v) :
-		DualDEObject(v), funcs(cloneFuncs(v)), sequence(v.sequence), max_iters(v.max_iters), max_pow(v.max_pow) { }
+		DualDEObject(v), max_iters(v.max_iters), funcs(cloneFuncs(v)), sequence(v.sequence), power_products(v.power_products) { }
 
 	virtual ~GeneralDualDE()
 	{
@@ -359,19 +359,17 @@ struct GeneralDualDE final : public DualDEObject
 	{
 		DualVec3r p = p_os;
 
-		const int seq_len = (int)sequence.size();
 		const int num_funcs = (int)funcs.size();
 		for (int i = 0; i < num_funcs; ++i)
 			funcs[i]->init(p);
 
-		real current_pow = 1; // Needed for getHybridKnighty
 		int seq_idx = 0;
-		for (int i = 0; i < max_iters; i++)
+		int i = 0;
+		for (; i < max_iters; i++)
 		{
 			DualVec3r p_new;
 			funcs[sequence[seq_idx]]->eval(p, p_new);
 			p = p_new;
-			current_pow *= funcs[sequence[seq_idx]]->getPower();
 
 			const real r2 = p.x.v[0] * p.x.v[0] + p.y.v[0] * p.y.v[0] + p.z.v[0] * p.z.v[0];
 			if (r2 > bailout_radius2)
@@ -380,7 +378,8 @@ struct GeneralDualDE final : public DualDEObject
 			seq_idx = nextSeqIdx(seq_idx);
 		}
 #if 1
-		return getHybridDEKnighty(current_pow, max_pow, p, normal_os_out); // TODO: bounding volume! (1st argument)
+		const int max_iter = std::min(max_iters, num_funcs - 1);
+		return getHybridDEKnighty(power_products[max_iter], power_products.back(), p, normal_os_out); // TODO: bounding volume! (1st argument)
 #else
 #if 1
 		return getHybridDE(1, 8, p, normal_os_out);
@@ -397,17 +396,21 @@ struct GeneralDualDE final : public DualDEObject
 
 private:
 	// Compute max_power and set bounding volume size of the fractal
-	real getMaxPower() const
+	const std::vector<real> getPowerProducts() const
 	{
+		std::vector<real> power_prod;
+
 		int seq_idx = 0;
-		real max_p = 1;
+		real p = 1;
 		for (int i = 0; i < max_iters; i++)
 		{
-			max_p *= funcs[sequence[seq_idx]]->getPower();
+			p *= funcs[sequence[seq_idx]]->getPower();
 			seq_idx = nextSeqIdx(seq_idx);
+
+			power_prod.push_back(p);
 		}
 
-		return max_p;
+		return power_prod;
 	}
 
 	const std::vector<IterationFunction *> cloneFuncs(const GeneralDualDE & d) const
