@@ -91,7 +91,11 @@ int main(int argc, char ** argv)
 #if _WIN32
 	SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
 #endif
-	const int  num_threads = (int)std::thread::hardware_concurrency();
+#if _DEBUG
+	const int num_threads = 1;
+#else
+	const int num_threads = (int)std::thread::hardware_concurrency();
+#endif
 	const bool time_frames = false;
 
 	// Parse command line arguments
@@ -116,7 +120,7 @@ int main(int argc, char ** argv)
 		const real bigrad = 128;
 		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
 		s2.radius = bigrad;
-		s2.mat.albedo = vec3f{ 0.3f, 0.3f, 0.3f } * 1.0f;
+		s2.mat.albedo = vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
 		s2.mat.use_fresnel = true;
 
 		scene.objects.push_back(s2.clone());
@@ -125,7 +129,7 @@ int main(int argc, char ** argv)
 		MengerSpongeCAnalytic bulb; //MandelbulbDual bulb;
 		bulb.radius = 2.25f;
 		bulb.step_scale = 1; //0.5f; //
-		bulb.mat.albedo = { 0.4f, 0.3f, 0.1f };//{ 0.1f, 0.3f, 0.7f };
+		bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		bulb.mat.use_fresnel = true;
 		scene.objects.push_back(bulb.clone());
 #else
@@ -146,11 +150,12 @@ int main(int argc, char ** argv)
 
 		const std::vector<char> iter_seq = { 0, 1 };
 
-		GeneralDualDE hybrid(iter_funcs, iter_seq, 16);
+		const int max_iters = 64;
+		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
 
 		hybrid.radius = 2.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
 		hybrid.step_scale = 0.5; //1;
-		hybrid.mat.albedo = { 0.4f, 0.3f, 0.1f };
+		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.mat.use_fresnel = true;
 
 		scene.objects.push_back(hybrid.clone());
