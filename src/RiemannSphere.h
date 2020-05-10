@@ -15,34 +15,36 @@ struct DualRiemannSphereIteration final : public IterationFunction
 	real x_shift = 1;
 	real r_shift = -0.25f;
 	real r_pow = 2;
-	DualVec3r c = { 0.0f, 0.0f, 0.0f };
+	DualVec3r c = { 0, 0, 0 };
 	//bool julia_mode = false;
 
-	//TODO: implement mat3x3
-	DualVec3r m1 = { 1.0f, 0.0f, 0.0f };
-	DualVec3r m2 = { 0.0f, 1.0f, 0.0f };
-	DualVec3r m3 = { 0.0f, 0.0f, 1.0f };
+	vec3r rot_m1 = { 1, 0, 0 };
+	vec3r rot_m2 = { 0, 1, 0 };
+	vec3r rot_m3 = { 0, 0, 1 };
 
-	virtual void init(const DualVec3r& p_0) noexcept override final
+
+	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
 		//if (!julia_mode)
 		//	c = p_0;
 	}
 
-	virtual void eval(const DualVec3r& p_in, DualVec3r& p_out) const noexcept override final
+	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
-		DualVec3r p;
-		//rotate
-		p = p_in * m1 + p_in * m2 + p_in * m3;
+		// Rotate
+		DualVec3r p = DualVec3r(
+			dot(p_in, rot_m1),
+			dot(p_in, rot_m2),
+			dot(p_in, rot_m3));
 
+		const real r = length(p);
+		p *= (scale / r);
+
+		const real one_my = fabs(-p.y.v[0] + 1);
 		Dual3r s, t;
-		Dual3r r = length(p);
-		p = p * scale / r;
-
-		real one_my = fabs(real(1) - p.y.v[0]);
 		if (one_my > real(1e-5))
 		{
-			Dual3r q = Dual3r(1) / (Dual3r(1) - p.y);
+			const Dual3r q = Dual3r(1) / (-p.y + 1);
 			s = p.x * q;
 			t = p.z * q;
 		}
@@ -52,24 +54,25 @@ struct DualRiemannSphereIteration final : public IterationFunction
 			t = p.z;
 		}
 
-		Dual3r d = Dual3r(1) + (s * s + t * t);
+		const Dual3r d = s * s + t * t + 1;
 		s = fabs(sin(s * pi + s_shift));
 		t = fabs(sin(t * pi + t_shift));
 		s = fabs(s + x_shift);
 		t = fabs(t + x_shift);
-		r = Dual3r(-0.25 + r_shift) + pow(r, d.v[0] * r_pow);
-		d = Dual3r(2) / d;
+
+		const Dual3r r_ = Dual3r(-0.25f + r_shift) + pow(r, d.v[0] * r_pow);
+		const Dual3d d_ = Dual3r(2) / d;
 
 		p_out = DualVec3r(
-			c.x + r * s * d,
-			c.y + r * (Dual3r(1) - d),
-			c.z + r * t * d
+			c.x + r_ * s * d_,
+			c.y + r_ * (-d_ + 1),
+			c.z + r_ * t * d_
 		);
 	}
 
 	virtual real getPower() const noexcept override final { return r_pow; }
 
-	virtual IterationFunction* clone() const override
+	virtual IterationFunction * clone() const override
 	{
 		return new DualRiemannSphereIteration(*this);
 	}
