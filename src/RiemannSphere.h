@@ -13,7 +13,7 @@ struct DualRiemannSphereIteration final : public IterationFunction
 	real s_shift = 0;
 	real t_shift = 0;
 	real x_shift = 1;
-	real r_shift = -0.25;
+	real r_shift = -0.25f;
 	real r_pow = 2;
 	DualVec3r c = { 0.0f, 0.0f, 0.0f };
 	//bool julia_mode = false;
@@ -66,6 +66,8 @@ struct DualRiemannSphereIteration final : public IterationFunction
 			c.z + r * t * d
 		);
 	}
+
+	virtual real getPower() const noexcept override final { return r_pow; }
 
 	virtual IterationFunction* clone() const override
 	{

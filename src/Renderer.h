@@ -113,7 +113,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 
 	const vec3r cam_lookat = { 0, -0.125f, 0 };
 	const vec3r world_up = { 0, 1, 0 };
-	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.35f;
+	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 1.35f;
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);

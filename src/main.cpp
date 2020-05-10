@@ -36,6 +36,9 @@
 #include "Amazingbox.h"
 #include "Octopus.h"
 #include "PseudoKleinian.h"
+#include "MandalayKIFS.h"
+#include "BenesiPine2.h"
+#include "RiemannSphere.h"
 
 
 
@@ -139,21 +142,25 @@ int main(int argc, char ** argv)
 		DualCubicbulbIteration cbi;
 		DualAmazingboxIteration ai; ai.scale = 1.75f;
 		DualOctopusIteration oi;
+		DualBenesiPine2Iteration bp2;
+		DualRiemannSphereIteration rs;
+		DualMandalayKIFSIteration dki;
 
 		std::vector<IterationFunction *> iter_funcs;
-		iter_funcs.push_back(oi.clone());
+		//iter_funcs.push_back(oi.clone());
 		//iter_funcs.push_back(pki.clone());
-		iter_funcs.push_back(mbi.clone());
+		//iter_funcs.push_back(mbi.clone());
 		//iter_funcs.push_back(msi.clone());
 		//iter_funcs.push_back(ai.clone());
 		//iter_funcs.push_back(cbi.clone());
+		iter_funcs.push_back(dki.clone());
 
-		const std::vector<char> iter_seq = { 0, 1 };
+		const std::vector<char> iter_seq = { 0 };
 
 		const int max_iters = 64;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
 
-		hybrid.radius = 2.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
+		hybrid.radius = 7.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
 		hybrid.step_scale = 0.5; //1;
 		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.mat.use_fresnel = true;

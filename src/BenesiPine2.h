@@ -8,23 +8,23 @@
 // Based on Mandelbulb3D and Fragmentarium implementations
 struct DualBenesiPine2Iteration final : public IterationFunction
 {
-	real scale = 2.5;
-	real offset = 0.75;
+	real scale = 2.5f;
+	real offset = 0.75f;
 	DualVec3r c = { 0.0f, 0.0f, 0.0f };
 	bool julia_mode = true;
 
 
-	virtual void init(const DualVec3r& p_0) noexcept override final
+	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
 		if (!julia_mode)
 			c = p_0;
 	}
 
-	virtual void eval(const DualVec3r& p_in, DualVec3r& p_out) const noexcept override final
+	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
 		DualVec3r p = p_in;
 
-		//Benesi fold transform 2
+		// Benesi fold transform 2
 		Dual3r tx = p.x * sqrt_2_3 - p.z * sqrt_1_3;
 		p.z = p.x * sqrt_1_3 + p.z * sqrt_2_3;
 		p.x = tx * sqrt_1_2 - p.y * sqrt_1_2;
@@ -40,7 +40,7 @@ struct DualBenesiPine2Iteration final : public IterationFunction
 		p.x = tx * sqrt_2_3 + p.z * sqrt_1_3;
 		p.z = -tx * sqrt_1_3 + p.z * sqrt_2_3;
 
-		//Benesi pinetree
+		// Benesi pinetree
 		Dual3r xt = p.x * p.x; 
 		Dual3r yt = p.y * p.y; 
 		Dual3r zt = p.z * p.z;
@@ -51,7 +51,9 @@ struct DualBenesiPine2Iteration final : public IterationFunction
 			c.z + t * p.y * p.z * real(2));
 	}
 
-	virtual IterationFunction* clone() const override
+	virtual real getPower() const noexcept override final { return 2; }
+
+	virtual IterationFunction * clone() const override
 	{
 		return new DualBenesiPine2Iteration(*this);
 	}
