@@ -71,7 +71,7 @@ public:
 	{
 		Dual r;
 		for (int i = 0; i < vars + 1; ++i)
-			r.v[i] = v[0] * rhs;
+			r.v[i] = v[i] * rhs;
 		return r;
 	}
 
