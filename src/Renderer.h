@@ -8,6 +8,33 @@
 
 
 
+struct RenderOutput
+{
+	const int xres, yres;
+	int passes = 0;
+
+	std::vector<vec3f> beauty;
+	std::vector<vec3f> normal;
+	std::vector<vec3f> albedo;
+
+
+	RenderOutput(int xres_, int yres_) : xres(xres_), yres(yres_)
+	{
+		beauty.resize(xres * yres);
+		normal.resize(xres * yres);
+		albedo.resize(xres * yres);
+	}
+
+	void clear()
+	{
+		passes = 0;
+		memset(&beauty[0], 0, sizeof(vec3f) * xres * yres);
+		memset(&normal[0], 0, sizeof(vec3f) * xres * yres);
+		memset(&albedo[0], 0, sizeof(vec3f) * xres * yres);
+	}
+};
+
+
 struct ThreadControl
 {
 	const int num_passes;
@@ -90,20 +117,23 @@ inline real triDist(real v)
 	return v;
 }
 
-inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yres, int frames, Scene & scene) noexcept
+inline void render(const int x, const int y, const int frame, const int pass, const int frames, Scene & scene, RenderOutput & output) noexcept
 {
 	constexpr int max_bounces = 5;
 	constexpr int num_primes = 6;
 	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
+	const int xres = output.xres;
+	const int yres = output.yres;
+	const int pixel_idx = y * xres + x;
 
 	const real aspect_ratio = xres / (real)yres;
-	const real fov_deg = 70.f;
+	const real fov_deg = 80.f;
 	const real fov_rad = fov_deg * two_pi / 360; // Convert from degrees to radians
 	const real sensor_width  = 2 * std::tan(fov_rad / 2);
 	const real sensor_height = sensor_width / aspect_ratio;
 
 	int dim = 0;
-	const real hash_random    = uintToUnitReal(hash(frame * xres * yres + y * xres + x)); // Use pixel idx to randomise Halton sequence
+	const real hash_random    = uintToUnitReal(hash(frame * xres * yres + pixel_idx)); // Use pixel idx to randomise Halton sequence
 	const real pixel_sample_x = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 	const real pixel_sample_y = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 
@@ -113,7 +143,7 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 
 	const vec3r cam_lookat = { 0, -0.125f, 0 };
 	const vec3r world_up = { 0, 1, 0 };
-	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 1.35f;
+	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.5f;
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);
@@ -147,6 +177,8 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 	Ray ray = { ray_p, ray_d };
 	vec3f contribution = 0;
 	vec3f throughput = 1;
+	vec3f normal_out = 0;
+	vec3f albedo_out = 0;
 	int bounce = 0;
 	while (true)
 	{
@@ -172,6 +204,13 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 		const vec3r normal = nearest_hit_obj->getNormal(hit_p);
 
 		const Material & mat = nearest_hit_obj->mat;
+
+		// Output render channels
+		if (bounce == 0)
+		{
+			normal_out = vec3f{ (float)normal.x, (float)normal.z, (float)normal.y } * 0.5f + 0.5f; // Swap Y and Z
+			albedo_out = mat.albedo;
+		}
 
 		// Add emission
 		contribution += throughput * mat.emission;
@@ -274,15 +313,20 @@ inline vec3f generateColour(int x, int y, int frame, int pass, int xres, int yre
 		ray.d = new_dir;
 	}
 
-	return contribution;
+	output.beauty[pixel_idx] += contribution;
+	output.normal[pixel_idx] += normal_out;
+	output.albedo[pixel_idx] += albedo_out;
 }
 
 
 void renderThreadFunction(
 	ThreadControl * const thread_control,
-	vec3f * const image_HDR,
-	int frame, int base_pass, int xres, int yres, int frames, const Scene * const scene_) noexcept
+	RenderOutput * const output,
+	const int frame, const int base_pass, const int frames, const Scene * const scene_) noexcept
 {
+	const int xres = output->xres;
+	const int yres = output->yres;
+
 	// Make a local copy of the world for this thread, needed because it will get modified during init
 	Scene scene(*scene_);
 
@@ -310,6 +354,6 @@ void renderThreadFunction(
 
 		for (int y = bucket_y0; y < bucket_y1; ++y)
 		for (int x = bucket_x0; x < bucket_x1; ++x)
-			image_HDR[y * xres + x] += generateColour(x, y, frame, base_pass + sub_pass, xres, yres, frames, scene);
+			render(x, y, frame, base_pass + sub_pass, frames, scene, *output);
 	}
 }

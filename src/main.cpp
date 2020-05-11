@@ -57,13 +57,11 @@ struct sRGBPixel
 };
 
 
-void renderPasses(
-	std::vector<std::thread> & threads, std::vector<vec3f> & image_HDR,
-	const int frame, const int base_pass, int num_passes, const int xres, const int yres, const int frames, Scene & scene) noexcept
+void renderPasses(std::vector<std::thread> & threads, RenderOutput & output, int frame, int base_pass, int num_passes, int frames, Scene & scene) noexcept
 {
 	ThreadControl thread_control = { num_passes };
 
-	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &image_HDR[0], frame, base_pass, xres, yres, frames, &scene);
+	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &output, frame, base_pass, frames, &scene);
 	for (std::thread & t : threads) t.join();
 }
 
@@ -111,7 +109,7 @@ int main(int argc, char ** argv)
 
 	Scene scene;
 	{
-		const real main_sphere_rad = 2.0f;
+		const real main_sphere_rad = 4.0f;
 
 		Sphere s;
 		s.centre = { 0, 0, 0 };
@@ -129,8 +127,9 @@ int main(int argc, char ** argv)
 		scene.objects.push_back(s2.clone());
 
 #if 0
-		MengerSpongeCAnalytic bulb; //MandelbulbDual bulb;
-		bulb.radius = 2.25f;
+		//MengerSpongeCAnalytic bulb;
+		MandelbulbDual bulb;
+		bulb.radius = 2.0f;
 		bulb.step_scale = 1; //0.5f; //
 		bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		bulb.mat.use_fresnel = true;
@@ -140,7 +139,7 @@ int main(int argc, char ** argv)
 		DualMandelbulbIteration mbi;
 		DualMengerSpongeCIteration msi; //msi.stc.x = 1.5f; msi.stc.y = 0.75f; msi.scale = 2.8f;
 		DualCubicbulbIteration cbi;
-		DualAmazingboxIteration ai; ai.scale = 1.75f;
+		DualAmazingboxIteration ai; //ai.scale = 1.75f;
 		DualOctopusIteration oi;
 		DualBenesiPine2Iteration bp2;
 		DualRiemannSphereIteration rs;
@@ -151,16 +150,16 @@ int main(int argc, char ** argv)
 		//iter_funcs.push_back(pki.clone());
 		//iter_funcs.push_back(mbi.clone());
 		//iter_funcs.push_back(msi.clone());
-		//iter_funcs.push_back(ai.clone());
+		iter_funcs.push_back(ai.clone());
 		//iter_funcs.push_back(cbi.clone());
-		iter_funcs.push_back(dki.clone());
+		//iter_funcs.push_back(dki.clone());
 
 		const std::vector<char> iter_seq = { 0 };
 
 		const int max_iters = 64;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
 
-		hybrid.radius = 7.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
+		hybrid.radius = 4.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
 		hybrid.step_scale = 0.5; //1;
 		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.mat.use_fresnel = true;
@@ -198,20 +197,22 @@ int main(int argc, char ** argv)
 	const int image_multi  = 80;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
+	const bool save_normal = true;
+	const bool save_albedo = true;
 
-	std::vector<vec3f>     image_HDR(image_width * image_height);
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
+	RenderOutput output(image_width, image_height);
 
 	std::vector<std::thread> threads(num_threads);
 
-	const auto save_tonemapped_frame = [&](int frame, int passes)
+	const auto save_tonemapped_buffer = [&](const char * channel_name, const int frame, const int passes, const std::vector<vec3f> & buffer)
 	{
 		// Tonemap and convert to LDR sRGB
-		tonemap(image_LDR, image_HDR, passes, image_width, image_height);
+		tonemap(image_LDR, buffer, passes, image_width, image_height);
 
 		// Save frame
-		char filename[64];
-		snprintf(filename, 64, "frame_%08d.png", frame);
+		char filename[128];
+		snprintf(filename, 128, "%s_frame_%08d.png", channel_name, frame);
 		stbi_write_png(filename, image_width, image_height, 3, &image_LDR[0], image_width * 3);
 		printf("Saved %s with %d passes\n", filename, passes);
 	};
@@ -226,11 +227,11 @@ int main(int argc, char ** argv)
 
 			for (int frame = 0; frame < frames; ++frame)
 			{
-				std::fill(image_HDR.begin(), image_HDR.end(), vec3f{ 0,0,0 });
+				output.clear();
 
 				std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
 
-				renderPasses(threads, image_HDR, frame, 0, passes, image_width, image_height, frames, scene);
+				renderPasses(threads, output, frame, 0, passes, frames, scene);
 
 				if (time_frames)
 				{
@@ -239,7 +240,9 @@ int main(int argc, char ** argv)
 					printf("Frame took %.3f seconds to render.\n", time_span.count());
 				}
 
-				save_tonemapped_frame(frame, passes);
+				save_tonemapped_buffer("beauty", frame, passes, output.beauty);
+				if (save_normal) save_tonemapped_buffer("normal", frame, passes, output.normal);
+				if (save_albedo) save_tonemapped_buffer("albedo", frame, passes, output.albedo);
 			}
 
 			break;
@@ -249,16 +252,18 @@ int main(int argc, char ** argv)
 		{
 			const int max_passes = 2 * 3 * 5 * 7 * 11; // Set a reasonable max number of passes instead of going forever
 			printf("Progressive rendering at resolution %d x %d with doubling passes to max %d\n", image_width, image_height, max_passes);
-			std::fill(image_HDR.begin(), image_HDR.end(), vec3f{ 0,0,0 });
+			output.clear();
 
 			int pass = 0;
 			int target_passes = 1;
 			while (pass < max_passes)
 			{
 				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
-				renderPasses(threads, image_HDR, 0, pass, target_passes - pass, image_width, image_height, 0, scene);
+				renderPasses(threads, output, 0, pass, target_passes - pass, 0, scene);
 
-				save_tonemapped_frame(0, target_passes);
+				save_tonemapped_buffer("beauty", 0, target_passes, output.beauty);
+				if (save_normal) save_tonemapped_buffer("normal", 0, target_passes, output.normal);
+				if (save_albedo) save_tonemapped_buffer("albedo", 0, target_passes, output.albedo);
 
 				pass = target_passes;
 				target_passes = std::min(target_passes << 1, max_passes);
