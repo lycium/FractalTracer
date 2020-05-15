@@ -61,7 +61,7 @@ struct DualRiemannSphereIteration final : public IterationFunction
 		t = fabs(t + x_shift);
 
 		const Dual3r r_ = Dual3r(-0.25f + r_shift) + pow(r, d.v[0] * r_pow);
-		const Dual3d d_ = Dual3r(2) / d;
+		const Dual3r d_ = Dual3r(2) / d;
 
 		p_out = DualVec3r(
 			c.x + r_ * s * d_,
@@ -72,7 +72,7 @@ struct DualRiemannSphereIteration final : public IterationFunction
 
 	virtual real getPower() const noexcept override final { return r_pow; }
 
-	virtual IterationFunction * clone() const override
+	virtual IterationFunction * clone() const override final
 	{
 		return new DualRiemannSphereIteration(*this);
 	}
