@@ -8,9 +8,8 @@
 
 
 template<int n, typename real_type>
-class vec
+struct vec
 {
-public:
 	real_type e[n];
 
 
@@ -19,8 +18,8 @@ public:
 	inline vec(const real_type v) { for (int i = 0; i < n; ++i) e[i] = v; }
 
 	// Some brutal C++ hackery to enable initializer lists
-	template<typename val, typename... vals, std::enable_if_t<(sizeof...(vals) >= 1), int> = 0>
-	inline vec(val v, vals... vs) : e { (real_type)v, (real_type)vs... } { }
+	template<typename val, typename... vals, std::enable_if_t<(sizeof...(vals) > 0), int> = 0>
+	inline vec(const val v, const vals... vs) : e { (real_type)v, (real_type)vs... } { }
 
 	inline vec operator+(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] + rhs.e[i]; return r; }
 	inline vec operator-(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] - rhs.e[i]; return r; }
@@ -40,12 +39,12 @@ public:
 	inline const vec & operator*=(const real_type rhs) { for (int i = 0; i < n; ++i) e[i] *= rhs; return *this; }
 
 	// xyz accessors enabled only if dimensions are present
-	template<std::enable_if_t<(n >= 1), int> = 0> inline real_type & x() { return e[0]; }
-	template<std::enable_if_t<(n >= 2), int> = 0> inline real_type & y() { return e[1]; }
-	template<std::enable_if_t<(n >= 3), int> = 0> inline real_type & z() { return e[2]; }
-	template<std::enable_if_t<(n >= 1), int> = 0> inline const real_type & x() const { return e[0]; }
-	template<std::enable_if_t<(n >= 2), int> = 0> inline const real_type & y() const { return e[1]; }
-	template<std::enable_if_t<(n >= 3), int> = 0> inline const real_type & z() const { return e[2]; }
+	template<std::enable_if_t<(n > 0), int> = 0> inline real_type & x() { return e[0]; }
+	template<std::enable_if_t<(n > 1), int> = 0> inline real_type & y() { return e[1]; }
+	template<std::enable_if_t<(n > 2), int> = 0> inline real_type & z() { return e[2]; }
+	template<std::enable_if_t<(n > 0), int> = 0> inline const real_type & x() const { return e[0]; }
+	template<std::enable_if_t<(n > 1), int> = 0> inline const real_type & y() const { return e[1]; }
+	template<std::enable_if_t<(n > 2), int> = 0> inline const real_type & z() const { return e[2]; }
 };
 
 
@@ -70,10 +69,10 @@ inline real dot(const vec<n, Dual<real_type, n>> & lhs, const vec<n, real> & rhs
 }
 
 
-template<int n>
-inline real length2(const vec<n, real> & v)
+template<int n, typename real_type>
+inline real_type length2(const vec<n, real_type> & v)
 {
-	real d = 0;
+	real_type d = 0;
 	for (int i = 0; i < n; ++i)
 		d += v.e[i] * v.e[i];
 	return d;
@@ -81,9 +80,9 @@ inline real length2(const vec<n, real> & v)
 
 
 template<int n, typename real_type>
-inline real length2(const vec<n, real_type> & v)
+inline real_type length2(const vec<n, Dual<real_type, 3>> & v)
 {
-	real d = 0;
+	real_type d = 0;
 	for (int i = 0; i < n; ++i)
 		d += v.e[i].v[0] * v.e[i].v[0];
 	return d;
@@ -91,7 +90,11 @@ inline real length2(const vec<n, real_type> & v)
 
 
 template<int n, typename real_type>
-inline real length(const vec<n, real_type> & v) { return std::sqrt(length2(v)); }
+inline real_type length(const vec<n, real_type> & v) { return std::sqrt(length2(v)); }
+
+
+template<int n, typename real_type>
+inline real_type length(const vec<n, Dual<real_type, 3>> & v) { return std::sqrt(length2(v)); }
 
 
 template<int n, typename real_type>
