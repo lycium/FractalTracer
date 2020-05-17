@@ -20,12 +20,6 @@
     <ClInclude Include="..\src\real.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\vec2.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vec3.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\SceneObject.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -81,6 +75,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="..\src\MandalayKIFS.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\vec.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

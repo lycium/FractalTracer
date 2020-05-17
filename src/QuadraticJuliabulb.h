@@ -14,20 +14,20 @@ struct QuadraticJuliabulbAnalytic final : public AnalyticDEObject
 		real r, dr = 1;
 		for (int i = 0; i < 64 * 8; i++)
 		{
-			const real xy_r2 = z.x * z.x + z.y * z.y;
-			const real scale = 1 - z.z * z.z / xy_r2;
+			const real xy_r2 = z.x() * z.x() + z.y() * z.y();
+			const real scale = 1 - z.z() * z.z() / xy_r2;
 
-			r = std::sqrt(xy_r2 + z.z * z.z);
+			r = std::sqrt(xy_r2 + z.z() * z.z());
 			if (r > 256 * 64)
 				break;
 
 			dr = r * 2 * dr + 1;
 			z = vec3r
 			{
-				(z.x * z.x - z.y * z.y) * scale + c.x,
-				(2 * z.x * z.y) * scale + c.y,
-				-2 * z.z * std::sqrt(xy_r2) + c.z
-			};
+				(z.x() * z.x() - z.y() * z.y()) * scale,
+				(2 * z.x() * z.y()) * scale,
+				-2 * z.z() * std::sqrt(xy_r2)
+			} + c;
 		}
 
 		return 0.125f * std::log(r) * r / dr;
@@ -49,18 +49,19 @@ struct QuadraticJuliabulbDual final : public DualDEObject
 
 		for (int i = 0; i < 64 * 8; i++)
 		{
-			const Dual3r xy_r2 = z.x * z.x + z.y * z.y;
-			const Dual3r scale = Dual3r(1) - z.z * z.z / xy_r2;
+			const Dual3r xy_r2 = z.x() * z.x() + z.y() * z.y();
+			const Dual3r scale = Dual3r(1) - z.z() * z.z() / xy_r2;
 
-			const real r2 = xy_r2.v[0] + z.z.v[0] * z.z.v[0];
+			const real r2 = xy_r2.v[0] + z.z().v[0] * z.z().v[0];
 			if (r2 > 65536 * 4096)
 				break;
 
-			const Dual3r zx_ = (z.x * z.x - z.y * z.y) * Dual3r(scale) + c.x;
-			const Dual3r zy_ = (Dual3r(2) * z.x * z.y) * Dual3r(scale) + c.y;
-			const Dual3r zz_ = Dual3r(-2) * z.z * sqrt(xy_r2) + c.z;
-
-			z = { zx_, zy_, zz_ };
+			z =
+			{
+				(z.x() * z.x() - z.y() * z.y()) * Dual3r(scale) + c.x(),
+				(Dual3r(2) * z.x() * z.y()) * Dual3r(scale) + c.y(),
+				Dual3r(-2) * z.z() * sqrt(xy_r2) + c.z()
+			};
 		}
 
 #if 1

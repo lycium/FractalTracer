@@ -20,9 +20,7 @@
 #include <Windows.h>
 #endif
 
-#include "vec2.h"
-#include "vec3.h"
-
+#include "vec.h"
 #include "Ray.h"
 #include "Scene.h"
 #include "Renderer.h"
@@ -40,13 +38,6 @@
 #include "BenesiPine2.h"
 #include "RiemannSphere.h"
 
-
-
-
-inline float sRGB(const float u)
-{
-	return (u <= 0.0031308f) ? 12.92f * u : 1.055f * std::pow(u, 0.416667f) - 0.055f;
-}
 
 
 struct sRGBPixel
@@ -68,6 +59,8 @@ void renderPasses(std::vector<std::thread> & threads, RenderOutput & output, int
 
 void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & image_HDR, const int passes, const int xres, const int yres) noexcept
 {
+	const auto sRGB = [](float u) -> float { return (u <= 0.0031308f) ? 12.92f * u : 1.055f * std::pow(u, 0.416667f) - 0.055f; };
+
 	const float scale = 1.0f / passes;
 
 	#pragma omp parallel for
@@ -79,9 +72,9 @@ void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & imag
 
 		image_LDR[pixel_idx] =
 		{
-			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
-			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.y * scale) * 256))),
-			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.z * scale) * 256)))
+			(uint8_t)std::max(0.0f, std::min(255.0f, sRGB(pixel_colour.x() * scale) * 256)),
+			(uint8_t)std::max(0.0f, std::min(255.0f, sRGB(pixel_colour.y() * scale) * 256)),
+			(uint8_t)std::max(0.0f, std::min(255.0f, sRGB(pixel_colour.z() * scale) * 256))
 		};
 	}
 }
@@ -197,8 +190,8 @@ int main(int argc, char ** argv)
 	const int image_multi  = 80;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
-	const bool save_normal = true;
-	const bool save_albedo = true;
+	const bool save_normal = false;
+	const bool save_albedo = false;
 
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
 	RenderOutput output(image_width, image_height);

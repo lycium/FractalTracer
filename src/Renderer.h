@@ -190,7 +190,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 		{
 			const vec3f sky_up = vec3f{ 53, 112, 128 } * (1.0f / 255) * 0.75f;
 			const vec3f sky_hz = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
-			const float height = 1 - std::max(0.0f, (float)ray.d.y);
+			const float height = 1 - std::max(0.0f, (float)ray.d.y());
 			const float height2 = height * height;
 			const vec3f sky = sky_up + (sky_hz - sky_up) * height2 * height2;
 			contribution += throughput * sky;
@@ -208,7 +208,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 		// Output render channels
 		if (bounce == 0)
 		{
-			normal_out = vec3f{ (float)normal.x, (float)normal.z, (float)normal.y } * 0.5f + 0.5f; // Swap Y and Z
+			normal_out = vec3f{ (float)normal.x(), (float)normal.z(), (float)normal.y() } * 0.5f + 0.5f; // Swap Y and Z
 			albedo_out = mat.albedo;
 		}
 
@@ -267,7 +267,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 			break;
 
 		// Terminate the path unconditionally if the albedo is super low or zero
-		const float max_albedo = std::max(std::max(albedo.x, albedo.y), albedo.z);
+		const float max_albedo = std::max(std::max(albedo.x(), albedo.y()), albedo.z());
 		if (max_albedo < 1e-8f)
 			break;
 

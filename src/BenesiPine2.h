@@ -25,30 +25,30 @@ struct DualBenesiPine2Iteration final : public IterationFunction
 		DualVec3r p = p_in;
 
 		// Benesi fold transform 2
-		Dual3r tx = p.x * sqrt_2_3 - p.z * sqrt_1_3;
-		p.z = p.x * sqrt_1_3 + p.z * sqrt_2_3;
-		p.x = tx * sqrt_1_2 - p.y * sqrt_1_2;
-		p.y = tx * sqrt_1_2 + p.y * sqrt_1_2;
+		Dual3r tx = p.x() * sqrt_2_3 - p.z() * sqrt_1_3;
+		p.z() = p.x() * sqrt_1_3 + p.z() * sqrt_2_3;
+		p.x() = tx    * sqrt_1_2 - p.y() * sqrt_1_2;
+		p.y() = tx    * sqrt_1_2 + p.y() * sqrt_1_2;
 		p = DualVec3r(
-			fabs(sqrt(p.y * p.y + p.z * p.z) - offset),
-			fabs(sqrt(p.x * p.x + p.z * p.z) - offset),
-			fabs(sqrt(p.x * p.x + p.y * p.y) - offset)
+			fabs(sqrt(p.y() * p.y() + p.z() * p.z()) - offset),
+			fabs(sqrt(p.x() * p.x() + p.z() * p.z()) - offset),
+			fabs(sqrt(p.x() * p.x() + p.y() * p.y()) - offset)
 		);
 		p = p * scale;
-		tx = p.x * sqrt_1_2 + p.y * sqrt_1_2;
-		p.y = -p.x * sqrt_1_2 + p.y * sqrt_1_2;
-		p.x = tx * sqrt_2_3 + p.z * sqrt_1_3;
-		p.z = -tx * sqrt_1_3 + p.z * sqrt_2_3;
+		tx    =  p.x() * sqrt_1_2 + p.y() * sqrt_1_2;
+		p.y() = -p.x() * sqrt_1_2 + p.y() * sqrt_1_2;
+		p.x() =  tx    * sqrt_2_3 + p.z() * sqrt_1_3;
+		p.z() = -tx    * sqrt_1_3 + p.z() * sqrt_2_3;
 
 		// Benesi pinetree
-		Dual3r xt = p.x * p.x; 
-		Dual3r yt = p.y * p.y; 
-		Dual3r zt = p.z * p.z;
-		Dual3r t = p.x / sqrt(yt + zt) * real(2);
+		Dual3r xt = p.x() * p.x(); 
+		Dual3r yt = p.y() * p.y(); 
+		Dual3r zt = p.z() * p.z();
+		Dual3r t =  p.x() / (sqrt(yt + zt) * 2);
 		p_out = DualVec3r(
-			c.x + xt - yt - zt,
-			c.y + t * (yt - zt),
-			c.z + t * p.y * p.z * real(2));
+			c.x() + xt - yt - zt,
+			c.y() + t * (yt - zt),
+			c.z() + t * p.y() * p.z() * 2);
 	}
 
 	virtual real getPower() const noexcept override final { return 2; }
@@ -59,7 +59,7 @@ struct DualBenesiPine2Iteration final : public IterationFunction
 	}
 
 protected:
-	const real sqrt_2_3 = 0.81649658092;//sqrt(2/3)
-	const real sqrt_1_3 = 0.57735026919;//sqrt(1/3)
-	const real sqrt_1_2 = 0.70710678118;//sqrt(1/2)
+	const real sqrt_2_3 = 0.81649658092; // sqrt(2/3)
+	const real sqrt_1_3 = 0.57735026919; // sqrt(1/3)
+	const real sqrt_1_2 = 0.70710678118; // sqrt(1/2)
 };

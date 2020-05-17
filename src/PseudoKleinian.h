@@ -12,9 +12,9 @@ struct DualPseudoKleinianIteration final : public IterationFunction
 
     virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
     {
-        const Dual3r px = clamp(p_in.x, mins[0], maxs[0]) * 2 - p_in.x;
-        const Dual3r py = clamp(p_in.y, mins[1], maxs[1]) * 2 - p_in.y;
-        const Dual3r pz = clamp(p_in.z, mins[2], maxs[2]) * 2 - p_in.z;
+        const Dual3r px = clamp(p_in.x(), mins[0], maxs[0]) * 2 - p_in.x();
+        const Dual3r py = clamp(p_in.y(), mins[1], maxs[1]) * 2 - p_in.y();
+        const Dual3r pz = clamp(p_in.z(), mins[2], maxs[2]) * 2 - p_in.z();
 
         const real k = std::max(mins[3] / length2(DualVec3r{ px, py, pz }), (real)1);
         p_out = DualVec3r(px, py, pz) * k;
