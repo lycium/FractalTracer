@@ -112,7 +112,7 @@ int main(int argc, char ** argv)
 	// Load HDR envmap
 	{
 		// stb_image has some size limitations unfortunately.
-		assert(hdr_env_xres <= 16384 || hdr_env_yres <= 8192);
+		assert(hdr_env_xres <= 16384 && hdr_env_yres <= 8192);
 
 		// Can get these from https://hdrihaven.com
 		const char * hdr_path = "C:/Users/thoma/Downloads/roof_garden_16k.hdr";

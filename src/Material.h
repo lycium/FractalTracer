@@ -40,7 +40,7 @@ struct MinRadiusPaletteColouring final : public ColouringFunction
 		const vec3f modified = base * base * 0.85f + 0.05f;
 
 		const vec3f yellow = vec3f{ 1.0f, 1.0f, 0 };
-		const float yellowness = (fabsf(r - 2.2f) < 0.05f) ? 1 : 0; //dot(modified, yellow) / length(yellow);
+		const float yellowness = (fabsf(r - 2.2f) < 0.05f) ? 1.0f : 0.0f; //dot(modified, yellow) / length(yellow);
 		const float y4 = yellowness * yellowness * yellowness * yellowness;
 		const vec3f albedo = modified;// - yellow * (y4 * 0.125f);
 
