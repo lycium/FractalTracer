@@ -33,7 +33,7 @@ struct QuadraticJuliabulbAnalytic final : public AnalyticDEObject
 		return 0.125f * std::log(r) * r / dr;
 	}
 
-	virtual SceneObject * clone() const override
+	virtual SceneObject * clone() const override final
 	{
 		return new QuadraticJuliabulbAnalytic(*this);
 	}
@@ -70,7 +70,7 @@ struct QuadraticJuliabulbDual final : public DualDEObject
 #endif
 	}
 
-	virtual SceneObject * clone() const override
+	virtual SceneObject * clone() const override final
 	{
 		return new QuadraticJuliabulbDual(*this);
 	}

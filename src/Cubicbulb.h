@@ -32,7 +32,7 @@ struct DualCubicbulbIteration final : public IterationFunction
 
 	virtual real getPower() const noexcept override final { return 3; }
 
-	virtual IterationFunction * clone() const override
+	virtual IterationFunction * clone() const override final
 	{
 		return new DualCubicbulbIteration(*this);
 	}

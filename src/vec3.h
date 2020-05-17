@@ -73,4 +73,4 @@ inline vec3d toVec3d(const vec3f & v) { return vec3d(v.x, v.y, v.z); }
 inline real length2(const DualVec3r & v) { return v.x.v[0] * v.x.v[0] + v.y.v[0] * v.y.v[0] + v.z.v[0] * v.z.v[0]; }
 inline real length (const DualVec3r & v) { return std::sqrt(length2(v)); }
 
-inline Dual3r dot(const DualVec3r & lhs, const vec3r & rhs) { return lhs.x * (Dual3r)rhs.x + lhs.y * (Dual3r)rhs.y + lhs.z * (Dual3r)rhs.z; }
+inline Dual3r dot(const DualVec3r & lhs, const vec3r & rhs) { return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z; }

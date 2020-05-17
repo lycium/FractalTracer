@@ -43,7 +43,7 @@ struct MengerSpongeAnalytic final : public AnalyticDEObject
 		return (sqrt(m) - radius) / dz;
 	}
 
-	virtual SceneObject * clone() const override
+	virtual SceneObject * clone() const override final
 	{
 		return new MengerSpongeAnalytic(*this);
 	}
@@ -84,7 +84,7 @@ struct MengerSpongeDual final : public DualDEObject
 #endif
 	}
 
-	virtual SceneObject * clone() const override
+	virtual SceneObject * clone() const override final
 	{
 		return new MengerSpongeDual(*this);
 	}
@@ -115,7 +115,7 @@ struct DualMengerSpongeIteration final : public IterationFunction
 
 	virtual real getPower() const noexcept override final { return 1; }
 
-	virtual IterationFunction * clone() const override
+	virtual IterationFunction * clone() const override final
 	{
 		return new DualMengerSpongeIteration(*this);
 	}

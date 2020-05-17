@@ -53,7 +53,7 @@ struct DualBenesiPine2Iteration final : public IterationFunction
 
 	virtual real getPower() const noexcept override final { return 2; }
 
-	virtual IterationFunction * clone() const override
+	virtual IterationFunction * clone() const override final
 	{
 		return new DualBenesiPine2Iteration(*this);
 	}

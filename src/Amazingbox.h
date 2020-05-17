@@ -34,7 +34,7 @@ struct DualAmazingboxIteration final : public IterationFunction
 
 	virtual real getPower() const noexcept override final { return 1; } // Knighty: Well... the DE formula for this fractal doesn't have a log()
 
-	virtual IterationFunction * clone() const override
+	virtual IterationFunction * clone() const override final
 	{
 		return new DualAmazingboxIteration(*this);
 	}

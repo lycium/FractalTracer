@@ -31,7 +31,7 @@ struct Sphere final : public SceneObject
 		return (p - centre) * (1 / radius);
 	}
 
-	virtual SceneObject * clone() const override
+	virtual SceneObject * clone() const override final
 	{
 		Sphere * o = new Sphere;
 		*o = *this;

@@ -83,7 +83,7 @@ struct MandelbulbDual final : public DualDEObject
 #endif
 	}
 
-	virtual SceneObject * clone() const override
+	virtual SceneObject * clone() const override final
 	{
 		return new MandelbulbDual(*this);
 	}
@@ -116,7 +116,7 @@ struct DualMandelbulbIteration final : public IterationFunction
 
 	virtual real getPower() const noexcept override final { return 8; }
 
-	virtual IterationFunction * clone() const override
+	virtual IterationFunction * clone() const override final
 	{
 		return new DualMandelbulbIteration(*this);
 	}

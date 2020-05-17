@@ -68,4 +68,4 @@ inline vec2d toVec2d(const vec2f & v) { return vec2d(v.x, v.y); }
 inline real length2(const DualVec2r & v) { return v.x.v[0] * v.x.v[0] + v.y.v[0] * v.y.v[0]; }
 inline real length (const DualVec2r & v) { return std::sqrt(length2(v)); }
 
-inline Dual2r dot(const DualVec2r & lhs, const vec2r & rhs) { return lhs.x * (Dual2r)rhs.x + lhs.y * (Dual2r)rhs.y; }
+inline Dual2r dot(const DualVec2r & lhs, const vec2r & rhs) { return lhs.x * rhs.x + lhs.y * rhs.y; }
