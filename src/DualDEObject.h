@@ -363,6 +363,8 @@ struct GeneralDualDE final : public DualDEObject
 		for (int i = 0; i < num_funcs; ++i)
 			funcs[i]->init(p);
 
+		mat.colouring.init(p);
+
 		int seq_idx = 0;
 		int i = 0;
 		for (; i < max_iters; i++)
@@ -371,7 +373,9 @@ struct GeneralDualDE final : public DualDEObject
 			funcs[sequence[seq_idx]]->eval(p, p_new);
 			p = p_new;
 
-			const real r2 = p.x.v[0] * p.x.v[0] + p.y.v[0] * p.y.v[0] + p.z.v[0] * p.z.v[0];
+			mat.colouring.iter(p);
+
+			const real r2 = length2(p);
 			if (r2 > bailout_radius2)
 				break;
 
@@ -389,7 +393,7 @@ struct GeneralDualDE final : public DualDEObject
 #endif
 	}
 
-	virtual SceneObject * clone() const override
+	virtual SceneObject * clone() const override final
 	{
 		return new GeneralDualDE(*this);
 	}

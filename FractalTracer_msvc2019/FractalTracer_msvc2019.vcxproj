@@ -106,6 +106,7 @@
     <ClInclude Include="..\src\Scene.h" />
     <ClInclude Include="..\src\SceneObject.h" />
     <ClInclude Include="..\src\SimpleObjects.h" />
+    <ClInclude Include="..\src\stb_image.h" />
     <ClInclude Include="..\src\stb_image_write.h" />
     <ClInclude Include="..\src\vec2.h" />
     <ClInclude Include="..\src\vec3.h" />

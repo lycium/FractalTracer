@@ -56,19 +56,19 @@ inline uint32_t hash(uint32_t x)
 
 
 // From PBRT
-double RadicalInverse(int a, int base) noexcept
+double RadicalInverse(int sample, int base) noexcept
 {
 	const double invBase = 1.0 / base;
 
 	int reversedDigits = 0;
 	double invBaseN = 1;
-	while (a)
+	while (sample)
 	{
-		const int next  = a / base;
-		const int digit = a - base * next;
+		const int next  = sample / base;
+		const int digit = sample - base * next;
 		reversedDigits = reversedDigits * base + digit;
 		invBaseN *= invBase;
-		a = next;
+		sample = next;
 	}
 
 	return std::min(reversedDigits * invBaseN, DoubleOneMinusEpsilon);
@@ -117,6 +117,12 @@ inline real triDist(real v)
 	return v;
 }
 
+
+// TEMP HACK Shouldn't be global
+constexpr int hdr_env_xres = 16384;
+constexpr int hdr_env_yres = hdr_env_xres / 2;
+std::vector<vec3f> hdr_env;
+
 inline void render(const int x, const int y, const int frame, const int pass, const int frames, Scene & scene, RenderOutput & output) noexcept
 {
 	constexpr int max_bounces = 5;
@@ -143,7 +149,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 	const vec3r cam_lookat = { 0, -0.125f, 0 };
 	const vec3r world_up = { 0, 1, 0 };
-	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.5f;
+	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.265f;
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);
@@ -156,9 +162,9 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 	vec3r ray_p = cam_pos;
 	vec3r ray_d = normalise(pixel_v);
-#if 0 // Depth of field
-	const real focal_dist = length(cam_pos - cam_lookat) * 0.75f;
-	const real lens_radius = 0.005f;
+#if 1 // Depth of field
+	const real focal_dist = length(cam_pos - cam_lookat) * 0.725f;
+	const real lens_radius = 0.0125f;
 
 	// Random point on disc
 	const real lens_r = std::sqrt(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)) * lens_radius;
@@ -188,11 +194,30 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 		// Did we hit anything? If not, return skylight colour
 		if (nearest_hit_obj == nullptr)
 		{
+#if 0
 			const vec3f sky_up = vec3f{ 53, 112, 128 } * (1.0f / 255) * 0.75f;
 			const vec3f sky_hz = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
 			const float height = 1 - std::max(0.0f, (float)ray.d.y);
 			const float height2 = height * height;
 			const vec3f sky = sky_up + (sky_hz - sky_up) * height2 * height2;
+#else
+			const real theta = std::atan2(ray.d.z, ray.d.x) + two_pi;
+			const real phi = std::acos(ray.d.y);
+
+			const real u = std::fmod((theta + pi_half) * (hdr_env_xres / two_pi), hdr_env_xres);
+			const real v = std::fmod((phi + pi) * (hdr_env_yres / pi), hdr_env_yres);
+
+			const int u0 = (int)std::floor(u), u1 = (u0 + 1 < hdr_env_xres) ? u0 + 1 : 0;
+			const int v0 = (int)std::floor(v), v1 = (v0 + 1 < hdr_env_yres) ? v0 + 1 : 0;
+			const float fu = (float)(u - u0);
+			const float fv = (float)(v - v0);
+
+			const vec3f sky =
+				hdr_env[v0 * hdr_env_xres + u0] * ((1 - fu) * (1 - fv)) +
+				hdr_env[v0 * hdr_env_xres + u1] * ((    fu) * (1 - fv)) +
+				hdr_env[v1 * hdr_env_xres + u0] * ((1 - fu) * (    fv)) +
+				hdr_env[v1 * hdr_env_xres + u1] * ((    fu) * (    fv));
+#endif
 			contribution += throughput * sky;
 			break;
 		}
@@ -212,12 +237,10 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 			albedo_out = mat.albedo;
 		}
 
-		// Add emission
-		contribution += throughput * mat.emission;
-
 		// Add some shininess using Schlick Frensel approximation
 		bool sample_specular;
 		vec3f albedo;
+		vec3f emit;
 		if (mat.use_fresnel)
 		{
 			const real r0 = mat.r0;
@@ -225,18 +248,36 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 			const real p2 = p1 * p1;
 			const real fresnel = r0 + (1 - r0) * p2 * p2 * p1;
 
+			vec3f base_albedo;
+			vec3f base_emit;
+			if (nearest_hit_obj == scene.objects[0]) // TEMP HACK
+			{
+				mat.colouring.getMaterial(base_albedo, base_emit);
+				base_emit = mat.emission;
+			}
+			else
+			{
+				base_albedo = mat.albedo;
+				base_emit = mat.emission;
+			}
+
 			const real mat_u = wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
 			sample_specular = mat_u < fresnel;
-			albedo = (sample_specular) ? 0.95f : mat.albedo;
+			albedo = (sample_specular) ? 0.95f : base_albedo;
+			emit = base_emit;
 		}
 		else
 		{
 			sample_specular = false;
 			albedo = mat.albedo;
+			emit = mat.emission;
 		}
 
+		// Add emission
+		contribution += throughput * emit;
+
 		// Do direct lighting from a fixed point light
-		if (!sample_specular)
+		if (false)//(!sample_specular)
 		{
 			// Compute vector from intersection point to light
 			const vec3r light_pos = { 8, 12, -6 };
@@ -250,7 +291,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 				const real  light_len = std::sqrt(light_ln2);
 				const vec3r light_dir = light_vec * (1 / light_len);
 
-				const vec3f refl_colour = albedo * (float)n_dot_l / (float)(light_ln2 * light_len) * 720; // 420;
+				const vec3f refl_colour = albedo * (float)n_dot_l / (float)(light_ln2 * light_len) * 420;
 
 				// Trace shadow ray from the hit point towards the light
 				const Ray shadow_ray = { hit_p, light_dir };

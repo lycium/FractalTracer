@@ -11,6 +11,8 @@
 #include <thread>
 #include <algorithm> // For std::pair and std::min and max
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
@@ -107,24 +109,53 @@ int main(int argc, char ** argv)
 			mode = mode_animation;
 	}
 
+	// Load HDR envmap
+	{
+		// stb_image has some size limitations unfortunately.
+		assert(hdr_env_xres <= 16384 || hdr_env_yres <= 8192);
+
+		// Can get these from https://hdrihaven.com
+		const char * hdr_path = "C:/Users/thoma/Downloads/roof_garden_16k.hdr";
+		//const char * hdr_path = "C:/Users/thoma/Downloads/kloppenheim_02_16k.hdr";
+
+		int xres, yres, num_channels;
+		vec3f * data = (vec3f *)stbi_loadf(hdr_path, &xres, &yres, &num_channels, 0);
+		if (data == nullptr ||
+			xres != hdr_env_xres ||
+			yres != hdr_env_yres ||
+			num_channels != 3)
+		{
+			printf("Failed to load HDR envmap from '%s' or dimensions don't match hardcoded values.\n", hdr_path);
+			return 1;
+		}
+
+		hdr_env.resize(xres * yres);
+		for (int i = 0; i < xres * yres; ++i)
+			hdr_env[i] = data[i] * 1.65f;
+
+		stbi_image_free(data);
+	}
+
 	Scene scene;
 	{
-		const real main_sphere_rad = 4.0f;
+		const real main_sphere_rad = 1.0f;
 
 		Sphere s;
 		s.centre = { 0, 0, 0 };
 		s.radius = main_sphere_rad;
-		s.mat.albedo = { 0.1f, 0.1f, 0.7f };
+		s.mat.albedo = { 0.2f, 0.3f, 0.6f };
+		//s.mat.r0 = 1;
+		s.mat.use_fresnel = true;
 		//scene.objects.push_back(s.clone());
 
 		Sphere s2;
 		const real bigrad = 128;
 		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
 		s2.radius = bigrad;
-		s2.mat.albedo = vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
-		s2.mat.use_fresnel = true;
+		s2.mat.albedo = 0.35f;//vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
+		s2.mat.use_fresnel = false;
 
-		scene.objects.push_back(s2.clone());
+		//scene.objects.push_back(s2.clone());
 
 #if 0
 		//MengerSpongeCAnalytic bulb;
@@ -146,20 +177,20 @@ int main(int argc, char ** argv)
 		DualMandalayKIFSIteration dki;
 
 		std::vector<IterationFunction *> iter_funcs;
-		//iter_funcs.push_back(oi.clone());
+		iter_funcs.push_back(oi.clone());
 		//iter_funcs.push_back(pki.clone());
-		//iter_funcs.push_back(mbi.clone());
+		iter_funcs.push_back(mbi.clone());
 		//iter_funcs.push_back(msi.clone());
-		iter_funcs.push_back(ai.clone());
+		//iter_funcs.push_back(ai.clone());
 		//iter_funcs.push_back(cbi.clone());
 		//iter_funcs.push_back(dki.clone());
 
-		const std::vector<char> iter_seq = { 0 };
+		const std::vector<char> iter_seq = { 0, 1 };
 
-		const int max_iters = 64;
+		const int max_iters = 16;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
 
-		hybrid.radius = 4.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
+		hybrid.radius = 1.5; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
 		hybrid.step_scale = 0.5; //1;
 		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.mat.use_fresnel = true;
@@ -194,11 +225,11 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	const int image_multi  = 80;
+	const int image_multi  = 120;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
-	const bool save_normal = true;
-	const bool save_albedo = true;
+	const bool save_normal = false;
+	const bool save_albedo = false;
 
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
 	RenderOutput output(image_width, image_height);
