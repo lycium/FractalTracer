@@ -8,11 +8,11 @@
 // Ref: http://www.fractalforums.com/amazing-box-amazing-surf-and-variations/amazing-fractal/
 struct DualAmazingboxIteration final : public IterationFunction
 {
-	real scale = 3;
-	real min_r2 = 0.5f;
+	real scale = -2;
+	real min_r2 = 0.25f;
 	real fix_r2 = 1;
 	real fold_limit = 1;
-	DualVec3r c = { 2.5f, -0.7f, 2.15f };
+	DualVec3r c = { 0.0f, 0.0f, 0.0f };
 	bool julia_mode = false;
 
 
@@ -43,17 +43,17 @@ protected:
 	inline DualVec3r boxFold(const DualVec3r & p_in) const
 	{
 		return DualVec3r(
-			clamp(p_in.x(), -fold_limit, fold_limit) * 2 - p_in.x(),
-			clamp(p_in.y(), -fold_limit, fold_limit) * 2 - p_in.y(),
-			clamp(p_in.z(), -fold_limit, fold_limit) * 2 - p_in.z());
+			clamp(p_in.x, -fold_limit, fold_limit) * 2 - p_in.x,
+			clamp(p_in.y, -fold_limit, fold_limit) * 2 - p_in.y,
+			clamp(p_in.z, -fold_limit, fold_limit) * 2 - p_in.z);
 	}
 
 	inline DualVec3r sphereFold(const DualVec3r & p_in) const
 	{
-		const real r2 = length2(p_in);
+		const Dual3r r2 = p_in.x * p_in.x + p_in.y * p_in.y + p_in.z * p_in.z;
 		return
-			(r2 < min_r2) ? p_in * (fix_r2 / min_r2) : // linear inner scaling
-			(r2 < fix_r2) ? p_in * (fix_r2 / r2) : // this is the actual sphere inversion
+			(r2.v[0] < min_r2) ? p_in * (fix_r2 / min_r2) : // linear inner scaling
+			(r2.v[0] < fix_r2) ? p_in / r2 * fix_r2 : // this is the actual sphere inversion
 			p_in;
 	}
 };

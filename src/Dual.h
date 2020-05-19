@@ -197,16 +197,9 @@ inline constexpr Dual<real_type, vars> fabs(const Dual<real_type, vars> & d) noe
 
 
 template <typename real_type, int vars>
-inline constexpr Dual<real_type, vars> min(const Dual<real_type, vars> & p, const real_type min_val) noexcept
+inline constexpr Dual<real_type, vars> clamp(const Dual<real_type, vars> & p, const Dual<real_type, vars> & min_val, const Dual<real_type, vars> & max_val) noexcept
 {
-	return (p.v[0] < min_val) ? min_val : p; // Note: zero derivs left of min_val
-}
-
-
-template <typename real_type, int vars>
-inline constexpr Dual<real_type, vars> max(const Dual<real_type, vars> & p, const real_type max_val) noexcept
-{
-	return (p.v[0] > max_val) ? max_val : p; // Note: zero derivs right of max_val
+	return min(max(p, max_val), min_val);
 }
 
 
@@ -214,4 +207,32 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> clamp(const Dual<real_type, vars> & p, const real_type min_val, const real_type max_val) noexcept
 {
 	return min(max(p, max_val), min_val);
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> min(const Dual<real_type, vars> & p, const Dual<real_type, vars> & min_val) noexcept
+{
+	return (p.v[0] < min_val.v[0]) ? p : min_val;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> min(const Dual<real_type, vars> & p, const real_type min_val) noexcept
+{
+	return (p.v[0] < min_val) ? min_val : p; // Note: zero derivs left of min_val
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> max(const Dual<real_type, vars> & p, const Dual<real_type, vars> & max_val) noexcept
+{
+	return (p.v[0] > max_val.v[0]) ? p : max_val;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> max(const Dual<real_type, vars> & p, const real_type max_val) noexcept
+{
+	return (p.v[0] > max_val) ? max_val : p; // Note: zero derivs right of max_val
 }
