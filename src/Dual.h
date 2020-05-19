@@ -64,7 +64,7 @@ public:
 		return r;
 	}
 
-	inline constexpr const Dual & operator-=(const real_type rhs) noexcept { *this = *this + rhs; return *this; }
+	inline constexpr const Dual & operator-=(const real_type rhs) noexcept { *this = *this - rhs; return *this; }
 
 	// Optimised method to avoid full product rule from promiting RHS to Dual
 	inline constexpr Dual operator*(const real_type rhs) const noexcept
