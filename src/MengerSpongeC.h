@@ -11,7 +11,7 @@
 // https://github.com/buddhi1980/mandelbulber2/blob/517423cc5b9ac960464cbcde612a0d8c61df3375/mandelbulber2/formula/definition/fractal_menger_sponge.cpp
 struct MengerSpongeCAnalytic final : public AnalyticDEObject
 {
-	real scale = 3;
+	real  scale = 3;
 	vec3r scale_centre = 1;
 
 
@@ -27,11 +27,11 @@ struct MengerSpongeCAnalytic final : public AnalyticDEObject
 			z.y() = fabs(z.y());
 			z.z() = fabs(z.z());
 
-			if (z.x() - z.y() < 0) std::swap(z.x(), z.y());
-			if (z.x() - z.z() < 0) std::swap(z.x(), z.z());
-			if (z.y() - z.z() < 0) std::swap(z.y(), z.z());
+			if (z.x() < z.y()) std::swap(z.x(), z.y());
+			if (z.x() < z.z()) std::swap(z.x(), z.z());
+			if (z.y() < z.z()) std::swap(z.y(), z.z());
 
-            const real t = std::min((real)0, -z.z() + (real)0.5 * scale_centre.y() * (scale - 1) / scale);
+            const real t = std::min((real)0, scale_centre.y() * ((scale - 1) / scale * 0.5f) - z.z());
             z.z() += t * 2;
 
             z.x() = scale * z.x() - scale_centre.x() * (scale - 1);
@@ -58,7 +58,7 @@ struct MengerSpongeCAnalytic final : public AnalyticDEObject
 
 struct MengerSpongeCDual final : public DualDEObject
 {
-	real scale = 3;
+	real  scale = 3;
 	vec3r scale_centre = 1;
 
 
@@ -72,11 +72,11 @@ struct MengerSpongeCDual final : public DualDEObject
 			z.y() = fabs(z.y());
 			z.z() = fabs(z.z());
 
-			if (z.x().v[0] - z.y().v[0] < 0) std::swap(z.x(), z.y());
-			if (z.x().v[0] - z.z().v[0] < 0) std::swap(z.x(), z.z());
-			if (z.y().v[0] - z.z().v[0] < 0) std::swap(z.y(), z.z());
+			if (z.x().v[0] < z.y().v[0]) std::swap(z.x(), z.y());
+			if (z.x().v[0] < z.z().v[0]) std::swap(z.x(), z.z());
+			if (z.y().v[0] < z.z().v[0]) std::swap(z.y(), z.z());
 
-            const real t = std::min((real)0, ((real)0.5 * scale_centre.y() * (scale - 1) / scale) - z.z().v[0]);
+            const real t = std::min((real)0, (scale_centre.y() * ((scale - 1) / scale * 0.5f)) - z.z().v[0]);
             z.z() += t * 2;
 
 			z.x() *= scale; z.x() -= scale_centre.x() * (scale - 1);
@@ -104,7 +104,7 @@ struct MengerSpongeCDual final : public DualDEObject
 
 struct DualMengerSpongeCIteration final : public IterationFunction
 {
-	real scale = 3;
+	real  scale = 3;
 	vec3r scale_centre = { 1, 1, 1 };
 
 
@@ -115,11 +115,11 @@ struct DualMengerSpongeCIteration final : public IterationFunction
 			fabs(p_in.y()),
 			fabs(p_in.z()));
 
-		if (z.x().v[0] - z.y().v[0] < 0) std::swap(z.x(), z.y());
-		if (z.x().v[0] - z.z().v[0] < 0) std::swap(z.x(), z.z());
-		if (z.y().v[0] - z.z().v[0] < 0) std::swap(z.y(), z.z());
+		if (z.x().v[0] < z.y().v[0]) std::swap(z.x(), z.y());
+		if (z.x().v[0] < z.z().v[0]) std::swap(z.x(), z.z());
+		if (z.y().v[0] < z.z().v[0]) std::swap(z.y(), z.z());
 
-		const real t = std::min((real)0, ((real)0.5 * scale_centre.y() * (scale - 1) / scale) - z.z().v[0]) ;
+		const real t = std::min((real)0, ((real)0.5 * scale_centre.y() * (scale - 1) / scale) - z.z().v[0]);
         z.z() += t * 2;
 
 		z.x() *= scale; z.x() -= scale_centre.x() * (scale - 1);
