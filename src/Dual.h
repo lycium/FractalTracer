@@ -64,7 +64,7 @@ public:
 		return r;
 	}
 
-	inline constexpr const Dual & operator-=(const real_type rhs) noexcept { *this = *this + rhs; return *this; }
+	inline constexpr const Dual & operator-=(const real_type rhs) noexcept { *this = *this - rhs; return *this; }
 
 	// Optimised method to avoid full product rule from promiting RHS to Dual
 	inline constexpr Dual operator*(const real_type rhs) const noexcept
@@ -197,7 +197,21 @@ inline constexpr Dual<real_type, vars> fabs(const Dual<real_type, vars> & d) noe
 
 
 template <typename real_type, int vars>
-inline constexpr Dual<real_type, vars> clamp(const Dual<real_type, vars> & p, const real_type min, const real_type max) noexcept
+inline constexpr Dual<real_type, vars> min(const Dual<real_type, vars> & p, const real_type min_val) noexcept
 {
-	return (p.v[0] < min) ? min : (p.v[0] > max) ? max : p;
+	return (p.v[0] < min_val) ? min_val : p; // Note: zero derivs left of min_val
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> max(const Dual<real_type, vars> & p, const real_type max_val) noexcept
+{
+	return (p.v[0] > max_val) ? max_val : p; // Note: zero derivs right of max_val
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> clamp(const Dual<real_type, vars> & p, const real_type min_val, const real_type max_val) noexcept
+{
+	return min(max(p, max_val), min_val);
 }
