@@ -24,7 +24,7 @@ struct vec
 	inline vec operator+(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] + rhs.e[i]; return r; }
 	inline vec operator-(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] - rhs.e[i]; return r; }
 	inline vec operator*(const real_type rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs; return r; }
-	inline vec operator/(const real_type rhs) const { return *this * (1 / rhs); }
+	inline vec operator/(const real_type rhs) const { return *this * ((real_type)1 / rhs); }
 
 	inline vec operator*(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs.e[i]; return r; }
 
