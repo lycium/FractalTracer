@@ -46,7 +46,7 @@ struct DualBenesiPine2Iteration final : public IterationFunction
 		Dual3r xt = p.x() * p.x(); 
 		Dual3r yt = p.y() * p.y(); 
 		Dual3r zt = p.z() * p.z();
-		Dual3r t  = p.x() / (sqrt(yt + zt) * 2);
+		Dual3r t  = p.x() / sqrt(yt + zt) * 2;
 		p_out = DualVec3r(
 			c.x() + xt - yt - zt,
 			c.y() + t * (yt - zt),
