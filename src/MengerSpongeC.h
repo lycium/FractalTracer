@@ -18,20 +18,20 @@ struct MengerSpongeCAnalytic final : public AnalyticDEObject
 	virtual real getDE(const vec3r & p_os) noexcept override final
 	{
 		vec3r z = p_os;
-		real m = dot(z, z);
+		real m  = dot(z, z);
 		real dz = 1;
 
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < 16; i++)
 		{
 			z.x() = fabs(z.x());
 			z.y() = fabs(z.y());
 			z.z() = fabs(z.z());
 
-			if (z.x() - z.y() < 0) std::swap(z.x(), z.y());
-			if (z.x() - z.z() < 0) std::swap(z.x(), z.z());
-			if (z.y() - z.z() < 0) std::swap(z.y(), z.z());
+			if (z.x() < z.y()) std::swap(z.x(), z.y());
+			if (z.x() < z.z()) std::swap(z.x(), z.z());
+			if (z.y() < z.z()) std::swap(z.y(), z.z());
 
-			real t = std::min((real)0, -z.z() + (real)0.5 * scale_centre.y() * (scale - 1) / scale);
+			real t = std::min((real)0, 0.5f * scale_centre.y() * (scale - 1) / scale - z.z());
 			z.z() += 2 * t;
 
 			z.x() = scale * z.x() - scale_centre.x() * (scale - 1);
@@ -72,11 +72,11 @@ struct MengerSpongeCDual final : public DualDEObject
 			z.y() = fabs(z.y());
 			z.z() = fabs(z.z());
 
-			if (z.x().v[0] - z.y().v[0] < 0) std::swap(z.x(), z.y());
-			if (z.x().v[0] - z.z().v[0] < 0) std::swap(z.x(), z.z());
-			if (z.y().v[0] - z.z().v[0] < 0) std::swap(z.y(), z.z());
+			if (z.x().v[0] < z.y().v[0]) std::swap(z.x(), z.y());
+			if (z.x().v[0] < z.z().v[0]) std::swap(z.x(), z.z());
+			if (z.y().v[0] < z.z().v[0]) std::swap(z.y(), z.z());
 
-			Dual3r t = min(Dual3r(0), -z.z() + Dual3r(0.5 * scale_centre.y() * (scale - 1) / scale));
+			Dual3r t = min(Dual3r(0), (Dual3r)(0.5f * scale_centre.y() * (scale - 1) / scale) - z.z());
 			z.z() = z.z() + t * 2;
 
 			z.x() *= scale; z.x() -= scale_centre.x() * (scale - 1);
@@ -104,7 +104,7 @@ struct MengerSpongeCDual final : public DualDEObject
 
 struct DualMengerSpongeCIteration final : public IterationFunction
 {
-	real scale = 3;
+	real  scale = 3;
 	vec3r scale_centre = { 1.0f, 1.0f, 1.0f };
 
 
@@ -115,11 +115,11 @@ struct DualMengerSpongeCIteration final : public IterationFunction
 			fabs(p_in.y()),
 			fabs(p_in.z()));
 
-		if (z.x().v[0] - z.y().v[0] < 0) std::swap(z.x(), z.y());
-		if (z.x().v[0] - z.z().v[0] < 0) std::swap(z.x(), z.z());
-		if (z.y().v[0] - z.z().v[0] < 0) std::swap(z.y(), z.z());
+		if (z.x().v[0] < z.y().v[0]) std::swap(z.x(), z.y());
+		if (z.x().v[0] < z.z().v[0]) std::swap(z.x(), z.z());
+		if (z.y().v[0] < z.z().v[0]) std::swap(z.y(), z.z());
 
-		Dual3r t = min(Dual3r(0), -z.z() + Dual3r(0.5 * scale_centre.y() * (scale - 1) / scale));
+		Dual3r t = min(Dual3r(0), (Dual3r)(0.5f * scale_centre.y() * (scale - 1) / scale) - z.z());
 		z.z() = z.z() + t * 2;
 
 		z.x() *= scale; z.x() -= scale_centre.x() * (scale - 1);
