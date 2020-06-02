@@ -20,9 +20,9 @@ struct DualOctopusIteration final : public IterationFunction
 	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
 		p_out = DualVec3r(
-			c.x - p_in.x * p_in.z * xz_mul,
-			c.y - (p_in.x * p_in.x - p_in.z * p_in.z) * sq_mul,
-			c.z + p_in.y);
+			c.x() - p_in.x() * p_in.z() * xz_mul,
+			c.y() - (p_in.x() * p_in.x() - p_in.z() * p_in.z()) * sq_mul,
+			c.z() + p_in.y());
 	}
 
 	virtual real getPower() const noexcept override final { return 2; }

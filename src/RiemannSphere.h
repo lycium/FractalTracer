@@ -40,18 +40,18 @@ struct DualRiemannSphereIteration final : public IterationFunction
 		const real r = length(p);
 		p *= (scale / r);
 
-		const real one_my = fabs(-p.y.v[0] + 1);
+		const real one_my = fabs(-p.y().v[0] + 1);
 		Dual3r s, t;
-		if (one_my > real(1e-5))
+		if (one_my > real(1e-5)) // TODO maybe different constant for double precision
 		{
-			const Dual3r q = Dual3r(1) / (-p.y + 1);
-			s = p.x * q;
-			t = p.z * q;
+			const Dual3r q = Dual3r(1) / (-p.y() + 1);
+			s = p.x() * q;
+			t = p.z() * q;
 		}
 		else
 		{
-			s = p.x;
-			t = p.z;
+			s = p.x();
+			t = p.z();
 		}
 
 		const Dual3r d = s * s + t * t + 1;
@@ -64,9 +64,9 @@ struct DualRiemannSphereIteration final : public IterationFunction
 		const Dual3r d_ = Dual3r(2) / d;
 
 		p_out = DualVec3r(
-			c.x + r_ * s * d_,
-			c.y + r_ * (-d_ + 1),
-			c.z + r_ * t * d_
+			c.x() + r_ * s * d_,
+			c.y() + r_ * (-d_ + 1),
+			c.z() + r_ * t * d_
 		);
 	}
 

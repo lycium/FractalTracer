@@ -36,39 +36,39 @@ struct DualMandalayKIFSIteration final : public IterationFunction
 			dot(p_in, rot_m2),
 			dot(p_in, rot_m3));
 
-		p = DualVec3r(fabs(p.x), fabs(p.y), fabs(p.z));
+		p = DualVec3r(fabs(p.x()), fabs(p.y()), fabs(p.z()));
 
 		// Octahedral fold
-		if (p.y.v[0] > p.x.v[0]) p = DualVec3r(p.y, p.x, p.z);
-		if (p.z.v[0] > p.y.v[0]) p = DualVec3r(p.x, p.z, p.y);
-		if (p.y.v[0] > p.x.v[0]) p = DualVec3r(p.y, p.x, p.z);
+		if (p.y().v[0] > p.x().v[0]) p = DualVec3r(p.y(), p.x(), p.z());
+		if (p.z().v[0] > p.y().v[0]) p = DualVec3r(p.x(), p.z(), p.y());
+		if (p.y().v[0] > p.x().v[0]) p = DualVec3r(p.y(), p.x(), p.z());
 
 		// ABoxKali-like abs folding
-		const Dual3r fx = p.x + fold * -2;
+		const Dual3r fx = p.x() + fold * -2;
 
 		// Edges
 		const DualVec3r q0(
-			-fabs(p.x - fold) + fold,
-			-fabs(p.y - fold) + fold,
-			((z_tower > 0) ? -fabs(p.z - fold) : p.z) + z_tower);
+			-fabs(p.x() - fold) + fold,
+			-fabs(p.y() - fold) + fold,
+			((z_tower > 0) ? -fabs(p.z() - fold) : p.z()) + z_tower);
 
 		const Dual3r g  = xy_tower;
-		const Dual3r gy = g + p.y;
+		const Dual3r gy = g + p.y();
 
 		DualVec3r q = q0;
-		if (fx.v[0] > 0 && fx.v[0] > p.y.v[0])
+		if (fx.v[0] > 0 && fx.v[0] > p.y().v[0])
 		{
 			if (fx.v[0] > gy.v[0])
 			{
 				// Top
-				q.x = q.x + g;
-				q.y = -fabs(g - fold + p.y) + fold;
+				q.x() = q.x() + g;
+				q.y() = -fabs(g - fold + p.y()) + fold;
 			}
 			else
 			{
 				// Edges
-				q.x = -p.y;
-				q.y = -fabs(p.x + fold * -3) + fold;
+				q.x() = -p.y();
+				q.y() = -fabs(p.x() + fold * -3) + fold;
 			}
 		}
 		p = q;

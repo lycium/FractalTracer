@@ -18,10 +18,10 @@ struct DualDEObject : public SceneObject
 	real getLinearDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
 	{
 		// Extract the position vector and Jacobian
-		const vec3r p  = vec3r{ p_os.x.v[0], p_os.y.v[0], p_os.z.v[0] };
-		const vec3r jx = vec3r{ p_os.x.v[1], p_os.y.v[1], p_os.z.v[1] };
-		const vec3r jy = vec3r{ p_os.x.v[2], p_os.y.v[2], p_os.z.v[2] };
-		const vec3r jz = vec3r{ p_os.x.v[3], p_os.y.v[3], p_os.z.v[3] };
+		const vec3r p  = { p_os.x().v[0], p_os.y().v[0], p_os.z().v[0] };
+		const vec3r jx = { p_os.x().v[1], p_os.y().v[1], p_os.z().v[1] };
+		const vec3r jy = { p_os.x().v[2], p_os.y().v[2], p_os.z().v[2] };
+		const vec3r jz = { p_os.x().v[3], p_os.y().v[3], p_os.z().v[3] };
 
 		const real len2 = dot(p, p);
 		const real len = sqrt(len2);
@@ -62,10 +62,10 @@ struct DualDEObject : public SceneObject
 	real getPolynomialDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
 	{
 		// Extract the position vector and Jacobian
-		const vec3r p  = vec3r{ p_os.x.v[0], p_os.y.v[0], p_os.z.v[0] };
-		const vec3r jx = vec3r{ p_os.x.v[1], p_os.y.v[1], p_os.z.v[1] };
-		const vec3r jy = vec3r{ p_os.x.v[2], p_os.y.v[2], p_os.z.v[2] };
-		const vec3r jz = vec3r{ p_os.x.v[3], p_os.y.v[3], p_os.z.v[3] };
+		const vec3r p  = { p_os.x().v[0], p_os.y().v[0], p_os.z().v[0] };
+		const vec3r jx = { p_os.x().v[1], p_os.y().v[1], p_os.z().v[1] };
+		const vec3r jy = { p_os.x().v[2], p_os.y().v[2], p_os.z().v[2] };
+		const vec3r jz = { p_os.x().v[3], p_os.y().v[3], p_os.z().v[3] };
 
 		const real len2 = dot(p, p);
 		const real len = sqrt(len2);
@@ -137,10 +137,10 @@ struct DualDEObject : public SceneObject
 	real getHybridDEClaude(const real a, const real p, const DualVec3r & w, vec3r & normal_os_out) const noexcept
 	{
 		// Extract the position vector and Jacobian
-		const vec3r v  = vec3r{ w.x.v[0], w.y.v[0], w.z.v[0] };
-		const vec3r jx = vec3r{ w.x.v[1], w.y.v[1], w.z.v[1] };
-		const vec3r jy = vec3r{ w.x.v[2], w.y.v[2], w.z.v[2] };
-		const vec3r jz = vec3r{ w.x.v[3], w.y.v[3], w.z.v[3] };
+		const vec3r v  = { w.x().v[0], w.y().v[0], w.z().v[0] };
+		const vec3r jx = { w.x().v[1], w.y().v[1], w.z().v[1] };
+		const vec3r jy = { w.x().v[2], w.y().v[2], w.z().v[2] };
+		const vec3r jz = { w.x().v[3], w.y().v[3], w.z().v[3] };
 
 		const real len2 = dot(v, v);
 		const real len = std::sqrt(len2);
@@ -205,10 +205,10 @@ struct DualDEObject : public SceneObject
 	real getHybridDEKnighty(const real p, const real max_pow, const DualVec3r & w, vec3r & normal_os_out) const noexcept
 	{
 		// Extract the position vector and Jacobian
-		const vec3r v  = vec3r{ w.x.v[0], w.y.v[0], w.z.v[0] };
-		const vec3r jx = vec3r{ w.x.v[1], w.y.v[1], w.z.v[1] };
-		const vec3r jy = vec3r{ w.x.v[2], w.y.v[2], w.z.v[2] };
-		const vec3r jz = vec3r{ w.x.v[3], w.y.v[3], w.z.v[3] };
+		const vec3r v  = { w.x().v[0], w.y().v[0], w.z().v[0] };
+		const vec3r jx = { w.x().v[1], w.y().v[1], w.z().v[1] };
+		const vec3r jy = { w.x().v[2], w.y().v[2], w.z().v[2] };
+		const vec3r jz = { w.x().v[3], w.y().v[3], w.z().v[3] };
 
 		const real len2 = dot(v, v);
 		const real len = sqrt(len2);
@@ -275,7 +275,7 @@ struct DualDEObject : public SceneObject
 	// Dual numbers provide exact normals as part of the evaluation
 	virtual vec3r getNormal(const vec3r & p) noexcept override final
 	{
-		const DualVec3r p_dual(Dual3r(p.x, 0), Dual3r(p.y, 1), Dual3r(p.z, 2));
+		const DualVec3r p_dual(Dual3r(p.x(), 0), Dual3r(p.y(), 1), Dual3r(p.z(), 2));
 
 		vec3r normal_os;
 		const real de_ignored = getDE(p_dual, normal_os);
@@ -304,7 +304,7 @@ struct DualDEObject : public SceneObject
 		while (t < t2)
 		{
 			const vec3r p_os = s + r.d * t;
-			const DualVec3r p_os_dual(Dual3r(p_os.x, 0), Dual3r(p_os.y, 1), Dual3r(p_os.z, 2));
+			const DualVec3r p_os_dual(Dual3r(p_os.x(), 0), Dual3r(p_os.y(), 1), Dual3r(p_os.z(), 2));
 	
 			vec3r normal_ignored;
 			const real DE = getDE(p_os_dual, normal_ignored) * step_scale;
@@ -373,7 +373,7 @@ struct GeneralDualDE final : public DualDEObject
 			funcs[sequence[seq_idx]]->eval(p, p_new);
 			p = p_new;
 
-			const real r2 = p.x.v[0] * p.x.v[0] + p.y.v[0] * p.y.v[0] + p.z.v[0] * p.z.v[0];
+			const real r2 = length2(p);
 			if (r2 > bailout_radius2)
 				break;
 

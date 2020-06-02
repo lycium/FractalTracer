@@ -25,9 +25,9 @@ struct DualCubicbulbIteration final : public IterationFunction
 	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
 		p_out = DualVec3r(
-			 c.x + p_in.x * p_in.x * p_in.x - p_in.x * p_in.y * p_in.y * y_mul - p_in.x * p_in.z * p_in.z * z_mul,
-			 c.y - p_in.y * p_in.y * p_in.y + p_in.y * p_in.x * p_in.x * y_mul - p_in.y * p_in.z * p_in.z * aux_mul,
-			 c.z + p_in.z * p_in.z * p_in.z - p_in.z * p_in.x * p_in.x * z_mul + p_in.z * p_in.y * p_in.y * aux_mul);
+			 c.x() + p_in.x() * p_in.x() * p_in.x() - p_in.x() * p_in.y() * p_in.y() * y_mul - p_in.x() * p_in.z() * p_in.z() * z_mul,
+			 c.y() - p_in.y() * p_in.y() * p_in.y() + p_in.y() * p_in.x() * p_in.x() * y_mul - p_in.y() * p_in.z() * p_in.z() * aux_mul,
+			 c.z() + p_in.z() * p_in.z() * p_in.z() - p_in.z() * p_in.x() * p_in.x() * z_mul + p_in.z() * p_in.y() * p_in.y() * aux_mul);
 	}
 
 	virtual real getPower() const noexcept override final { return 3; }

@@ -28,9 +28,9 @@ struct RenderOutput
 	void clear()
 	{
 		passes = 0;
-		memset(&beauty[0], 0, sizeof(vec3f) * xres * yres);
-		memset(&normal[0], 0, sizeof(vec3f) * xres * yres);
-		memset(&albedo[0], 0, sizeof(vec3f) * xres * yres);
+		memset((void *)&beauty[0], 0, sizeof(vec3f) * xres * yres);
+		memset((void *)&normal[0], 0, sizeof(vec3f) * xres * yres);
+		memset((void *)&albedo[0], 0, sizeof(vec3f) * xres * yres);
 	}
 };
 
@@ -143,7 +143,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 	const vec3r cam_lookat = { 0, -0.125f, 0 };
 	const vec3r world_up = { 0, 1, 0 };
-	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.5f;
+	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.3f;
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);
@@ -190,7 +190,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 		{
 			const vec3f sky_up = vec3f{ 53, 112, 128 } * (1.0f / 255) * 0.75f;
 			const vec3f sky_hz = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
-			const float height = 1 - std::max(0.0f, (float)ray.d.y);
+			const float height = 1 - std::max(0.0f, (float)ray.d.y());
 			const float height2 = height * height;
 			const vec3f sky = sky_up + (sky_hz - sky_up) * height2 * height2;
 			contribution += throughput * sky;
@@ -208,7 +208,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 		// Output render channels
 		if (bounce == 0)
 		{
-			normal_out = vec3f{ (float)normal.x, (float)normal.z, (float)normal.y } * 0.5f + 0.5f; // Swap Y and Z
+			normal_out = vec3f{ (float)normal.x(), (float)normal.z(), (float)normal.y() } * 0.5f + 0.5f; // Swap Y and Z
 			albedo_out = mat.albedo;
 		}
 
@@ -267,7 +267,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 			break;
 
 		// Terminate the path unconditionally if the albedo is super low or zero
-		const float max_albedo = std::max(std::max(albedo.x, albedo.y), albedo.z);
+		const float max_albedo = std::max(std::max(albedo.x(), albedo.y()), albedo.z());
 		if (max_albedo < 1e-8f)
 			break;
 

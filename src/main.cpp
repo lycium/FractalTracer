@@ -20,9 +20,7 @@
 #include <Windows.h>
 #endif
 
-#include "vec2.h"
-#include "vec3.h"
-
+#include "vec.h"
 #include "Ray.h"
 #include "Scene.h"
 #include "Renderer.h"
@@ -40,13 +38,6 @@
 #include "BenesiPine2.h"
 #include "RiemannSphere.h"
 
-
-
-
-inline float sRGB(const float u)
-{
-	return (u <= 0.0031308f) ? 12.92f * u : 1.055f * std::pow(u, 0.416667f) - 0.055f;
-}
 
 
 struct sRGBPixel
@@ -68,6 +59,7 @@ void renderPasses(std::vector<std::thread> & threads, RenderOutput & output, int
 
 void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & image_HDR, const int passes, const int xres, const int yres) noexcept
 {
+	const auto sRGB = [](float u) -> float { return (u <= 0.0031308f) ? 12.92f * u : 1.055f * std::pow(u, 0.416667f) - 0.055f; };
 	const float scale = 1.0f / passes;
 
 	#pragma omp parallel for
@@ -79,9 +71,9 @@ void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & imag
 
 		image_LDR[pixel_idx] =
 		{
-			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.x * scale) * 256))),
-			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.y * scale) * 256))),
-			(uint8_t)std::max(0, std::min(255, (int)(sRGB(pixel_colour.z * scale) * 256)))
+			(uint8_t)std::max(0.0f, std::min(255.0f, sRGB(pixel_colour.x() * scale) * 256)),
+			(uint8_t)std::max(0.0f, std::min(255.0f, sRGB(pixel_colour.y() * scale) * 256)),
+			(uint8_t)std::max(0.0f, std::min(255.0f, sRGB(pixel_colour.z() * scale) * 256))
 		};
 	}
 }
@@ -97,7 +89,7 @@ int main(int argc, char ** argv)
 #else
 	const int num_threads = (int)std::thread::hardware_concurrency();
 #endif
-	const bool time_frames = false;
+	const bool do_timing = true;
 
 	// Parse command line arguments
 	enum { mode_progressive, mode_animation } mode = mode_progressive;
@@ -109,7 +101,7 @@ int main(int argc, char ** argv)
 
 	Scene scene;
 	{
-		const real main_sphere_rad = 4.0f;
+		const real main_sphere_rad = 1.25f;
 
 		Sphere s;
 		s.centre = { 0, 0, 0 };
@@ -129,7 +121,7 @@ int main(int argc, char ** argv)
 #if 0
 		//MengerSpongeCAnalytic bulb;
 		MandelbulbDual bulb;
-		bulb.radius = 2.0f;
+		bulb.radius = 1.25f;
 		bulb.step_scale = 1; //0.5f; //
 		bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		bulb.mat.use_fresnel = true;
@@ -146,15 +138,16 @@ int main(int argc, char ** argv)
 		DualMandalayKIFSIteration dki;
 
 		std::vector<IterationFunction *> iter_funcs;
-		//iter_funcs.push_back(oi.clone());
+		iter_funcs.push_back(oi.clone());
 		//iter_funcs.push_back(pki.clone());
-		//iter_funcs.push_back(mbi.clone());
+		iter_funcs.push_back(mbi.clone());
 		//iter_funcs.push_back(msi.clone());
-		iter_funcs.push_back(ai.clone());
+		//iter_funcs.push_back(ai.clone());
 		//iter_funcs.push_back(cbi.clone());
 		//iter_funcs.push_back(dki.clone());
+		//iter_funcs.push_back(bp2.clone());
 
-		const std::vector<char> iter_seq = { 0 };
+		const std::vector<char> iter_seq = { 0, 1 };
 
 		const int max_iters = 64;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
@@ -197,8 +190,8 @@ int main(int argc, char ** argv)
 	const int image_multi  = 80;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
-	const bool save_normal = true;
-	const bool save_albedo = true;
+	const bool save_normal = false;
+	const bool save_albedo = false;
 
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
 	RenderOutput output(image_width, image_height);
@@ -233,11 +226,11 @@ int main(int argc, char ** argv)
 
 				renderPasses(threads, output, frame, 0, passes, frames, scene);
 
-				if (time_frames)
+				if (do_timing)
 				{
 					std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
 					std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-					printf("Frame took %.3f seconds to render.\n", time_span.count());
+					printf("Frame took %.2f seconds to render.\n", time_span.count());
 				}
 
 				save_tonemapped_buffer("beauty", frame, passes, output.beauty);
@@ -258,8 +251,18 @@ int main(int argc, char ** argv)
 			int target_passes = 1;
 			while (pass < max_passes)
 			{
+				std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+
 				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
-				renderPasses(threads, output, 0, pass, target_passes - pass, 0, scene);
+				const int num_passes = target_passes - pass;
+				renderPasses(threads, output, 0, pass, num_passes, 0, scene);
+
+				if (do_timing)
+				{
+					std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+					std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+					printf("%d passes took %.2f seconds (%.2f seconds per pass).\n", num_passes, time_span.count(), time_span.count() / num_passes);
+				}
 
 				save_tonemapped_buffer("beauty", 0, target_passes, output.beauty);
 				if (save_normal) save_tonemapped_buffer("normal", 0, target_passes, output.normal);
