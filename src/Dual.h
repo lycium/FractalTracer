@@ -236,3 +236,10 @@ inline constexpr Dual<real_type, vars> max(const Dual<real_type, vars> & p, cons
 {
 	return (p.v[0] > max_val) ? max_val : p; // Note: zero derivs right of max_val
 }
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> sqr(const Dual<real_type, vars> & p)
+{
+	return p * p; // TODO optimize
+}
