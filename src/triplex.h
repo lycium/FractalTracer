@@ -16,59 +16,59 @@ struct triplex
   inline triplex(const real_type &x) : v(x, real_type(0), real_type(0)) { }
   inline triplex() { } // uninitialized is a good thing? not sure..
 
-  operator const vec<3, real_type> & () const { return v; }
+  inline operator const vec<3, real_type> & () const { return v; }
 
-  triplex & operator=(const triplex &t) = default;
+  inline triplex & operator=(const triplex &t) = default;
 
-  const real_type & x() const { return v.x(); }
-  const real_type & y() const { return v.y(); }
-  const real_type & z() const { return v.z(); }
+  inline const real_type & x() const { return v.x(); }
+  inline const real_type & y() const { return v.y(); }
+  inline const real_type & z() const { return v.z(); }
 };
 
 template <typename real_type>
-triplex<real_type> operator+(const triplex<real_type> &a, const triplex<real_type> &b)
+inline triplex<real_type> operator+(const triplex<real_type> &a, const triplex<real_type> &b)
 {
   return a.v + b.v;
 }
 
 template <typename real_type>
-triplex<real_type> operator-(const triplex<real_type> &a, const triplex<real_type> &b)
+inline triplex<real_type> operator-(const triplex<real_type> &a, const triplex<real_type> &b)
 {
   return a.v - b.v;
 }
 
 template <typename real_type>
-triplex<real_type> operator-(const triplex<real_type> &b)
+inline triplex<real_type> operator-(const triplex<real_type> &b)
 {
   return -b.v;
 }
 
 template <typename real_type>
-triplex<real_type> operator*(const triplex<real_type> &a, const real_type &b)
+inline triplex<real_type> operator*(const triplex<real_type> &a, const real_type &b)
 {
   return a.v * b;
 }
 
 template <typename real_type>
-triplex<real_type> operator*(const real_type &a, const triplex<real_type> &b)
+inline triplex<real_type> operator*(const real_type &a, const triplex<real_type> &b)
 {
   return a * b.v;
 }
 
 template <typename real_type>
-triplex<real_type> operator/(const triplex<real_type> &a, const real_type &b)
+inline triplex<real_type> operator/(const triplex<real_type> &a, const real_type &b)
 {
   return a.v * (1/b);
 }
 
 template <typename real_type>
-triplex<real_type> operator/(const real_type &a, const triplex<real_type> &b)
+inline triplex<real_type> operator/(const real_type &a, const triplex<real_type> &b)
 {
   return (1/a) * b.v;
 }
 
 template <typename real_type>
-triplex<real_type> length2(const triplex<real_type> &a)
+inline triplex<real_type> length2(const triplex<real_type> &a)
 {
   return length2(a.v);
 }
@@ -76,7 +76,7 @@ triplex<real_type> length2(const triplex<real_type> &a)
 // custom triplex operations
 
 template <typename real_type>
-triplex<real_type> operator*(const triplex<real_type> &a, const triplex<real_type> &b)
+inline triplex<real_type> operator*(const triplex<real_type> &a, const triplex<real_type> &b)
 {
   real_type arho(sqrt(sqr(a.x()) + sqr(a.y())));
   real_type brho(sqrt(sqr(b.x()) + sqr(b.y())));
@@ -89,7 +89,7 @@ triplex<real_type> operator*(const triplex<real_type> &a, const triplex<real_typ
 }
 
 template <typename real_type>
-triplex<real_type> operator/(const triplex<real_type> &a, const triplex<real_type> &b)
+inline triplex<real_type> operator/(const triplex<real_type> &a, const triplex<real_type> &b)
 {
   real_type arho(sqrt(sqr(a.x()) + sqr(a.y())));
   real_type brho(sqrt(sqr(b.x()) + sqr(b.y())));
@@ -102,7 +102,7 @@ triplex<real_type> operator/(const triplex<real_type> &a, const triplex<real_typ
 }
 
 template <typename real_type>
-triplex<real_type> sqr(const triplex<real_type> &a)
+inline triplex<real_type> sqr(const triplex<real_type> &a)
 {
   real_type x2(sqr(a.x()));
   real_type y2(sqr(a.y()));
