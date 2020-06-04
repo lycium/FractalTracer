@@ -3,6 +3,7 @@
 #include "AnalyticDEObject.h"
 #include "DualDEObject.h"
 
+#include "triplex.h"
 
 
 // Inigo Quilez's power 8 Mandelbulb distance estimator
@@ -122,4 +123,28 @@ struct DualMandelbulbIteration final : public IterationFunction
 
 private:
 	DualVec3r c;
+};
+
+
+struct DualTriplexMandelbulbIteration final : public IterationFunction
+{
+	virtual void init(const DualVec3r & p_0) noexcept override final
+	{
+		c = dualtriplex3r(p_0);
+	}
+
+	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
+	{
+		p_out = sqr(sqr(sqr(dualtriplex3r(p_in)))) + c;
+	}
+
+	virtual real getPower() const noexcept override final { return 8; }
+
+	virtual IterationFunction * clone() const override final
+	{
+		return new DualTriplexMandelbulbIteration(*this);
+	}
+
+private:
+	dualtriplex3r c;
 };
