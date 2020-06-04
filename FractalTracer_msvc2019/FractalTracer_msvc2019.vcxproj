@@ -109,6 +109,7 @@
     <ClInclude Include="..\src\SceneObject.h" />
     <ClInclude Include="..\src\SimpleObjects.h" />
     <ClInclude Include="..\src\stb_image_write.h" />
+    <ClInclude Include="..\src\triplex.h" />
     <ClInclude Include="..\src\vec.h" />
   </ItemGroup>
   <ItemGroup>

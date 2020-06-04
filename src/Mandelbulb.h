@@ -130,12 +130,21 @@ struct DualTriplexMandelbulbIteration final : public IterationFunction
 {
 	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
-		c = dualtriplex3r(p_0);
+		// Change of coordinate system to Z+ up
+		const DualTriplex3r z(p_0.x(), p_0.z(), p_0.y());
+
+		c = z;
 	}
 
 	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
-		p_out = sqr(sqr(sqr(dualtriplex3r(p_in)))) + c;
+		// Change of coordinate system to Z+ up
+		const DualTriplex3r z(p_in.x(), p_in.z(), p_in.y());
+
+		const DualTriplex3r z_ = sqr(sqr(sqr(z))) + c;
+
+		// Un-rotate back to Y+ up
+		p_out = { z_.x(), z_.z(), z_.y() };
 	}
 
 	virtual real getPower() const noexcept override final { return 8; }
@@ -146,5 +155,5 @@ struct DualTriplexMandelbulbIteration final : public IterationFunction
 	}
 
 private:
-	dualtriplex3r c;
+	DualTriplex3r c;
 };
