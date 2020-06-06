@@ -52,6 +52,7 @@ public:
 		return r;
 	}
 
+	inline constexpr const Dual & operator+=(const Dual &    rhs) noexcept { *this = *this + rhs; return *this; }
 	inline constexpr const Dual & operator+=(const real_type rhs) noexcept { *this = *this + rhs; return *this; }
 
 	// Optimised method to avoid promiting RHS to Dual
@@ -64,6 +65,7 @@ public:
 		return r;
 	}
 
+	inline constexpr const Dual & operator-=(const Dual &    rhs) noexcept { *this = *this - rhs; return *this; }
 	inline constexpr const Dual & operator-=(const real_type rhs) noexcept { *this = *this - rhs; return *this; }
 
 	// Optimised method to avoid full product rule from promiting RHS to Dual
@@ -75,6 +77,7 @@ public:
 		return r;
 	}
 
+	inline constexpr const Dual & operator*=(const Dual &    rhs) noexcept { *this = *this * rhs; return *this; }
 	inline constexpr const Dual & operator*=(const real_type rhs) noexcept { *this = *this * rhs; return *this; }
 
 	// Optimised method to avoid full quotient rule from promiting RHS to Dual
@@ -87,6 +90,7 @@ public:
 		return r;
 	}
 
+	inline constexpr const Dual & operator/=(const Dual &    rhs) noexcept { *this = *this / rhs; return *this; }
 	inline constexpr const Dual & operator/=(const real_type rhs) noexcept { *this = *this * (1 / rhs); return *this; }
 
 	inline constexpr Dual operator*(const Dual & rhs) const noexcept
@@ -97,8 +101,6 @@ public:
 			r.v[i + 1] = v[0] * rhs.v[i + 1] + v[i + 1] * rhs.v[0]; // Product rule
 		return r;
 	}
-
-	inline constexpr const Dual & operator*=(const Dual & rhs) noexcept { *this = *this * rhs; return *this; }
 
 	inline constexpr Dual operator/(const Dual & rhs) const noexcept
 	{
@@ -218,9 +220,9 @@ inline constexpr Dual<real_type, vars> min(const Dual<real_type, vars> & p, cons
 
 
 template <typename real_type, int vars>
-inline constexpr Dual<real_type, vars> min(const Dual<real_type, vars> & p, const real_type min_val) noexcept
+inline constexpr Dual<real_type, vars> min(const Dual<real_type, vars> & p, const real_type & min_val) noexcept
 {
-	return (p.v[0] < min_val) ? min_val : p; // Note: zero derivs left of min_val
+	return (p.v[0] < min_val) ? p : min_val; // Note: zero derivs left of min_val
 }
 
 
@@ -232,14 +234,39 @@ inline constexpr Dual<real_type, vars> max(const Dual<real_type, vars> & p, cons
 
 
 template <typename real_type, int vars>
-inline constexpr Dual<real_type, vars> max(const Dual<real_type, vars> & p, const real_type max_val) noexcept
+inline constexpr Dual<real_type, vars> max(const Dual<real_type, vars> & p, const real_type & max_val) noexcept
 {
-	return (p.v[0] > max_val) ? max_val : p; // Note: zero derivs right of max_val
+	return (p.v[0] > max_val) ? p : max_val; // Note: zero derivs right of max_val
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> floor(const Dual<real_type, vars> & p) noexcept
+{
+	return floor(p.v[0]); // Note: zero derivatives
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> ceil(const Dual<real_type, vars> & p) noexcept
+{
+	return ceil(p.v[0]); // Note: zero derivatives
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> fmod(const Dual<real_type, vars> & p, const real_type & modulo) noexcept
+{
+	return p - floor(p.v[0] / modulo) * modulo;
 }
 
 
 template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> sqr(const Dual<real_type, vars> & p)
 {
-	return p * p; // TODO optimize
+	Dual<real_type, vars> r;
+	r.v[0] = p.v[0] * p.v[0];
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = 2 * p.v[0] * p.v[i + 1]; // Product rule
+	return r;
 }

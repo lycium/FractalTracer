@@ -15,7 +15,7 @@ struct vec
 
 	inline vec() { }
 	inline vec(const vec & v) { for (int i = 0; i < n; ++i) e[i] = v.e[i]; }
-	inline vec(const real_type v) { for (int i = 0; i < n; ++i) e[i] = v; }
+	inline vec(const real_type & v) { for (int i = 0; i < n; ++i) e[i] = v; }
 
 	// Some brutal C++ hackery to enable initializer lists
 	template<typename val, typename... vals, std::enable_if_t<(sizeof...(vals) > 0), int> = 0>
@@ -23,20 +23,31 @@ struct vec
 
 	inline vec operator+(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] + rhs.e[i]; return r; }
 	inline vec operator-(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] - rhs.e[i]; return r; }
-	inline vec operator*(const real_type rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs; return r; }
-	inline vec operator/(const real_type rhs) const { return *this * ((real_type)1 / rhs); }
+	inline vec operator*(const real_type & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs; return r; }
+	inline vec operator/(const real_type & rhs) const { return *this * (real_type(1) / rhs); }
 
 	inline vec operator*(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs.e[i]; return r; }
+	inline vec operator/(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] / rhs.e[i]; return r; }
 
 	inline vec operator-() const { vec r; for (int i = 0; i < n; ++i) r.e[i] = -e[i]; return r; }
 
-	inline const vec & operator =(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] = rhs.e[i]; return *this; }
-
+	inline const vec & operator =(const vec & rhs) { for (int i = 0; i < n; ++i) e[i]  = rhs.e[i]; return *this; }
 	inline const vec & operator+=(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] += rhs.e[i]; return *this; }
 	inline const vec & operator-=(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] -= rhs.e[i]; return *this; }
 	inline const vec & operator*=(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] *= rhs.e[i]; return *this; }
+	inline const vec & operator/=(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] /= rhs.e[i]; return *this; }
 
-	inline const vec & operator*=(const real_type rhs) { for (int i = 0; i < n; ++i) e[i] *= rhs; return *this; }
+	inline const vec & operator =(const real_type & rhs) { for (int i = 0; i < n; ++i) e[i]  = rhs; return *this; }
+	inline const vec & operator+=(const real_type & rhs) { for (int i = 0; i < n; ++i) e[i] += rhs; return *this; }
+	inline const vec & operator-=(const real_type & rhs) { for (int i = 0; i < n; ++i) e[i] -= rhs; return *this; }
+	inline const vec & operator*=(const real_type & rhs) { for (int i = 0; i < n; ++i) e[i] *= rhs; return *this; }
+	inline const vec & operator/=(const real_type & rhs)
+	{
+		const real_type s = real_type(1) / rhs;
+		for (int i = 0; i < n; ++i)
+			e[i] *= s;
+		return *this;
+	}
 
 	// xyz accessors enabled only if dimensions are present
 	template<std::enable_if_t<(n > 0), int> = 0> inline real_type & x() { return e[0]; }
@@ -58,7 +69,7 @@ inline real_type dot(const vec<n, real_type> & lhs, const vec<n, real_type> & rh
 }
 
 
-// Optimised method for Dual dot product with scalar RHS
+// Optimised method for Dual dot product with real-vector RHS
 template<int n, typename real_type>
 inline real dot(const vec<n, Dual<real_type, n>> & lhs, const vec<n, real> & rhs)
 {
