@@ -37,6 +37,7 @@
 #include "MandalayKIFS.h"
 #include "BenesiPine2.h"
 #include "RiemannSphere.h"
+#include "SphereTree.h"
 
 
 
@@ -101,7 +102,7 @@ int main(int argc, char ** argv)
 
 	Scene scene;
 	{
-		const real main_sphere_rad = 1.25f;
+		const real main_sphere_rad = 1.5f;
 
 		Sphere s;
 		s.centre = { 0, 0, 0 };
@@ -137,25 +138,27 @@ int main(int argc, char ** argv)
 		DualBenesiPine2Iteration bp2;
 		DualRiemannSphereIteration rs;
 		DualMandalayKIFSIteration dki;
+		DualSphereTreeIteration sti;
 
 		std::vector<IterationFunction *> iter_funcs;
-		iter_funcs.push_back(oi.clone());
+		//iter_funcs.push_back(oi.clone());
 		//iter_funcs.push_back(pki.clone());
-		iter_funcs.push_back(mbi.clone());
+		//iter_funcs.push_back(mbi.clone());
 		//iter_funcs.push_back(mbti.clone());
 		//iter_funcs.push_back(msi.clone());
 		//iter_funcs.push_back(ai.clone());
 		//iter_funcs.push_back(cbi.clone());
 		//iter_funcs.push_back(dki.clone());
 		//iter_funcs.push_back(bp2.clone());
+		iter_funcs.push_back(sti.clone());
 
-		const std::vector<char> iter_seq = { 0, 1 };
+		const std::vector<char> iter_seq = { 0 };
 
 		const int max_iters = 64;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
 
-		hybrid.radius = 4.0; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
-		hybrid.step_scale = 0.5; //1;
+		hybrid.radius = main_sphere_rad; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
+		hybrid.step_scale = 0.25; //1;
 		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.mat.use_fresnel = true;
 
