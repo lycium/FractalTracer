@@ -43,17 +43,12 @@ struct DualSphereTreeIteration final : public IterationFunction
 			return; // Definitely inside
 		}
 
-#if 0
 		// Since we don't have access to the iteration count, we compare the input point to the first point (from init)
 		const bool first_iter =
 			p_in.x().v[0] == p0.x().v[0] &&
 			p_in.y().v[0] == p0.y().v[0] &&
 			p_in.z().v[0] == p0.z().v[0];
 		const real maxH = (first_iter) ? -100 : 0.4;
-#else
-		// For some reason the above code makes basically nothing happen (just renders the bounding volume)
-		const real maxH = 0.4;
-#endif
 
 		if (p_vec3.z() > maxH && length(p_vec3 - vec3r(0, 0, 0.5 * 1.1)) > 0.5 * 1.1)
 		{
