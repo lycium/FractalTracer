@@ -1,95 +1,108 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    <Filter Include="src">
+      <UniqueIdentifier>{71c4457c-f459-403e-9341-a13a23519dbb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="src\demo">
+      <UniqueIdentifier>{4756a8c9-23ec-403d-a371-76932b5427c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\formulas">
+      <UniqueIdentifier>{2859fdac-c47b-404e-9752-9b660a4d67b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\maths">
+      <UniqueIdentifier>{2dc785ce-c404-4521-8769-904fc4fcc635}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\renderer">
+      <UniqueIdentifier>{e3f5ce94-eaaf-433f-b838-abed85739517}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\scene_objects">
+      <UniqueIdentifier>{e36d9a49-e087-4cfc-a54a-ecd4cf12106f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\util">
+      <UniqueIdentifier>{05af0c36-61e9-41b3-a0bf-e4b5f6467a6c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\Dual.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\stb_image_write.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\real.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\SceneObject.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Ray.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\AnalyticDEObject.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\DualDEObject.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\QuadraticJuliabulb.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Mandelbulb.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\SimpleObjects.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Renderer.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\MengerSponge.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Scene.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Cubicbulb.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Amazingbox.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Octopus.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\Material.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\RiemannSphere.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\BenesiPine2.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\MengerSpongeC.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\PseudoKleinian.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\MandalayKIFS.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\vec.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\triplex.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\SphereTree.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\src\main.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\src\demo\main.cpp">
+      <Filter>src\demo</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\formulas\Amazingbox.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\BenesiPine2.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\Cubicbulb.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\MandalayKIFS.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\Mandelbulb.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\MengerSponge.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\MengerSpongeC.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\Octopus.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\PseudoKleinian.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\QuadraticJuliabulb.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\RiemannSphere.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\SphereTree.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\maths\Dual.h">
+      <Filter>src\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\maths\real.h">
+      <Filter>src\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\maths\triplex.h">
+      <Filter>src\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\maths\vec.h">
+      <Filter>src\maths</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\util\stb_image_write.h">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\scene_objects\AnalyticDEObject.h">
+      <Filter>src\scene_objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\scene_objects\DualDEObject.h">
+      <Filter>src\scene_objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\scene_objects\SceneObject.h">
+      <Filter>src\scene_objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\scene_objects\SimpleObjects.h">
+      <Filter>src\scene_objects</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\renderer\Material.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\renderer\Ray.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\renderer\Renderer.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\renderer\Scene.h">
+      <Filter>src\renderer</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

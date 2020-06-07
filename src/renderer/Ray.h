@@ -1,7 +1,7 @@
 #pragma once
 
-#include "real.h"
-#include "vec.h"
+#include "../maths/real.h"
+#include "../maths/vec.h"
 
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AnalyticDEObject.h"
-#include "DualDEObject.h"
+#include "scene_objects/AnalyticDEObject.h"
+#include "scene_objects/DualDEObject.h"
 
 
 

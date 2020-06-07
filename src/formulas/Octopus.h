@@ -1,6 +1,8 @@
 #pragma once
 
-#include "DualDEObject.h"
+#include "scene_objects/DualDEObject.h"
+
+
 
 // Octopus formula by Aexion (September 15, 2013)
 // Ref: http://www.fractalforums.com/mandelbulb-3d/custom-formulas-and-transforms-release-t17106/msg65751/#msg65751

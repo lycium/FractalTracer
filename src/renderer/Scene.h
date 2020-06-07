@@ -2,12 +2,15 @@
 
 #include <vector>
 
-#include "SceneObject.h"
+#include "scene_objects/SceneObject.h"
 
 
 
 struct Scene
 {
+	std::vector<SceneObject *> objects;
+
+
 	Scene() = default;
 
 	// Copy constructor
@@ -43,7 +46,4 @@ struct Scene
 
 		return { nearest_obj, nearest_t };
 	}
-
-
-	std::vector<SceneObject *> objects;
 };

@@ -12,7 +12,7 @@
 #include <algorithm> // For std::pair and std::min and max
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "../util/stb_image_write.h"
 
 #if _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -20,24 +20,26 @@
 #include <Windows.h>
 #endif
 
-#include "vec.h"
-#include "Ray.h"
-#include "Scene.h"
-#include "Renderer.h"
+#include "maths/vec.h"
 
-#include "SimpleObjects.h"
-#include "Mandelbulb.h"
-#include "QuadraticJuliabulb.h"
-#include "MengerSponge.h"
-#include "MengerSpongeC.h"
-#include "Cubicbulb.h"
-#include "Amazingbox.h"
-#include "Octopus.h"
-#include "PseudoKleinian.h"
-#include "MandalayKIFS.h"
-#include "BenesiPine2.h"
-#include "RiemannSphere.h"
-#include "SphereTree.h"
+#include "renderer/Ray.h"
+#include "renderer/Scene.h"
+#include "renderer/Renderer.h"
+
+#include "scene_objects/SimpleObjects.h"
+
+#include "formulas/Mandelbulb.h"
+#include "formulas/QuadraticJuliabulb.h"
+#include "formulas/MengerSponge.h"
+#include "formulas/MengerSpongeC.h"
+#include "formulas/Cubicbulb.h"
+#include "formulas/Amazingbox.h"
+#include "formulas/Octopus.h"
+#include "formulas/PseudoKleinian.h"
+#include "formulas/MandalayKIFS.h"
+#include "formulas/BenesiPine2.h"
+#include "formulas/RiemannSphere.h"
+#include "formulas/SphereTree.h"
 
 
 

@@ -10,6 +10,36 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\demo\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\formulas\Amazingbox.h" />
+    <ClInclude Include="..\src\formulas\BenesiPine2.h" />
+    <ClInclude Include="..\src\formulas\Cubicbulb.h" />
+    <ClInclude Include="..\src\formulas\MandalayKIFS.h" />
+    <ClInclude Include="..\src\formulas\Mandelbulb.h" />
+    <ClInclude Include="..\src\formulas\MengerSponge.h" />
+    <ClInclude Include="..\src\formulas\MengerSpongeC.h" />
+    <ClInclude Include="..\src\formulas\Octopus.h" />
+    <ClInclude Include="..\src\formulas\PseudoKleinian.h" />
+    <ClInclude Include="..\src\formulas\QuadraticJuliabulb.h" />
+    <ClInclude Include="..\src\formulas\RiemannSphere.h" />
+    <ClInclude Include="..\src\formulas\SphereTree.h" />
+    <ClInclude Include="..\src\maths\Dual.h" />
+    <ClInclude Include="..\src\maths\real.h" />
+    <ClInclude Include="..\src\maths\triplex.h" />
+    <ClInclude Include="..\src\maths\vec.h" />
+    <ClInclude Include="..\src\renderer\Material.h" />
+    <ClInclude Include="..\src\renderer\Ray.h" />
+    <ClInclude Include="..\src\renderer\Renderer.h" />
+    <ClInclude Include="..\src\renderer\Scene.h" />
+    <ClInclude Include="..\src\scene_objects\AnalyticDEObject.h" />
+    <ClInclude Include="..\src\scene_objects\DualDEObject.h" />
+    <ClInclude Include="..\src\scene_objects\SceneObject.h" />
+    <ClInclude Include="..\src\scene_objects\SimpleObjects.h" />
+    <ClInclude Include="..\src\util\stb_image_write.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{51A512D0-4681-40DD-B5D7-25A426555C32}</ProjectGuid>
@@ -58,6 +88,7 @@
       <ConformanceMode>true</ConformanceMode>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <AdditionalIncludeDirectories>C:\programming\FractalTracer\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -78,6 +109,7 @@
       <ConformanceMode>true</ConformanceMode>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <AdditionalIncludeDirectories>C:\programming\FractalTracer\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -86,36 +118,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="..\src\AnalyticDEObject.h" />
-    <ClInclude Include="..\src\BenesiPine2.h" />
-    <ClInclude Include="..\src\Cubicbulb.h" />
-    <ClInclude Include="..\src\Dual.h" />
-    <ClInclude Include="..\src\DualDEObject.h" />
-    <ClInclude Include="..\src\Amazingbox.h" />
-    <ClInclude Include="..\src\MandalayKIFS.h" />
-    <ClInclude Include="..\src\Mandelbulb.h" />
-    <ClInclude Include="..\src\Material.h" />
-    <ClInclude Include="..\src\MengerSponge.h" />
-    <ClInclude Include="..\src\MengerSpongeC.h" />
-    <ClInclude Include="..\src\Octopus.h" />
-    <ClInclude Include="..\src\PseudoKleinian.h" />
-    <ClInclude Include="..\src\QuadraticJuliabulb.h" />
-    <ClInclude Include="..\src\Ray.h" />
-    <ClInclude Include="..\src\real.h" />
-    <ClInclude Include="..\src\Renderer.h" />
-    <ClInclude Include="..\src\RiemannSphere.h" />
-    <ClInclude Include="..\src\Scene.h" />
-    <ClInclude Include="..\src\SceneObject.h" />
-    <ClInclude Include="..\src\SimpleObjects.h" />
-    <ClInclude Include="..\src\SphereTree.h" />
-    <ClInclude Include="..\src\stb_image_write.h" />
-    <ClInclude Include="..\src\triplex.h" />
-    <ClInclude Include="..\src\vec.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\src\main.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

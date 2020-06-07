@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DualDEObject.h"
+#include "scene_objects/DualDEObject.h"
 
 
 

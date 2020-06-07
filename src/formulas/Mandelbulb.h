@@ -1,9 +1,10 @@
 #pragma once
 
-#include "AnalyticDEObject.h"
-#include "DualDEObject.h"
+#include "scene_objects/AnalyticDEObject.h"
+#include "scene_objects/DualDEObject.h"
 
-#include "triplex.h"
+#include "maths/triplex.h"
+
 
 
 // Inigo Quilez's power 8 Mandelbulb distance estimator

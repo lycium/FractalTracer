@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Ray.h"
-#include "Material.h"
+#include "renderer/Ray.h"
+#include "renderer/Material.h"
 
 
 
