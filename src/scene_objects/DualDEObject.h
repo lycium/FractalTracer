@@ -325,7 +325,7 @@ struct IterationFunction
 {
 	virtual ~IterationFunction() = default;
 
-	virtual void init(const DualVec3r & p_0) noexcept { }
+	virtual void init(const DualVec3r &) noexcept { }
 	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept = 0;
 	virtual real getPower() const noexcept = 0;
 

@@ -23,7 +23,7 @@ struct DualRiemannSphereIteration final : public IterationFunction
 	vec3r rot_m3 = { 0, 0, 1 };
 
 
-	virtual void init(const DualVec3r & p_0) noexcept override final
+	virtual void init(const DualVec3r &) noexcept override final
 	{
 		//if (!julia_mode)
 		//	c = p_0;
