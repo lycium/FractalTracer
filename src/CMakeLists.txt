@@ -9,19 +9,14 @@ else()
     add_compile_options(-Wall -Wextra -pedantic)
 endif()
 
+include(libs.cmake)
+
 find_package(OpenMP)
 find_package(Threads)
 
-include(libs.cmake)
-
 add_executable(FractalTracer demo/main.cpp)
+target_include_directories(FractalTracer PUBLIC .)
 target_link_libraries(FractalTracer
-    Threads::Threads
-    OpenMP::OpenMP_CXX
-
-    formulas
-    maths
-    util
-    renderer
-    scene_objects
+    Threads::Threads OpenMP::OpenMP_CXX
+    TracerLib
     )
