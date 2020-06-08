@@ -1,5 +1,5 @@
 CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic -O3 -march=native -fopenmp
-CPPFLAGS = -Iformulas -Imaths -Irenderer -Iscene_objects -Iutil
+CPPFLAGS = -I.
 
 HEADER_FILES = formulas/*.h maths/*.h renderer/*.h scene_objects/*.h util/*.h
 
