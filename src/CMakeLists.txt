@@ -4,10 +4,13 @@ project(FractalTracer)
 
 set(CMAKE_CXX_STANDARD 17)
 
-if(MSVC)
-else()
-    add_compile_options(-Wall -Wextra -pedantic)
+if(MSVC OR MSVC_IDE)
+    message(FATAL_ERROR
+        "To build this project with MSVC please use the solution in /FractalTracer_msvc2019"
+        )
 endif()
+
+add_compile_options(-Wall -Wextra -pedantic)
 
 include(libs.cmake)
 
