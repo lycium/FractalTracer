@@ -145,9 +145,9 @@ int main(int argc, char ** argv)
 		std::vector<IterationFunction *> iter_funcs;
 		//iter_funcs.push_back(oi.clone());
 		//iter_funcs.push_back(pki.clone());
-		//iter_funcs.push_back(mbi.clone());
+		iter_funcs.push_back(mbi.clone());
 		//iter_funcs.push_back(mbti.clone());
-		//iter_funcs.push_back(msi.clone());
+		iter_funcs.push_back(msi.clone());
 		//iter_funcs.push_back(ai.clone());
 		//iter_funcs.push_back(cbi.clone());
 		//iter_funcs.push_back(dki.clone());
