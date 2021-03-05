@@ -154,7 +154,7 @@ int main(int argc, char ** argv)
 		//iter_funcs.push_back(bp2.clone());
 		iter_funcs.push_back(sti.clone());
 
-		const std::vector<char> iter_seq = { 0 };
+		const std::vector<char> iter_seq = { 0, 1 };
 
 		const int max_iters = 64;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
@@ -250,8 +250,7 @@ int main(int argc, char ** argv)
 
 		case mode_progressive:
 		{
-			//const int max_passes = 2 * 3 * 5 * 7 * 11; // Set a reasonable max number of passes instead of going forever
-			const int max_passes = 6; // Set something more reasonable for quick test
+			const int max_passes = 2 * 3 * 5 * 7 * 11; // Set a reasonable max number of passes instead of going forever
 			printf("Progressive rendering at resolution %d x %d with doubling passes to max %d\n", image_width, image_height, max_passes);
 			output.clear();
 
