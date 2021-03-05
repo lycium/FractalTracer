@@ -92,7 +92,7 @@ int main(int argc, char ** argv)
 #else
 	const int num_threads = (int)std::thread::hardware_concurrency();
 #endif
-	const bool do_timing = true;
+	const bool print_timing = true;
 
 	// Parse command line arguments
 	enum { mode_progressive, mode_animation } mode = mode_progressive;
@@ -233,7 +233,7 @@ int main(int argc, char ** argv)
 
 				renderPasses(threads, output, frame, 0, passes, frames, scene);
 
-				if (do_timing)
+				if (print_timing)
 				{
 					std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
 					std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
@@ -250,33 +250,38 @@ int main(int argc, char ** argv)
 
 		case mode_progressive:
 		{
-			const int max_passes = 2 * 3 * 5 * 7 * 11; // Set a reasonable max number of passes instead of going forever
+			//const int max_passes = 2 * 3 * 5 * 7 * 11; // Set a reasonable max number of passes instead of going forever
+			const int max_passes = 6; // Set something more reasonable for quick test
 			printf("Progressive rendering at resolution %d x %d with doubling passes to max %d\n", image_width, image_height, max_passes);
 			output.clear();
 
-			int pass = 0;
 			int target_passes = 1;
-			while (pass < max_passes)
+			int total_passes = 0;
+
+			std::chrono::nanoseconds total_time;
+
+			while (total_passes < max_passes)
 			{
-				std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+				const auto t1 = std::chrono::steady_clock::now();
 
 				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
-				const int num_passes = target_passes - pass;
-				renderPasses(threads, output, 0, pass, num_passes, 0, scene);
+				const int num_passes = target_passes - total_passes;
+				renderPasses(threads, output, 0, total_passes, num_passes, 0, scene);
+				total_passes += num_passes;
+				target_passes = std::min(target_passes * 2, max_passes);
 
-				if (do_timing)
+				const auto t2 = std::chrono::steady_clock::now();
+				total_time += t2 - t1;
+
+				if (print_timing)
 				{
-					std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-					std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+					const auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 					printf("%d passes took %.2f seconds (%.2f seconds per pass).\n", num_passes, time_span.count(), time_span.count() / num_passes);
 				}
 
-				save_tonemapped_buffer("beauty", 0, target_passes, output.beauty);
-				if (save_normal) save_tonemapped_buffer("normal", 0, target_passes, output.normal);
-				if (save_albedo) save_tonemapped_buffer("albedo", 0, target_passes, output.albedo);
-
-				pass = target_passes;
-				target_passes = std::min(target_passes << 1, max_passes);
+				save_tonemapped_buffer("still_beauty", total_passes, target_passes, output.beauty);
+				if (save_normal) save_tonemapped_buffer("still_normal", total_passes, total_passes, output.normal);
+				if (save_albedo) save_tonemapped_buffer("still_albedo", total_passes, total_passes, output.albedo);
 			}
 
 			break;
