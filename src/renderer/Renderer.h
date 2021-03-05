@@ -143,7 +143,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 	const vec3r cam_lookat = { 0, -0.125f, 0 };
 	const vec3r world_up = { 0, 1, 0 };
-	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.3f;
+	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.2f;
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);
@@ -156,17 +156,16 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 	vec3r ray_p = cam_pos;
 	vec3r ray_d = normalise(pixel_v);
-#if 0 // Depth of field
-	const real focal_dist = length(cam_pos - cam_lookat) * 0.75f;
-	const real lens_radius = 0.005f;
+#if 1 // Depth of field
+	const real focal_dist = length(cam_pos - cam_lookat) * 0.65f;
+	const real lens_radius = 0.0125f;
 
 	// Random point on disc
 	const real lens_r = std::sqrt(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)) * lens_radius;
 	const real lens_a = two_pi *  wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
 	const vec3r focal_point = ray_p + ray_d * (focal_dist / dot(ray_d, cam_forward));
-	const vec2r lens_vec = vec2r{ std::cos(lens_a), std::sin(lens_a) } * lens_r;
 
-	ray_p += cam_right * lens_vec.x + cam_up * lens_vec.y;
+	ray_p += cam_right * (std::cos(lens_a) * lens_r) + cam_up * (std::sin(lens_a) * lens_r);
 	ray_d = normalise(focal_point - ray_p);
 #endif
 

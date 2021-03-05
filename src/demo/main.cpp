@@ -92,7 +92,7 @@ int main(int argc, char ** argv)
 #else
 	const int num_threads = (int)std::thread::hardware_concurrency();
 #endif
-	const bool do_timing = true;
+	const bool print_timing = true;
 
 	// Parse command line arguments
 	enum { mode_progressive, mode_animation } mode = mode_progressive;
@@ -145,16 +145,17 @@ int main(int argc, char ** argv)
 		std::vector<IterationFunction *> iter_funcs;
 		//iter_funcs.push_back(oi.clone());
 		//iter_funcs.push_back(pki.clone());
-		//iter_funcs.push_back(mbi.clone());
+		iter_funcs.push_back(mbi.clone());
 		//iter_funcs.push_back(mbti.clone());
-		//iter_funcs.push_back(msi.clone());
+		iter_funcs.push_back(msi.clone());
 		//iter_funcs.push_back(ai.clone());
+		//iter_funcs.push_back(oi.clone());
 		//iter_funcs.push_back(cbi.clone());
 		//iter_funcs.push_back(dki.clone());
 		//iter_funcs.push_back(bp2.clone());
-		iter_funcs.push_back(sti.clone());
+		//iter_funcs.push_back(sti.clone());
 
-		const std::vector<char> iter_seq = { 0 };
+		const std::vector<char> iter_seq = { 0, 1 };
 
 		const int max_iters = 64;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
@@ -229,14 +230,14 @@ int main(int argc, char ** argv)
 			{
 				output.clear();
 
-				std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+				const auto t1 = std::chrono::steady_clock::now();
 
 				renderPasses(threads, output, frame, 0, passes, frames, scene);
 
-				if (do_timing)
+				if (print_timing)
 				{
-					std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-					std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+					const auto t2 = std::chrono::steady_clock::now();
+					const auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 					printf("Frame took %.2f seconds to render.\n", time_span.count());
 				}
 
@@ -258,16 +259,16 @@ int main(int argc, char ** argv)
 			int target_passes = 1;
 			while (pass < max_passes)
 			{
-				std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+				const auto t1 = std::chrono::steady_clock::now();
 
 				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
 				const int num_passes = target_passes - pass;
 				renderPasses(threads, output, 0, pass, num_passes, 0, scene);
 
-				if (do_timing)
+				if (print_timing)
 				{
-					std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-					std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+					const auto t2 = std::chrono::steady_clock::now();
+					const auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
 					printf("%d passes took %.2f seconds (%.2f seconds per pass).\n", num_passes, time_span.count(), time_span.count() / num_passes);
 				}
 
