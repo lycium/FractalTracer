@@ -51,13 +51,19 @@ struct vec
 
 	constexpr vec operator-() const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = -e[i]; return r; }
 
-	// xyz accessors enabled only if dimensions are present
-	template<std::enable_if_t<(n > 0), int> = 0> inline real_type & x() { return e[0]; }
-	template<std::enable_if_t<(n > 1), int> = 0> inline real_type & y() { return e[1]; }
-	template<std::enable_if_t<(n > 2), int> = 0> inline real_type & z() { return e[2]; }
-	template<std::enable_if_t<(n > 0), int> = 0> inline const real_type & x() const { return e[0]; }
-	template<std::enable_if_t<(n > 1), int> = 0> inline const real_type & y() const { return e[1]; }
-	template<std::enable_if_t<(n > 2), int> = 0> inline const real_type & z() const { return e[2]; }
+	template<int i>
+	constexpr std::enable_if_t<i < n, real_type &> getNth() noexcept { return e[i]; }
+
+	constexpr auto & x() noexcept { return getNth<0>(); }
+	constexpr auto & y() noexcept { return getNth<1>(); }
+	constexpr auto & z() noexcept { return getNth<2>(); }
+
+	template<int i>
+	constexpr std::enable_if_t<i < n, const real_type &> getNth() const noexcept { return e[i]; }
+
+	constexpr const auto & x() const noexcept { return getNth<0>(); }
+	constexpr const auto & y() const noexcept { return getNth<1>(); }
+	constexpr const auto & z() const noexcept { return getNth<2>(); }
 };
 
 
