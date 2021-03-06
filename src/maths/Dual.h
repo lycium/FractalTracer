@@ -280,7 +280,7 @@ inline constexpr Dual<real_type, vars> atan2(const Dual<real_type, vars> & y, co
 	{
 		return 0; // Arbitrary
 	}
-	r.v[0] = atan(y.v[0], x.v[0]);
+	r.v[0] = std::atan2(y.v[0], x.v[0]);
 	real_type s = 1 / (x.v[0] * x.v[0] + y.v[0] * y.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = (x.v[0] * y.v[i + 1] - y.v[0] * x.v[i + 1]) * s;
@@ -292,7 +292,7 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> exp(const Dual<real_type, vars> & x)
 {
 	Dual<real_type, vars> r;
-	r.v[0] = exp(x.v[0]);
+	r.v[0] = std::exp(x.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = r.v[0] * x.v[i + 1];
 	return r;
@@ -303,7 +303,7 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> log(const Dual<real_type, vars> & x)
 {
 	Dual<real_type, vars> r;
-	r.v[0] = log(x.v[0]);
+	r.v[0] = std::log(x.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = x.v[i + 1] / x.v[0];
 	return r;
@@ -335,8 +335,8 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> asin(const Dual<real_type, vars> & z)
 {
   Dual<real_type, vars> r;
-  r.v[0] = asin(z.v[0]);
-  real_type s = 1 / sqrt(1 - z.v[0] * z.v[0]);
+  r.v[0] = std::asin(z.v[0]);
+  real_type s = 1 / std::sqrt(1 - z.v[0] * z.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = z.v[i + 1] * s;
 	return r;
@@ -347,8 +347,8 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> acos(const Dual<real_type, vars> & z)
 {
   Dual<real_type, vars> r;
-  r.v[0] = acos(z.v[0]);
-  real_type s = -1 / sqrt(1 - z.v[0] * z.v[0]);
+  r.v[0] = std::acos(z.v[0]);
+  real_type s = -1 / std::sqrt(1 - z.v[0] * z.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = z.v[i + 1] * s;
 	return r;
@@ -359,7 +359,7 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> atan(const Dual<real_type, vars> z)
 {
   Dual<real_type, vars> r;
-  r.v[0] = atan(z.v[0]);
+  r.v[0] = std::atan(z.v[0]);
   real_type s = 1 / (1 + z.v[0] * z.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = z.v[i + 1] * s;
@@ -371,8 +371,8 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> asinh(const Dual<real_type, vars> & z)
 {
   Dual<real_type, vars> r;
-  r.v[0] = asinh(z.v[0]);
-  real_type s = 1 / sqrt(z.v[0] * z.v[0] + 1);
+  r.v[0] = std::asinh(z.v[0]);
+  real_type s = 1 / std::sqrt(z.v[0] * z.v[0] + 1);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = z.v[i + 1] * s;
 	return r;
@@ -383,8 +383,8 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> acosh(const Dual<real_type, vars> & z)
 {
   Dual<real_type, vars> r;
-  r.v[0] = acosh(z.v[0]);
-  real_type s = 1 / (sqrt(z.v[0] - 1) * sqrt(z.v[0] + 1));
+  r.v[0] = std::acosh(z.v[0]);
+  real_type s = 1 / (std::sqrt(z.v[0] - 1) * std::sqrt(z.v[0] + 1));
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = z.v[i + 1] * s;
 	return r;
@@ -395,7 +395,7 @@ template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> atanh(const Dual<real_type, vars> & z)
 {
   Dual<real_type, vars> r;
-  r.v[0] = atanh(z.v[0]);
+  r.v[0] = std::atanh(z.v[0]);
   real_type s = 1 / (1 - z.v[0] * z.v[0]);
 	for (int i = 0; i < vars; ++i)
 		r.v[i + 1] = z.v[i + 1] * s;
