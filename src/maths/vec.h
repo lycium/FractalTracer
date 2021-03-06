@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cmath>
-#include <array>
 
 #include "real.h"
 #include "Dual.h"
@@ -9,14 +8,15 @@
 template<int n, typename real_type>
 struct vec
 {
-	std::array<real_type, n> e;
+	real_type e[n];
 
 
 	vec() = default;
 	vec(const vec &) = default;
 	vec(vec &&) noexcept = default;
 
-	vec(const real_type & v) { e.fill(v); }
+	inline constexpr vec(const real_type & v) noexcept { for(int i = 0; i < n; ++i) e[i] = v; }
+
 
 	// Some brutal C++ hackery to enable initializer lists
 	template<typename val, typename... vals, std::enable_if_t<(sizeof...(vals) > 0), int> = 0>
