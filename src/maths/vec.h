@@ -22,17 +22,17 @@ struct vec
 	template<typename val, typename... vals, std::enable_if_t<(sizeof...(vals) > 0), int> = 0>
 	inline vec(const val v, const vals... vs) : e { (real_type)v, (real_type)vs... } { }
 
-	const vec & operator =(const vec & rhs) { for (int i = 0; i < n; ++i) e[i]  = rhs.e[i]; return *this; }
-	const vec & operator+=(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] += rhs.e[i]; return *this; }
-	const vec & operator-=(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] -= rhs.e[i]; return *this; }
-	const vec & operator*=(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] *= rhs.e[i]; return *this; }
-	const vec & operator/=(const vec & rhs) { for (int i = 0; i < n; ++i) e[i] /= rhs.e[i]; return *this; }
+	constexpr const vec & operator =(const vec & rhs) noexcept { for (int i = 0; i < n; ++i) e[i]  = rhs.e[i]; return *this; }
+	constexpr const vec & operator+=(const vec & rhs) noexcept { for (int i = 0; i < n; ++i) e[i] += rhs.e[i]; return *this; }
+	constexpr const vec & operator-=(const vec & rhs) noexcept { for (int i = 0; i < n; ++i) e[i] -= rhs.e[i]; return *this; }
+	constexpr const vec & operator*=(const vec & rhs) noexcept { for (int i = 0; i < n; ++i) e[i] *= rhs.e[i]; return *this; }
+	constexpr const vec & operator/=(const vec & rhs) noexcept { for (int i = 0; i < n; ++i) e[i] /= rhs.e[i]; return *this; }
 
-	const vec & operator =(const real_type & rhs) { for (int i = 0; i < n; ++i) e[i]  = rhs; return *this; }
-	const vec & operator+=(const real_type & rhs) { for (int i = 0; i < n; ++i) e[i] += rhs; return *this; }
-	const vec & operator-=(const real_type & rhs) { for (int i = 0; i < n; ++i) e[i] -= rhs; return *this; }
-	const vec & operator*=(const real_type & rhs) { for (int i = 0; i < n; ++i) e[i] *= rhs; return *this; }
-	const vec & operator/=(const real_type & rhs)
+	constexpr const vec & operator =(const real_type & rhs) noexcept { for (int i = 0; i < n; ++i) e[i]  = rhs; return *this; }
+	constexpr const vec & operator+=(const real_type & rhs) noexcept { for (int i = 0; i < n; ++i) e[i] += rhs; return *this; }
+	constexpr const vec & operator-=(const real_type & rhs) noexcept { for (int i = 0; i < n; ++i) e[i] -= rhs; return *this; }
+	constexpr const vec & operator*=(const real_type & rhs) noexcept { for (int i = 0; i < n; ++i) e[i] *= rhs; return *this; }
+	constexpr const vec & operator/=(const real_type & rhs) noexcept
 	{
 		const real_type s = real_type(1) / rhs;
 		for (int i = 0; i < n; ++i)
@@ -41,15 +41,15 @@ struct vec
 	}
 
 
-	vec operator+(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] + rhs.e[i]; return r; }
-	vec operator-(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] - rhs.e[i]; return r; }
-	vec operator*(const real_type & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs; return r; }
-	vec operator/(const real_type & rhs) const { return *this * (real_type(1) / rhs); }
+	constexpr vec operator+(const vec & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] + rhs.e[i]; return r; }
+	constexpr vec operator-(const vec & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] - rhs.e[i]; return r; }
+	constexpr vec operator*(const real_type & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs; return r; }
+	constexpr vec operator/(const real_type & rhs) const noexcept { return *this * (real_type(1) / rhs); }
 
-	vec operator*(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs.e[i]; return r; }
-	vec operator/(const vec & rhs) const { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] / rhs.e[i]; return r; }
+	constexpr vec operator*(const vec & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs.e[i]; return r; }
+	constexpr vec operator/(const vec & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] / rhs.e[i]; return r; }
 
-	vec operator-() const { vec r; for (int i = 0; i < n; ++i) r.e[i] = -e[i]; return r; }
+	constexpr vec operator-() const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = -e[i]; return r; }
 
 	// xyz accessors enabled only if dimensions are present
 	template<std::enable_if_t<(n > 0), int> = 0> inline real_type & x() { return e[0]; }
