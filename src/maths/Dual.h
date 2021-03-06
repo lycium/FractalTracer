@@ -273,7 +273,7 @@ inline constexpr Dual<real_type, vars> sqr(const Dual<real_type, vars> & p)
 
 
 template <typename real_type, int vars>
-inline constexpr Dual<real_type, vars> atan(const Dual<real_type, vars> & y, const Dual<real_type, vars> & x)
+inline constexpr Dual<real_type, vars> atan2(const Dual<real_type, vars> & y, const Dual<real_type, vars> & x)
 {
 	Dual<real_type, vars> r;
 	if (y.v[0] == 0 && x.v[0] == 0)
