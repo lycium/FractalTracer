@@ -270,3 +270,134 @@ inline constexpr Dual<real_type, vars> sqr(const Dual<real_type, vars> & p)
 		r.v[i + 1] = 2 * p.v[0] * p.v[i + 1]; // Product rule
 	return r;
 }
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> atan(const Dual<real_type, vars> & y, const Dual<real_type, vars> & x)
+{
+	const Dual<real_type, vars> & r;
+	if (y.v[0] == 0 && x.v[0] == 0)
+	{
+		return 0; // Arbitrary
+	}
+	r.v[0] = atan(y.v[0], x.v[0]);
+	real_type s = 1 / (x.v[0] * x.v[0] + y.v[0] * y.v[0]);
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = (x.v[0] * y.v[i + 1] - y.v[0] * x.v[i + 1]) * s;
+	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> exp(const Dual<real_type, vars> & x)
+{
+	Dual<real_type, vars> r;
+	r.v[0] = exp(x.v[0]);
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = r.v[0] * x.v[i + 1];
+	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> log(const Dual<real_type, vars> & x)
+{
+	Dual<real_type, vars> r;
+	r.v[0] = log(x.v[0]);
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = x.v[i + 1] / x.v[0];
+	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> sinh(const Dual<real_type, vars> & z)
+{
+	return (exp(z) - exp(-z)) / 2; // FIXME catastrophic cancellation near z = 0
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> cosh(const Dual<real_type, vars> & z)
+{
+	return (exp(z) + exp(-z)) / 2;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> tanh(const Dual<real_type, vars> & z)
+{
+  return sinh(z) / cosh(z);
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> asin(const Dual<real_type, vars> & z)
+{
+  Dual<real_type, vars> r;
+  r.v[0] = asin(z.v[0]);
+  real_type s = 1 / sqrt(1 - z.v[0] * z.v[0]);
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = z.v[i + 1] * s;
+	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> acos(const Dual<real_type, vars> & z)
+{
+  Dual<real_type, vars> r;
+  r.v[0] = acos(z.v[0]);
+  real_type s = -1 / sqrt(1 - z.v[0] * z.v[0]);
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = z.v[i + 1] * s;
+	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> atan(const Dual<real_type, vars> z)
+{
+  Dual<real_type, vars> r;
+  r.v[0] = atan(z.v[0]);
+  real_type s = 1 / (1 + z.v[0] * z.v[0]);
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = z.v[i + 1] * s;
+	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> asinh(const Dual<real_type, vars> & z)
+{
+  Dual<real_type, vars> r;
+  r.v[0] = asinh(z.v[0]);
+  real_type s = 1 / sqrt(z.v[0] * z.v[0] + 1);
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = z.v[i + 1] * s;
+	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> acosh(const Dual<real_type, vars> & z)
+{
+  Dual<real_type, vars> r;
+  r.v[0] = acosh(z.v[0]);
+  real_type s = 1 / (sqrt(z.v[0] - 1) * sqrt(z.v[0] + 1));
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = z.v[i + 1] * s;
+	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> atanh(const Dual<real_type, vars> & z)
+{
+  Dual<real_type, vars> r;
+  r.v[0] = atanh(z.v[0]);
+  real_type s = 1 / (1 - z.v[0] * z.v[0]);
+	for (int i = 0; i < vars; ++i)
+		r.v[i + 1] = z.v[i + 1] * s;
+	return r;
+}
