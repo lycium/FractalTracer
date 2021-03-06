@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.13)
 
+if(CMAKE_BUILD_TYPE STREQUAL "")
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 project(FractalTracer)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -11,6 +15,7 @@ if(MSVC OR MSVC_IDE)
 endif()
 
 add_compile_options(-Wall -Wextra -pedantic)
+add_compile_options(-march=native)
 
 include(libs.cmake)
 
