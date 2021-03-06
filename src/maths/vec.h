@@ -68,7 +68,7 @@ struct vec
 
 
 template<int n, typename real_type>
-inline real_type dot(const vec<n, real_type> & lhs, const vec<n, real_type> & rhs)
+constexpr real_type dot(const vec<n, real_type> & lhs, const vec<n, real_type> & rhs) noexcept
 {
 	real_type d = 0;
 	for (int i = 0; i < n; ++i)
@@ -79,7 +79,7 @@ inline real_type dot(const vec<n, real_type> & lhs, const vec<n, real_type> & rh
 
 // Optimised method for Dual dot product with real-vector RHS
 template<int n, typename real_type>
-inline real dot(const vec<n, Dual<real_type, n>> & lhs, const vec<n, real> & rhs)
+constexpr real dot(const vec<n, Dual<real_type, n>> & lhs, const vec<n, real> & rhs) noexcept
 {
 	real d = 0;
 	for (int i = 0; i < n; ++i)
@@ -89,7 +89,7 @@ inline real dot(const vec<n, Dual<real_type, n>> & lhs, const vec<n, real> & rhs
 
 
 template<int n, typename real_type>
-inline real_type length2(const vec<n, real_type> & v)
+constexpr real_type length2(const vec<n, real_type> & v) noexcept
 {
 	real_type d = 0;
 	for (int i = 0; i < n; ++i)
@@ -99,7 +99,7 @@ inline real_type length2(const vec<n, real_type> & v)
 
 
 template<int n, typename real_type>
-inline real_type length2(const vec<n, Dual<real_type, 3>> & v)
+constexpr real_type length2(const vec<n, Dual<real_type, 3>> & v) noexcept
 {
 	real_type d = 0;
 	for (int i = 0; i < n; ++i)
@@ -109,19 +109,19 @@ inline real_type length2(const vec<n, Dual<real_type, 3>> & v)
 
 
 template<int n, typename real_type>
-inline real_type length(const vec<n, real_type> & v) { return std::sqrt(length2(v)); }
+constexpr real_type length(const vec<n, real_type> & v) noexcept { return std::sqrt(length2(v)); }
 
 
 template<int n, typename real_type>
-inline real_type length(const vec<n, Dual<real_type, 3>> & v) { return std::sqrt(length2(v)); }
+constexpr real_type length(const vec<n, Dual<real_type, 3>> & v) noexcept { return std::sqrt(length2(v)); }
 
 
 template<int n, typename real_type>
-inline vec<n, real_type> normalise(const vec<n, real_type> & v, const real_type len = 1) { return v * (len / length(v)); }
+constexpr vec<n, real_type> normalise(const vec<n, real_type> & v, const real_type len = 1) noexcept { return v * (len / length(v)); }
 
 
 template<typename real_type>
-inline vec<3, real_type> cross(const vec<3, real_type> & a, const vec<3, real_type> & b)
+constexpr vec<3, real_type> cross(const vec<3, real_type> & a, const vec<3, real_type> & b) noexcept
 {
 	return vec<3, real_type>(
 		a.y() * b.z() - a.z() * b.y(),
