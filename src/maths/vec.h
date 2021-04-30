@@ -50,12 +50,14 @@ struct vec
 	}
 
 	// xyz accessors enabled only if dimensions are present
-	template<std::enable_if_t<(n > 0), int> = 0> inline real_type & x() { return e[0]; }
-	template<std::enable_if_t<(n > 1), int> = 0> inline real_type & y() { return e[1]; }
-	template<std::enable_if_t<(n > 2), int> = 0> inline real_type & z() { return e[2]; }
-	template<std::enable_if_t<(n > 0), int> = 0> inline const real_type & x() const { return e[0]; }
-	template<std::enable_if_t<(n > 1), int> = 0> inline const real_type & y() const { return e[1]; }
-	template<std::enable_if_t<(n > 2), int> = 0> inline const real_type & z() const { return e[2]; }
+	// NOTE: could be made more robust by some hacks to prevent an explicit overload with m != n
+	// See: <https://stackoverflow.com/questions/13401716/selecting-a-member-function-using-different-enable-if-conditions/13401982#13401982>
+	template <int m = n> typename std::enable_if<(m > 0), real_type &>::type inline x() { return e[0]; }
+	template <int m = n> typename std::enable_if<(m > 1), real_type &>::type inline y() { return e[1]; }
+	template <int m = n> typename std::enable_if<(m > 2), real_type &>::type inline z() { return e[2]; }
+	template <int m = n> typename std::enable_if<(m > 0), const real_type &>::type inline x() const { return e[0]; }
+	template <int m = n> typename std::enable_if<(m > 1), const real_type &>::type inline y() const { return e[1]; }
+	template <int m = n> typename std::enable_if<(m > 2), const real_type &>::type inline z() const { return e[2]; }
 };
 
 
