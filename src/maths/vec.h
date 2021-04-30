@@ -144,3 +144,8 @@ using vec3d = vec<3, double>;
 using DualVec3r = vec<3, Dual3r>;
 using DualVec3f = vec<3, Dual3f>;
 using DualVec3d = vec<3, Dual3d>;
+
+using vec4i = vec<4, int>;
+using vec4r = vec<4, real>;
+using vec4f = vec<4, float>;
+using vec4d = vec<4, double>;
