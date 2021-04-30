@@ -51,6 +51,65 @@ struct MandelbulbAnalytic final : public AnalyticDEObject
 };
 
 
+// Claude's Chebyshev polynomial Mandelbulb implementation
+// Ref: https://fractalforums.org/share-a-fractal/22/mandelbrot-3d-mandelnest/4028/msg28231#msg28231
+struct MandelbulbChebyshev final : public AnalyticDEObject
+{
+	virtual real getDE(const vec3r & p_os) noexcept override final
+	{
+		vec3r w = p_os;
+		real m = dot(w, w);
+		real dz = 1;
+
+		for (int i = 0; i < 4; i++)
+		{
+			const real x = w.x();
+			const real y = w.y();
+			const real z = w.z();
+			const real x2 = x * x;
+			const real y2 = y * y;
+			const real x2y2 = x2 + y2;
+			const real r2 = m;
+			const real r4 = r2 * r2;
+			const real rxy = std::sqrt(x2y2);
+			const real r = std::sqrt(r2);
+			const real r7 = r * r2 * r4;
+			dz = 8 * r7 * dz + 1;
+			const real r8 = r4 * r4;
+			const real cosPhi = x / rxy;
+			const real sinPhi = y / rxy;
+			const real sinTheta = rxy / r;
+			const real cosTheta = z / r;
+			vec4r TU0 = { 1, 1, 1, 1 };
+			const vec4r TUx = { cosTheta, cosPhi, cosTheta, cosPhi };
+			vec4r TU1 = { cosTheta, cosPhi, 2 * cosTheta, 2 * cosPhi };
+			for (int j = 2; j <= 8; ++j)
+			{
+				const vec4r TU2 = TUx * TU1 * 2 - TU0;
+				TU0 = TU1; TU1 = TU2;
+			}
+			const real cosNTheta = TU1.x();
+			const real sinNTheta = TU0.z() * sinTheta;
+			const real cosNPhi = TU1.y();
+			const real sinNPhi = TU0.w() * sinPhi;
+			w.x() = p_os.x() + r8 * sinNTheta * cosNPhi;
+			w.y() = p_os.y() + r8 * sinNTheta * sinNPhi;
+			w.z() = p_os.z() + r8 * cosNTheta;
+			m = dot(w, w);
+			if (m > 256)
+				break;
+		}
+
+		return 0.25f * std::log(m) * std::sqrt(m) / dz;// * 0.25f;
+	}
+
+	virtual SceneObject * clone() const override
+	{
+		return new MandelbulbChebyshev(*this);
+	}
+};
+
+
 struct MandelbulbDual final : public DualDEObject
 {
 	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
