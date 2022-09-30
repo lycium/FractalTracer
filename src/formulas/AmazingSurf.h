@@ -6,14 +6,14 @@
 
 struct DualAmazingSurfIteration final : public IterationFunction
 {
-	bool julia_mode = false;
+	bool julia_mode = true;
 	real scale = 2;
 	real min_r2 = 1.0f;
 	real fold_limit = 1;
-	DualVec3r rot_m1 = { 1, 0.2, 0 };
-	DualVec3r rot_m2 = { 0.3, 1.2, 0 };
-	DualVec3r rot_m3 = { 0.1, -0.5, 0.7 };
-	DualVec3r c = { 0.0f, 0.0f, 0.0f };
+	DualVec3r rot_m1 = { 0.97,-0.03,0.21 };
+	DualVec3r rot_m2 = { 0.09,0.95,-0.27 };
+	DualVec3r rot_m3 = { -0.19,0.289,0.93 };
+	DualVec3r c = { 0.2f, 0.1f, 0.1f };
 
 
 	virtual void init(const DualVec3r& p_0) noexcept override final
@@ -29,7 +29,7 @@ struct DualAmazingSurfIteration final : public IterationFunction
 
 		//fold
 		p = TGladFold(p);
-		p.z() = p_in.z();//z is not folded
+		p.y() = p_in.y();//y is not folded
 
 		//radius
 		real rr = length2(p);

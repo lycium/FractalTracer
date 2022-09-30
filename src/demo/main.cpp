@@ -154,7 +154,7 @@ int main(int argc, char ** argv)
 		const int max_iters = 64;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
 
-		hybrid.radius = main_sphere_rad; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
+		hybrid.radius = 5*main_sphere_rad; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
 		hybrid.step_scale = 0.25; //1;
 		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		hybrid.mat.use_fresnel = true;
