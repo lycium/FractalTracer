@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\formulas\Amazingbox.h" />
+    <ClInclude Include="..\src\formulas\AmazingSurf.h" />
     <ClInclude Include="..\src\formulas\BenesiPine2.h" />
     <ClInclude Include="..\src\formulas\Cubicbulb.h" />
     <ClInclude Include="..\src\formulas\MandalayKIFS.h" />
@@ -22,6 +23,7 @@
     <ClInclude Include="..\src\formulas\MengerSponge.h" />
     <ClInclude Include="..\src\formulas\MengerSpongeC.h" />
     <ClInclude Include="..\src\formulas\Octopus.h" />
+    <ClInclude Include="..\src\formulas\Poincare.h" />
     <ClInclude Include="..\src\formulas\PseudoKleinian.h" />
     <ClInclude Include="..\src\formulas\QuadraticJuliabulb.h" />
     <ClInclude Include="..\src\formulas\RiemannSphere.h" />

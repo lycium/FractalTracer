@@ -125,6 +125,15 @@ inline vec<3, real_type> cross(const vec<3, real_type> & a, const vec<3, real_ty
 		a.x() * b.y() - a.y() * b.x());
 }
 
+template<int n, typename real_type>
+inline vec<n, real_type> fabs(const vec<n, real_type>& a)
+{
+	vec<n, real_type> res;
+	for (int i = 0; i < n; ++i)
+		res.e[i] = fabs(a.e[i]);
+	return res;
+}
+
 
 using vec2i = vec<2, int>;
 using vec2r = vec<2, real>;

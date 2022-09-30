@@ -34,12 +34,14 @@
 #include "formulas/MengerSpongeC.h"
 #include "formulas/Cubicbulb.h"
 #include "formulas/Amazingbox.h"
+#include "formulas/AmazingSurf.h"
 #include "formulas/Octopus.h"
 #include "formulas/PseudoKleinian.h"
 #include "formulas/MandalayKIFS.h"
 #include "formulas/BenesiPine2.h"
 #include "formulas/RiemannSphere.h"
 #include "formulas/SphereTree.h"
+#include "formulas/Poincare.h"
 
 
 
@@ -136,26 +138,18 @@ int main(int argc, char ** argv)
 		DualMengerSpongeCIteration msi; //msi.stc.x = 1.5f; msi.stc.y = 0.75f; msi.scale = 2.8f;
 		DualCubicbulbIteration cbi;
 		DualAmazingboxIteration ai; //ai.scale = 1.75f;
+		DualAmazingSurfIteration as;
 		DualOctopusIteration oi;
 		DualBenesiPine2Iteration bp2;
 		DualRiemannSphereIteration rs;
 		DualMandalayKIFSIteration dki;
 		DualSphereTreeIteration sti;
+		DualPoincareIteration pci;
 
 		std::vector<IterationFunction *> iter_funcs;
-		//iter_funcs.push_back(oi.clone());
-		//iter_funcs.push_back(pki.clone());
-		iter_funcs.push_back(mbi.clone());
-		//iter_funcs.push_back(mbti.clone());
-		iter_funcs.push_back(msi.clone());
-		//iter_funcs.push_back(ai.clone());
-		//iter_funcs.push_back(oi.clone());
-		//iter_funcs.push_back(cbi.clone());
-		//iter_funcs.push_back(dki.clone());
-		//iter_funcs.push_back(bp2.clone());
-		//iter_funcs.push_back(sti.clone());
+		iter_funcs.push_back(as.clone());
 
-		const std::vector<char> iter_seq = { 0, 1 };
+		const std::vector<char> iter_seq = { 0 };
 
 		const int max_iters = 64;
 		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);

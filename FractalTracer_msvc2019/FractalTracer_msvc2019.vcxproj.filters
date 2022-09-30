@@ -104,5 +104,11 @@
     <ClInclude Include="..\src\renderer\Scene.h">
       <Filter>src\renderer</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\formulas\Poincare.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\formulas\AmazingSurf.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
