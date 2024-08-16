@@ -26,6 +26,7 @@
     <ClInclude Include="..\src\formulas\QuadraticJuliabulb.h" />
     <ClInclude Include="..\src\formulas\RiemannSphere.h" />
     <ClInclude Include="..\src\formulas\SphereTree.h" />
+    <ClInclude Include="..\src\formulas\Lambdabulb.h" />
     <ClInclude Include="..\src\maths\Dual.h" />
     <ClInclude Include="..\src\maths\real.h" />
     <ClInclude Include="..\src\maths\triplex.h" />
