@@ -124,6 +124,24 @@ using Dual3d = Dual<double, 3>;
 
 
 template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> operator*(const real_type & x, const Dual<real_type, vars> & y) noexcept
+{
+	return y * x;
+}
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> operator+(const real_type & x, const Dual<real_type, vars> & y) noexcept
+{
+	return y + x;
+}
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> operator-(const real_type & x, const Dual<real_type, vars> & y) noexcept
+{
+	return (-y) + x;
+}
+
+template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> pow(const Dual<real_type, vars> & d, const real_type e) noexcept
 {
 	const real_type scale = std::pow(d.v[0], e - 1) * e;
