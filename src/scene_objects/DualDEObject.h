@@ -11,7 +11,7 @@ struct DualDEObject : public SceneObject
 {
 	vec3r centre = { 0, 0, 0 };
 	real  radius = 1;
-	real  bailout_radius2 = 65536;
+	real  bailout_radius2 = 64;
 	real  step_scale = 1; // Method of last resort to prevent overstepping, interpreted as a Lipschitz constant
 
 
@@ -220,7 +220,7 @@ struct DualDEObject : public SceneObject
 		// Knighty: It is possible to directly use a norm of the jacobian instead :)
 		//  In practice, max(length(ji)) works well. Unfortunately there are some problems with functions like abs()--> discontinuity
 		//  Another thing worth to try is to evaluate dr in the direction of the ray.
-#if 1
+#if 0
 		const vec3r dr = vec3r
 		{
 			dot(u, jx),

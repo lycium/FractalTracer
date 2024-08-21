@@ -104,5 +104,8 @@
     <ClInclude Include="..\src\renderer\Scene.h">
       <Filter>src\renderer</Filter>
     </ClInclude>
+    <ClInclude Include="Lambdabulb.h">
+      <Filter>src\formulas</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

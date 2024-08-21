@@ -124,6 +124,24 @@ using Dual3d = Dual<double, 3>;
 
 
 template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> operator*(const real_type & x, const Dual<real_type, vars> & y) noexcept
+{
+	return y * x;
+}
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> operator+(const real_type & x, const Dual<real_type, vars> & y) noexcept
+{
+	return y + x;
+}
+
+template <typename real_type, int vars>
+inline constexpr Dual<real_type, vars> operator-(const real_type & x, const Dual<real_type, vars> & y) noexcept
+{
+	return (-y) + x;
+}
+
+template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> pow(const Dual<real_type, vars> & d, const real_type e) noexcept
 {
 	const real_type scale = std::pow(d.v[0], e - 1) * e;
@@ -154,12 +172,12 @@ inline constexpr Dual<real_type, vars> sqrt(const Dual<real_type, vars> & d) noe
 template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> sin(const Dual<real_type, vars> & d) noexcept
 {
-	const real_type scale = std::cos(d.v[0]);
+	auto [si, co] = sincos(d.v[0]);
 
 	Dual<real_type, vars> r;
-	r.v[0] = std::sin(d.v[0]);
+	r.v[0] = si;
 	for (int i = 0; i < vars; ++i)
-		r.v[i + 1] = d.v[i + 1] * scale;
+		r.v[i + 1] = d.v[i + 1] * co;
 	return r;
 }
 
@@ -167,13 +185,32 @@ inline constexpr Dual<real_type, vars> sin(const Dual<real_type, vars> & d) noex
 template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> cos(const Dual<real_type, vars> & d) noexcept
 {
-	const real_type scale = -std::sin(d.v[0]);
+	auto [si, co] = sincos(d.v[0]);
 
 	Dual<real_type, vars> r;
-	r.v[0] = std::cos(d.v[0]);
+	r.v[0] = co;
+	si = -si;
 	for (int i = 0; i < vars; ++i)
-		r.v[i + 1] = d.v[i + 1] * scale;
+		r.v[i + 1] = d.v[i + 1] * si;
 	return r;
+}
+
+
+template <typename real_type, int vars>
+inline constexpr std::pair<Dual<real_type, vars>, Dual<real_type, vars>> sincos(const Dual<real_type, vars> & d) noexcept
+{
+	auto [si, co] = sincos(d.v[0]);
+
+	Dual<real_type, vars> s, c;
+	s.v[0] = si;
+	c.v[0] = co;
+	si = -si;
+	for (int i = 0; i < vars; ++i)
+	{
+		s.v[i + 1] = d.v[i + 1] * co;
+		c.v[i + 1] = d.v[i + 1] * si;
+	}
+	return { s, c };
 }
 
 
