@@ -85,6 +85,11 @@ void tonemap(std::vector<sRGBPixel> & image_LDR, const std::vector<vec3f> & imag
 
 int main(int argc, char ** argv)
 {
+	{
+		uint64_t v = 0;
+		HilbertFibonacci(vec2i(1, 0), vec2i(0, 1), 0, noise_size, v);
+	}
+
 #if _WIN32
 	SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
 #endif
@@ -105,7 +110,7 @@ int main(int argc, char ** argv)
 
 	Scene scene;
 	{
-		const real main_sphere_rad = 1.5f;
+		const real main_sphere_rad = 1.35f;
 
 		Sphere s;
 		s.centre = { 0, 0, 0 };
@@ -113,14 +118,33 @@ int main(int argc, char ** argv)
 		s.mat.albedo = { 0.1f, 0.1f, 0.7f };
 		//scene.objects.push_back(s.clone());
 
-		Sphere s2;
-		const real bigrad = 128;
-		s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
-		s2.radius = bigrad;
-		s2.mat.albedo = vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
-		s2.mat.use_fresnel = true;
+		//Sphere s2;
+		//const real bigrad = 128;
+		//s2.centre = { 0, -bigrad - main_sphere_rad, 0 };
+		//s2.radius = bigrad;
+		//s2.mat.albedo = vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
+		//s2.mat.use_fresnel = true;
+		//scene.objects.push_back(s2.clone());
 
-		scene.objects.push_back(s2.clone());
+		//const real  quad_size = main_sphere_rad;
+		//const vec3r quad_e0 = vec3r{ 0, 0, quad_size } * 2;
+		//const vec3r quad_e1 = vec3r{ quad_size, 0, 0 } * 2;
+		//const vec3r p0 = vec3r(0, -main_sphere_rad, 0) - quad_e0 * 0.5f - quad_e1 * 0.5f;
+		//Quad quad(p0, quad_e0, quad_e1);
+		//quad.mat.albedo = vec3f{ 0.8f, 0.2f, 0.05f } * 1.0f;
+		//quad.mat.use_fresnel = false;
+		//scene.objects.push_back(quad.clone());
+
+
+		{
+			const real k = main_sphere_rad;
+			Quad q0(vec3r(-k,  k, -k), vec3r(2, 0, 0) * k, vec3r(0, 0, 2) * k); q0.mat.albedo = vec3f(0.7f, 0.7f, 0.7f); q0.mat.use_fresnel = true; scene.objects.push_back(q0.clone()); // top
+			Quad q1(vec3r(-k, -k, -k), vec3r(0, 0, 2) * k, vec3r(2, 0, 0) * k); q1.mat.albedo = vec3f(0.7f, 0.7f, 0.7f); q1.mat.use_fresnel = true; scene.objects.push_back(q1.clone()); // bottom
+			Quad q2(vec3r(-k, -k,  k), vec3r(0, 2, 0) * k, vec3r(2, 0, 0) * k); q2.mat.albedo = vec3f(0.7f, 0.7f, 0.7f); q2.mat.use_fresnel = true; scene.objects.push_back(q2.clone()); // back
+			//Quad q3(vec3r(-k, -k, -k), vec3r(0, 2, 0) * k, vec3r(2, 0, 0) * k); scene.objects.push_back(q3); // front
+			Quad q4(vec3r(-k, -k, -k), vec3r(0, 2, 0) * k, vec3r(0, 0, 2) * k); q4.mat.albedo = vec3f(0.90f, 0.2f, 0.02f); q4.mat.use_fresnel = true; scene.objects.push_back(q4.clone()); // left
+			Quad q5(vec3r( k, -k, -k), vec3r(0, 0, 2) * k, vec3r(0, 2, 0) * k); q5.mat.albedo = vec3f(0.02f, 0.8f, 0.05f); q5.mat.use_fresnel = true; scene.objects.push_back(q5.clone()); // right
+		}
 
 #if 0
 		//MengerSpongeCAnalytic bulb;
@@ -165,7 +189,7 @@ int main(int argc, char ** argv)
 
 		hybrid.radius = main_sphere_rad; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
 		hybrid.step_scale = 0.25; //1;
-		hybrid.mat.albedo = { 0.1f, 0.3f, 0.7f };
+		hybrid.mat.albedo = { 0.2f, 0.6f, 0.9f };
 		hybrid.mat.use_fresnel = true;
 
 		scene.objects.push_back(hybrid.clone());
@@ -198,7 +222,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	const int image_multi  = 80;
+	const int image_multi  = 80 * 2;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
 	const bool save_normal = false;

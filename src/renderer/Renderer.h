@@ -2,58 +2,33 @@
 
 #include <atomic>
 #include <vector>
+#include <array>
 #include <algorithm>
 
 #include "Scene.h"
 
 
 
-struct RenderOutput
+constexpr int noise_size = 1 << 8;
+std::array<uint16_t, noise_size * noise_size> noise_data;
+
+
+void HilbertFibonacci(const vec2i dx, const vec2i dy, vec2i p, int size, uint64_t & next_val)
 {
-	const int xres, yres;
-	int passes = 0;
-
-	std::vector<vec3f> beauty;
-	std::vector<vec3f> normal;
-	std::vector<vec3f> albedo;
-
-
-	RenderOutput(int xres_, int yres_) : xres(xres_), yres(yres_)
+	if (size > 1)
 	{
-		beauty.resize(xres * yres);
-		normal.resize(xres * yres);
-		albedo.resize(xres * yres);
+		size >>= 1;
+		HilbertFibonacci( dy,  dx, p, size, next_val); p += dy *  size;
+		HilbertFibonacci( dx,  dy, p, size, next_val); p += dx *  size;
+		HilbertFibonacci( dx,  dy, p, size, next_val); p += dx * (size - 1) - dy;
+		HilbertFibonacci(-dy, -dx, p, size, next_val);
 	}
-
-	void clear()
+	else
 	{
-		passes = 0;
-		memset((void *)&beauty[0], 0, sizeof(vec3f) * xres * yres);
-		memset((void *)&normal[0], 0, sizeof(vec3f) * xres * yres);
-		memset((void *)&albedo[0], 0, sizeof(vec3f) * xres * yres);
+		next_val += 11400714819323198487ull;
+		noise_data[p.y() * noise_size + p.x()] = (uint16_t)(next_val >> 48);
 	}
-};
-
-
-struct ThreadControl
-{
-	const int num_passes;
-
-	std::atomic<int> next_bucket = 0;
-};
-
-
-// Hash function by Thomas Wang: https://burtleburtle.net/bob/hash/integer.html
-inline uint32_t hash(uint32_t x)
-{
-	x  = (x ^ 12345391) * 2654435769;
-	x ^= (x << 6) ^ (x >> 26);
-	x *= 2654435769;
-	x += (x << 5) ^ (x >> 12);
-
-	return x;
 }
-
 
 // From PBRT
 double RadicalInverse(int a, int base) noexcept
@@ -117,10 +92,46 @@ inline real triDist(real v)
 	return v;
 }
 
+
+struct RenderOutput
+{
+	const int xres, yres;
+	int passes = 0;
+
+	std::vector<vec3f> beauty;
+	std::vector<vec3f> normal;
+	std::vector<vec3f> albedo;
+
+
+	RenderOutput(int xres_, int yres_) : xres(xres_), yres(yres_)
+	{
+		beauty.resize(xres * yres);
+		normal.resize(xres * yres);
+		albedo.resize(xres * yres);
+	}
+
+	void clear()
+	{
+		passes = 0;
+		memset((void *)&beauty[0], 0, sizeof(vec3f) * xres * yres);
+		memset((void *)&normal[0], 0, sizeof(vec3f) * xres * yres);
+		memset((void *)&albedo[0], 0, sizeof(vec3f) * xres * yres);
+	}
+};
+
+
+struct ThreadControl
+{
+	const int num_passes;
+
+	std::atomic<int> next_bucket = 0;
+};
+
+
 inline void render(const int x, const int y, const int frame, const int pass, const int frames, Scene & scene, RenderOutput & output) noexcept
 {
-	constexpr int max_bounces = 5;
-	constexpr int num_primes = 6;
+	constexpr int max_bounces = 8;
+	constexpr int num_primes  = 6;
 	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
 	const int xres = output.xres;
 	const int yres = output.yres;
@@ -133,7 +144,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	const real sensor_height = sensor_width / aspect_ratio;
 
 	int dim = 0;
-	const real hash_random    = uintToUnitReal(hash(frame * xres * yres + pixel_idx)); // Use pixel idx to randomise Halton sequence
+	const real  hash_random   = noise_data[(y % noise_size) * noise_size + (x % noise_size)] * (1.0f / 65536);
 	const real pixel_sample_x = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 	const real pixel_sample_y = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 
@@ -142,14 +153,14 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	const real sin_t = std::sin(time);
 
 	const vec3r cam_lookat = { 0, -0.125f, 0 };
-	const vec3r world_up = { 0, 1, 0 };
-	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.2f;
+	const vec3r   world_up = { 0, 1, 0 };
+	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.25f;
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = cross(world_up, cam_forward);
 	const vec3r cam_up = cross(cam_forward, cam_right);
 
-	const vec3r pixel_x = cam_right * (sensor_width / xres);
-	const vec3r pixel_y = cam_up * -(sensor_height / yres);
+	const vec3r pixel_x = cam_right * (sensor_width  / xres);
+	const vec3r pixel_y = cam_up   * -(sensor_height / yres);
 	const vec3r pixel_v = cam_forward +
 		(pixel_x * (x - xres * 0.5f + pixel_sample_x + 0.5f)) +
 		(pixel_y * (y - yres * 0.5f + pixel_sample_y + 0.5f));
@@ -158,7 +169,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	vec3r ray_d = normalise(pixel_v);
 #if 1 // Depth of field
 	const real focal_dist = length(cam_pos - cam_lookat) * 0.65f;
-	const real lens_radius = 0.0125f;
+	const real lens_radius = 0.005f;
 
 	// Random point on disc
 	const real lens_r = std::sqrt(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)) * lens_radius;
@@ -173,11 +184,13 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	//if (x == xres/2 && y == yres/2)
 	//	int a = 9;
 
-	Ray ray = { ray_p, ray_d };
-	vec3f contribution = 0;
-	vec3f throughput = 1;
-	vec3f normal_out = 0;
-	vec3f albedo_out = 0;
+	vec3f
+		contribution = 0,
+		throughput   = 1,
+		normal_out   = 0,
+		albedo_out   = 0;
+
+	Ray    ray = { ray_p, ray_d };
 	int bounce = 0;
 	while (true)
 	{
@@ -187,9 +200,9 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 		// Did we hit anything? If not, return skylight colour
 		if (nearest_hit_obj == nullptr)
 		{
-			const vec3f sky_up = vec3f{ 53, 112, 128 } * (1.0f / 255) * 0.75f;
-			const vec3f sky_hz = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
-			const float height = 1 - std::max(0.0f, (float)ray.d.y());
+			const vec3f sky_up  = vec3f{  53, 112, 128 } * (1.0f / 255) * 0.75f;
+			const vec3f sky_hz  = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
+			const float height  = 1 - std::max(0.0f, (float)ray.d.y());
 			const float height2 = height * height;
 			const vec3f sky = sky_up + (sky_hz - sky_up) * height2 * height2;
 			contribution += throughput * sky;
@@ -271,7 +284,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 			break;
 
 		// Use Russian roulette on albedo to possibly terminate the path after 2 bounces
-		if (bounce > 2)
+		if (bounce > 3)
 		{
 			const float rr_u = (float)wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
 			const float rr_thresh = std::max(0.0f, std::min(1.0f, max_albedo));

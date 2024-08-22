@@ -14,7 +14,7 @@ struct vec
 
 
 	constexpr vec() noexcept { }
-	constexpr vec(const vec & v) noexcept { for (int i = 0; i < n; ++i) e[i] = v.e[i]; }
+	constexpr vec(const       vec & v) noexcept { for (int i = 0; i < n; ++i) e[i] = v.e[i]; }
 	constexpr vec(const real_type & v) noexcept { for (int i = 0; i < n; ++i) e[i] = v; }
 
 	// Some brutal C++ hackery to enable initializer lists
@@ -23,11 +23,11 @@ struct vec
 
 	constexpr vec operator+(const vec & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] + rhs.e[i]; return r; }
 	constexpr vec operator-(const vec & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] - rhs.e[i]; return r; }
-	constexpr vec operator*(const real_type & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs; return r; }
-	constexpr vec operator/(const real_type & rhs) const noexcept { return *this * (real_type(1) / rhs); }
-
 	constexpr vec operator*(const vec & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs.e[i]; return r; }
 	constexpr vec operator/(const vec & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] / rhs.e[i]; return r; }
+
+	constexpr vec operator*(const real_type & rhs) const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = e[i] * rhs; return r; }
+	constexpr vec operator/(const real_type & rhs) const noexcept { return *this * (real_type(1) / rhs); }
 
 	constexpr vec operator-() const noexcept { vec r; for (int i = 0; i < n; ++i) r.e[i] = -e[i]; return r; }
 
@@ -144,6 +144,7 @@ using vec3d = vec<3, double>;
 using DualVec3r = vec<3, Dual3r>;
 using DualVec3f = vec<3, Dual3f>;
 using DualVec3d = vec<3, Dual3d>;
+
 
 using vec4i = vec<4, int>;
 using vec4r = vec<4, real>;
