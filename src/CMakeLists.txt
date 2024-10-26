@@ -8,12 +8,6 @@ project(FractalTracer)
 
 set(CMAKE_CXX_STANDARD 17)
 
-if(MSVC OR MSVC_IDE)
-    message(FATAL_ERROR
-        "To build this project with MSVC please use the solution in /FractalTracer_msvc2019"
-        )
-endif()
-
 add_compile_options(-Wall -Wextra -pedantic)
 add_compile_options(-march=native)
 
