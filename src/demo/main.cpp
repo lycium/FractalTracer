@@ -41,6 +41,8 @@
 #include "formulas/RiemannSphere.h"
 #include "formulas/SphereTree.h"
 #include "formulas/Lambdabulb.h"
+#include "formulas/BurningShip4D.h"
+#include "formulas/Hopfbrot.h"
 
 
 
@@ -146,11 +148,13 @@ int main(int argc, char ** argv)
 			Quad q5(vec3r( k, -k, -k), vec3r(0, 0, 2) * k, vec3r(0, 2, 0) * k); q5.mat.albedo = vec3f(0.02f, 0.8f, 0.05f); q5.mat.use_fresnel = true; scene.objects.push_back(q5.clone()); // right
 		}
 
-#if 0
+#if 1
 		//MengerSpongeCAnalytic bulb;
-		MandelbulbDual bulb;
-		bulb.radius = 1.25f;
-		bulb.step_scale = 1; //0.5f; //
+		//MandelbulbDual bulb;
+		//bulb.radius = 1.25f;
+		Hopfbrot bulb;
+		bulb.radius = 2.0f;
+		bulb.step_scale = 0.5f;
 		bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
 		bulb.mat.use_fresnel = true;
 		scene.objects.push_back(bulb.clone());
