@@ -104,10 +104,16 @@ int main(int argc, char ** argv)
 
 	// Parse command line arguments
 	enum { mode_progressive, mode_animation } mode = mode_progressive;
-	if (argc > 1)
+	bool preview = false;
+	bool box = false;
+	for (int arg = 1; arg < argc; ++arg)
 	{
-		if (std::string(argv[1]) == "--animation")
+		if (std::string(argv[arg]) == "--animation")
 			mode = mode_animation;
+		if (std::string(argv[arg]) == "--preview")
+			preview = true;
+		if (std::string(argv[arg]) == "--box")
+			box = true;
 	}
 
 	Scene scene;
@@ -138,6 +144,7 @@ int main(int argc, char ** argv)
 		//scene.objects.push_back(quad.clone());
 
 
+		if (box)
 		{
 			const real k = main_sphere_rad;
 			Quad q0(vec3r(-k,  k, -k), vec3r(2, 0, 0) * k, vec3r(0, 0, 2) * k); q0.mat.albedo = vec3f(0.7f, 0.7f, 0.7f); q0.mat.use_fresnel = true; scene.objects.push_back(q0.clone()); // top
@@ -225,10 +232,10 @@ int main(int argc, char ** argv)
 			scene.objects.push_back(sp.clone());
 		}
 	}
-
+	const int image_div = preview ? 4 : 1;
 	const int image_multi  = mode == mode_animation ? 40 : 80 * 2;
-	const int image_width  = image_multi * 16;
-	const int image_height = image_multi * 9;
+	const int image_width  = image_multi / image_div * 16;
+	const int image_height = image_multi / image_div * 9;
 	const bool save_normal = false;
 	const bool save_albedo = false;
 
@@ -253,8 +260,8 @@ int main(int argc, char ** argv)
 	{
 		case mode_animation:
 		{
-			const int frames = 30 * 4;
-			const int passes = 2 * 3; // 2 * 3 * 5 * 7;
+			const int frames = preview ? 30 : 30 * 4;
+			const int passes = preview ? 1 : 2 * 3; // 2 * 3 * 5 * 7;
 			printf("Rendering %d frames at resolution %d x %d with %d passes\n", frames, image_width, image_height, passes);
 
 			for (int frame = 0; frame < frames; ++frame)
