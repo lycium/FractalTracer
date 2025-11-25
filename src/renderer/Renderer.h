@@ -170,7 +170,8 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	vec3r ray_d = normalise(pixel_v);
 #if 1 // Depth of field
 	const real focal_dist = length(cam_pos - cam_lookat) * 0.65f;
-	const real lens_radius = 0.005f;
+	const real dof = 0.1f; // 1.0f;
+	const real lens_radius = 0.005f * dof;
 
 	// Random point on disc
 	const real lens_r = std::sqrt(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)) * lens_radius;
