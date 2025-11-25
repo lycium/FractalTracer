@@ -160,7 +160,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 #else
 	const vec3r cam_lookat = { -1.76, 0, -0.025 };
 	const vec3r   world_up = { 0, 0, -1 };
-	const vec3r cam_pos = cam_lookat + vec3r{ cos_t - sin_t, -7 * cos_t, 4 * cos_t + 7 * sin_t } * 0.01;
+	const vec3r cam_pos = cam_lookat + vec3r{ cos_t - sin_t, -7 * cos_t, 4 * cos_t + 7 * sin_t } * 0.02;
 #endif
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = normalise(cross(world_up, cam_forward));

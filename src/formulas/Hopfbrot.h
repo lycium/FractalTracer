@@ -59,7 +59,7 @@ struct Hopfbrot final : public DualDEObject
 	{
 		const int p = 2;
 		real q = 1;
-		DualVec4r c(Dual4r(p_os.x()), Dual4r(p_os.y()), Dual4r(p_os.z()), 0);
+		DualVec4r c(Dual4r(p_os.x()), Dual4r(p_os.y()), Dual4r(p_os.z()), Dual4r(0, 3));
 		DualVec4r w(c);
 
 		for (int i = 0; i < 65536; i++)
