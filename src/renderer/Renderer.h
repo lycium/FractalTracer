@@ -153,9 +153,15 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	const real cos_t = std::cos(time);
 	const real sin_t = std::sin(time);
 
+#if 0
 	const vec3r cam_lookat = { 0, -0.125f, 0 };
 	const vec3r   world_up = { 0, 1, 0 };
 	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.25f;
+#else
+	const vec3r cam_lookat = { -1.76, 0, -0.025 };
+	const vec3r   world_up = { 0, 0, -1 };
+	const vec3r cam_pos = cam_lookat + vec3r{ cos_t - sin_t, -7 * cos_t, 4 * cos_t + 7 * sin_t } * 0.01;
+#endif
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
 	const vec3r cam_right = normalise(cross(world_up, cam_forward));
 	const vec3r cam_up = normalise(cross(cam_forward, cam_right));
