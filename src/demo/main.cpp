@@ -222,7 +222,7 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	const int image_multi  = 80 * 2;
+	const int image_multi  = mode == mode_animation ? 40 : 80 * 2;
 	const int image_width  = image_multi * 16;
 	const int image_height = image_multi * 9;
 	const bool save_normal = false;
@@ -250,7 +250,7 @@ int main(int argc, char ** argv)
 		case mode_animation:
 		{
 			const int frames = 30 * 4;
-			const int passes = 2 * 3 * 5 * 7;
+			const int passes = 2 * 3; // 2 * 3 * 5 * 7;
 			printf("Rendering %d frames at resolution %d x %d with %d passes\n", frames, image_width, image_height, passes);
 
 			for (int frame = 0; frame < frames; ++frame)
