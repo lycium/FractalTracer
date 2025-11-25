@@ -148,7 +148,8 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	const real pixel_sample_x = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 	const real pixel_sample_y = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 
-	const real time  = (frames <= 0) ? 0 : two_pi * (frame + triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random))) / frames;
+	const real shutter = 0.1f; // 1.0f;
+	const real time  = (frames <= 0) ? 0 : two_pi * (frame + shutter * triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random))) / frames;
 	const real cos_t = std::cos(time);
 	const real sin_t = std::sin(time);
 
