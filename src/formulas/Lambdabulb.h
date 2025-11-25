@@ -19,7 +19,7 @@ struct DualLambdabulbIteration final : public IterationFunction
 
 	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
-
+		(void) p_0;
 	}
 
 	virtual void eval(const DualVec3r& p_in, DualVec3r& p_out) const noexcept override final
@@ -54,6 +54,8 @@ protected:
 			cos(phi_p)
 		) * r_p;
 #else
+		(void) power;
+		(void) phase;
 		// polynomial version, hardcoded to power 4
 
 		// wxmaxima: factor(trigexpand(cos(4*atan2(y,x)))) rsp. sin

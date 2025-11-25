@@ -4,7 +4,7 @@
 #include <limits>
 #include <utility>
 
-#define USE_DOUBLE 1
+#define USE_DOUBLE 0
 
 
 
