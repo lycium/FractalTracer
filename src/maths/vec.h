@@ -159,3 +159,7 @@ using vec4i = vec<4, int>;
 using vec4r = vec<4, real>;
 using vec4f = vec<4, float>;
 using vec4d = vec<4, double>;
+
+using DualVec4r = vec<4, Dual4r>;
+using DualVec4f = vec<4, Dual4f>;
+using DualVec4d = vec<4, Dual4d>;
