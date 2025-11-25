@@ -14,7 +14,7 @@ DualVec4r hopf(const DualVec4r &z, int m)
   u *= m;
   v *= m;
   t *= m;
-  if (m != 2) r2 = pow(r2, 0.5f * m);
+  if (m != 2) r2 = pow(r2, real(0.5f * m));
   return DualVec4r(cos(u)*cos(t), sin(u)*cos(t), cos(v)*sin(t), sin(v)*sin(t)) * r2;
 }
 
