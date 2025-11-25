@@ -5,7 +5,6 @@
 #include "SceneObject.h"
 
 
-
 // Base class for dual number based distance estimated (DE) objects
 struct DualDEObject : public SceneObject
 {
@@ -184,6 +183,77 @@ struct DualDEObject : public SceneObject
 			// which pollutes everything downstream.
 			// Calling code should deal with it.
 			normal_os_out = normalise(dr);
+			return de;
+		}
+		else
+		{
+			// The derivatives have overflowed to infinity
+			// and then further operations on them yield NaN.
+			// Assuming m is finite it might as well return 0 here.
+			normal_os_out = 0;
+			return 0;
+		}
+	}
+
+	// A DE for hybrids.
+	// Ref: https://mathr.co.uk/de
+	// a:                scale (not used?);
+	// p:                power;
+	// w:                current pos & Jacobian;
+	// normal_os_output: normal vector to output
+	real getHybridDEClaude(const real a, const real p, const DualVec4r & w, vec3r & normal_os_out) const noexcept
+	{
+		// Extract the position vector and Jacobian
+		const vec4r v  = { w.x().v[0], w.y().v[0], w.z().v[0], w.w().v[0] };
+		const vec4r jx = { w.x().v[1], w.y().v[1], w.z().v[1], w.w().v[1] };
+		const vec4r jy = { w.x().v[2], w.y().v[2], w.z().v[2], w.w().v[2] };
+		const vec4r jz = { w.x().v[3], w.y().v[3], w.z().v[3], w.w().v[3] };
+		const vec4r jw = { w.x().v[4], w.y().v[4], w.z().v[4], w.w().v[4] };
+
+		const real len2 = dot(v, v);
+		const real len = std::sqrt(len2);
+		const vec4r u = v * (1 / len); // Normalise p first to avoid overflow in dot products
+
+		// Vector-matrix norm: ||J||_u = |u.J|/|u|
+		// Ref: https://fractalforums.org/fractal-image-gallery/18/burning-ship-distance-estimation/647/msg3207#msg3207
+		const vec4r dr = vec4r
+		{
+			dot(u, jx),
+			dot(u, jy),
+			dot(u, jz),
+			dot(u, jw)
+		};
+		const real len_dr = length(dr);
+
+		// The hybrid DE formula
+		// Ref: https://mathr.co.uk/de
+		const real k = len / len_dr;
+		const real de_base =
+			(p == 1) ? k * std::log(a) :
+			(a == 1) ? k * std::log(p) * std::log(len) : k * (std::log(p) / (p - 1)) * (std::log(a) + (p - 1) * std::log(len));
+
+		// Koebe 1/4 theorem for complex analytic functions says d is
+		// valid up to a factor of 2 either way, we need the lower bound.
+		// Mandelbulb etc are not complex-analytic, but hope for the best...
+		//const real koebe_factor = 0.5f; // Knighty: should not be used IMHO. We already have step_scale.
+
+		// Distance estimate needs a log(power) factor taken out.
+		// Not sure of the justification, but it seems to work better this way,
+		// and it makes it match the other DE modes.
+#if 1
+		const real power_factor = (p == 1) ? 1 : 1 / log(p);
+#else
+		const real power_factor = 1;
+#endif
+		const real de = power_factor * de_base; // * koebe_factor;
+
+		if (std::isfinite(len_dr)) // TODO: this function is probably slow, find a replacement
+		{
+			// At some parts of the fractal, m can become NaN (hairs),
+			// which pollutes everything downstream.
+			// Calling code should deal with it.
+			vec3r dr3 = { dr.e[0], dr.e[1], dr.e[2] };
+			normal_os_out = normalise(dr3);
 			return de;
 		}
 		else
