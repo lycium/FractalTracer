@@ -258,6 +258,7 @@ struct DualDEObject : public SceneObject
 		}
 		else
 		{
+			//fprintf(stderr, "X");
 			// The derivatives have overflowed to infinity
 			// and then further operations on them yield NaN.
 			// Assuming m is finite it might as well return 0 here.
@@ -331,6 +332,89 @@ struct DualDEObject : public SceneObject
 		}
 		else
 		{
+			// The derivatives have overflowed to infinity
+			// and then further operations on them yield NaN.
+			// Assuming m is finite it might as well return 0 here.
+			normal_os_out = 0;
+			return 0;
+		}
+	}
+
+	// Another DE for hybrids, by Knighty:
+	// a:             Estimate of the bounding volume size of the whole fractal;
+	// p:             Product of formulas' powers;
+	// pmax:          Product of formulas' powers for all iterations;
+	// w:             Current pos & Jacobian;
+	// normal_os_out: Normal vector to output.
+	real getHybridDEKnighty(const real p, const real max_pow, const DualVec4r & w, vec3r & normal_os_out) const noexcept
+	{
+		// Extract the position vector and Jacobian
+		const vec4r v  = { w.x().v[0], w.y().v[0], w.z().v[0], w.w().v[0] };
+		const vec4r jx = { w.x().v[1], w.y().v[1], w.z().v[1], w.w().v[1] };
+		const vec4r jy = { w.x().v[2], w.y().v[2], w.z().v[2], w.w().v[2] };
+		const vec4r jz = { w.x().v[3], w.y().v[3], w.z().v[3], w.w().v[3] };
+		const vec4r jw = { w.x().v[4], w.y().v[4], w.z().v[4], w.w().v[4] };
+
+		const real len2 = dot(v, v);
+		const real len = sqrt(len2);
+		const vec4r u = v * (1 / len); // Normalise p first to avoid overflow in dot products
+
+		// Vector-matrix norm: ||J||_u = |u.J|/|u|
+		// Ref: https://fractalforums.org/fractal-image-gallery/18/burning-ship-distance-estimation/647/msg3207#msg3207
+		// ------
+		// Knighty: It is possible to directly use a norm of the jacobian instead :)
+		//  In practice, max(length(ji)) works well. Unfortunately there are some problems with functions like abs()--> discontinuity
+		//  Another thing worth to try is to evaluate dr in the direction of the ray.
+#if 0
+		const vec4r dr = vec4r
+		{
+			dot(u, jx),
+			dot(u, jy),
+			dot(u, jz),
+			dot(u, jw)
+		};
+		const real len_dr = length(dr);
+#else
+		const vec4r dr = vec4r
+		{
+			dot(u, jx),
+			dot(u, jy),
+			dot(u, jz),
+			dot(u, jw)
+		};
+		const real len_dr = std::max(length(jx), std::max(length(jy), std::max(length(jz), length(jw)))); // std::sqrt(dot(jx,jx) + dot(jy,jy) + dot(jz,jz) + dot(jw,jw));
+#endif
+
+		// Strictly speaking the terms (1 - (bvr ^ (1 / max_pow) / r ^ (1 / p))) and (1 - p / max_pow * log(bvr) / log(r))
+		// are not absolutely required because at the limit of high iteration counts they approach 1.
+		// but they give more accurate results for low iteration count.
+		// Notice that the formula is different from the one in the document. Here the formulas were tweaked for finite/low bail out radius.
+		// Ok, it seems a little over complicated. Next, we can try to see if it can be simplified without getting visible artifacts.
+		// Notice also that when the formulas have power == 1, we use only the second formula which reduces to : k * (1 - a / len) = (len - a) / len_dr
+		const real k = len / len_dr;
+		const real de = (p > 10000)
+			// ff * r / dr * (log(r) - p / max_pow * log(bvr)) = ff * r / dr * log(r) * (1 - p / max_pow * log(bvr) / log(r));
+			? k * (std::log(len) - p / max_pow * std::log(radius))
+			// ff * r / dr * p * (1 - (bvr ^ (1 / max_pow) / r^(1 / p)));
+			: k * p * (1 - std::pow(radius , 1 / max_pow) / std::pow(len , 1 / p));
+
+		if (std::isfinite(len_dr)) // TODO: this function is probably slow, find a replacement
+		{
+			// At some parts of the fractal, m can become NaN (hairs),
+			// which pollutes everything downstream.
+			// Calling code should deal with it.
+			normal_os_out = normalise(vec3r{dr.e[0], dr.e[1], dr.e[2]});
+			if (! std::isfinite(normal_os_out.e[0]) || ! std::isfinite(normal_os_out.e[1]) || ! std::isfinite(normal_os_out.e[2]))
+			{
+			  //fprintf(stderr, "N");
+			  normal_os_out = 0;
+			  return 0;
+			}
+			return de;
+		}
+		else
+		{
+			//fprintf(stderr, "X");
 			// The derivatives have overflowed to infinity
 			// and then further operations on them yield NaN.
 			// Assuming m is finite it might as well return 0 here.
