@@ -57,18 +57,21 @@ struct Hopfbrot final : public DualDEObject
 {
 	virtual real getDE(const DualVec3r & p_os, vec3r & normal_os_out) noexcept override final
 	{
+		const int p = 2;
+		real q = 1;
 		DualVec4r c(Dual4r(p_os.x()), Dual4r(p_os.y()), Dual4r(p_os.z()), 0);
 		DualVec4r w(c);
 
-		for (int i = 0; i < 64; i++)
+		for (int i = 0; i < 65536; i++)
 		{
 			const real m = length2(w);
-			if (m > 256)
-				break;
-			w = hopf(w, 2) + c;
+			if (m > bailout_radius2)
+				return getHybridDEKnighty(p, q, w, normal_os_out);
+			w = hopf(w, p) + c;
+			q *= p;
 		}
-
-		return getHybridDEClaude(1, 2, w, normal_os_out);
+		// fprintf(stderr, "U");
+		return getHybridDEKnighty(p, q, w, normal_os_out);
 	}
 
 	virtual SceneObject * clone() const override final
