@@ -103,8 +103,8 @@ inline real_type length2(const vec<n, real_type> & v) noexcept
 }
 
 
-template<int n, typename real_type>
-constexpr real_type length2(const vec<n, Dual<real_type, 3>> & v) noexcept
+template<int n, int m, typename real_type>
+constexpr real_type length2(const vec<n, Dual<real_type, m>> & v) noexcept
 {
 	real_type d = 0;
 	for (int i = 0; i < n; ++i)
