@@ -72,6 +72,15 @@ constexpr real_type dot(const vec<n, real_type> & lhs, const vec<n, real_type> &
 	return d;
 }
 
+template<int n, typename real_type>
+constexpr vec<n, real_type> fabs(const vec<n, real_type> & lhs) noexcept
+{
+	vec<n, real_type> r;
+	for (int i = 0; i < n; ++i)
+		 r.e[i] = fabs(lhs.e[i]);
+	return r;
+}
+
 
 // Optimised method for Dual dot product with real-vector RHS
 template<int n, typename real_type>
