@@ -32,13 +32,39 @@ DualVec4r hopfPoly2(const DualVec4r &p)
 	auto x = p.x(), y = p.y(), z = p.z(), w = p.w();
 	auto x2 = x * x, y2 = y * y, z2 = z * z, w2 = w * w;
 	auto x2y2 = x2 + y2, z2w2 = z2 + w2;
-	auto cos2u = (x2 - y2) / x2y2;
-	auto sin2u = real(2) * x * y / x2y2;
-	auto cos2v = (z2 - w2) / z2w2;
-	auto sin2v = real(2) * z * w / z2w2;
-	auto r2cos2t = x2y2 - z2w2;
-	auto r2sin2t = real(2) * sqrt(x2y2 * z2w2);
-	return DualVec4r(r2cos2t * cos2u, r2cos2t * sin2u, r2sin2t * cos2v, r2sin2t * sin2v);
+
+	// Guard against singularities: both the divisions by x2y2/z2w2 and
+	// sqrt(x2y2 * z2w2) produce NaN derivatives when either factor is zero.
+	// When x2y2 ≈ 0: output xy components → -z2w2 * (1,0), zw components → 0.
+	// When z2w2 ≈ 0: output xy components → x2y2 * (cos2u,sin2u), zw components → 0.
+	constexpr real eps = 1e-20f;
+	const bool xy_ok = x2y2.v[0] > eps;
+	const bool zw_ok = z2w2.v[0] > eps;
+
+	if (xy_ok && zw_ok)
+	{
+		auto cos2u = (x2 - y2) / x2y2;
+		auto sin2u = real(2) * x * y / x2y2;
+		auto cos2v = (z2 - w2) / z2w2;
+		auto sin2v = real(2) * z * w / z2w2;
+		auto r2cos2t = x2y2 - z2w2;
+		auto r2sin2t = real(2) * sqrt(x2y2 * z2w2);
+		return DualVec4r(r2cos2t * cos2u, r2cos2t * sin2u, r2sin2t * cos2v, r2sin2t * sin2v);
+	}
+	else if (xy_ok) // z2w2 ≈ 0: r2sin2t → 0
+	{
+		auto cos2u = (x2 - y2) / x2y2;
+		auto sin2u = real(2) * x * y / x2y2;
+		return DualVec4r(x2y2 * cos2u, x2y2 * sin2u, Dual4r(0), Dual4r(0));
+	}
+	else if (zw_ok) // x2y2 ≈ 0: r2sin2t → 0, r2cos2t → -z2w2
+	{
+		return DualVec4r(-z2w2, Dual4r(0), Dual4r(0), Dual4r(0));
+	}
+	else // both ≈ 0
+	{
+		return DualVec4r(Dual4r(0), Dual4r(0), Dual4r(0), Dual4r(0));
+	}
 }
 
 DualVec4r hopf(const DualVec4r &z, int m)
@@ -62,7 +88,7 @@ struct Hopfbrot final : public DualDEObject
 		DualVec4r c(Dual4r(p_os.x()), Dual4r(p_os.y()), Dual4r(p_os.z()), Dual4r(0, 3));
 		DualVec4r w(c);
 
-		for (int i = 0; i < 65536; i++)
+		for (int i = 0; i < 256; i++)
 		{
 			const real m = length2(w);
 			if (m > bailout_radius2)
