@@ -72,6 +72,15 @@ constexpr real_type dot(const vec<n, real_type> & lhs, const vec<n, real_type> &
 	return d;
 }
 
+template<int n, typename real_type>
+constexpr vec<n, real_type> fabs(const vec<n, real_type> & lhs) noexcept
+{
+	vec<n, real_type> r;
+	for (int i = 0; i < n; ++i)
+		 r.e[i] = fabs(lhs.e[i]);
+	return r;
+}
+
 
 // Optimised method for Dual dot product with real-vector RHS
 template<int n, typename real_type>
@@ -94,8 +103,8 @@ inline real_type length2(const vec<n, real_type> & v) noexcept
 }
 
 
-template<int n, typename real_type>
-constexpr real_type length2(const vec<n, Dual<real_type, 3>> & v) noexcept
+template<int n, int m, typename real_type>
+constexpr real_type length2(const vec<n, Dual<real_type, m>> & v) noexcept
 {
 	real_type d = 0;
 	for (int i = 0; i < n; ++i)
@@ -150,3 +159,7 @@ using vec4i = vec<4, int>;
 using vec4r = vec<4, real>;
 using vec4f = vec<4, float>;
 using vec4d = vec<4, double>;
+
+using DualVec4r = vec<4, Dual4r>;
+using DualVec4f = vec<4, Dual4f>;
+using DualVec4d = vec<4, Dual4d>;
