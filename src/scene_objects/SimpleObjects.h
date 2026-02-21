@@ -66,7 +66,7 @@ struct Quad final : public SceneObject
 		return plane_t;
 	}
 
-	virtual vec3r getNormal(const vec3r & p) noexcept override { return n; }
+	virtual vec3r getNormal(const vec3r & p) noexcept override { (void) p; return n; }
 
 	virtual SceneObject * clone() const override final
 	{

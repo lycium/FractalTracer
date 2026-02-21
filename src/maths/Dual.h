@@ -35,7 +35,17 @@ public:
 	// Copy constructor
 	inline constexpr Dual(const Dual &) noexcept = default;
 
-	inline constexpr const Dual & operator=(const Dual & rhs) noexcept { for (int i = 0; i < vars + 1; ++i) v[i] = rhs.v[i]; return *this; }
+	template <int vars1>
+	inline explicit constexpr Dual(const Dual<real_type, vars1> & a) noexcept
+	{
+		for (int i = 0; i <= vars; ++i)
+			if (i <= vars1)
+				v[i] = a.v[i];
+			else
+				v[i] = 0;
+	}
+
+	inline constexpr Dual & operator=(const Dual & rhs) noexcept = default;
 
 	inline constexpr Dual operator-() const noexcept { Dual r; for (int i = 0; i < vars + 1; ++i) r.v[i] = -v[i]; return r; }
 
@@ -121,6 +131,10 @@ using Dual2d = Dual<double, 2>;
 using Dual3r = Dual<real, 3>;
 using Dual3f = Dual<float, 3>;
 using Dual3d = Dual<double, 3>;
+
+using Dual4r = Dual<real, 4>;
+using Dual4f = Dual<float, 4>;
+using Dual4d = Dual<double, 4>;
 
 
 template <typename real_type, int vars>
@@ -238,14 +252,14 @@ inline constexpr Dual<real_type, vars> fabs(const Dual<real_type, vars> & d) noe
 template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> clamp(const Dual<real_type, vars> & p, const Dual<real_type, vars> & min_val, const Dual<real_type, vars> & max_val) noexcept
 {
-	return min(max(p, max_val), min_val);
+	return max(min(p, max_val), min_val);
 }
 
 
 template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> clamp(const Dual<real_type, vars> & p, const real_type min_val, const real_type max_val) noexcept
 {
-	return min(max(p, max_val), min_val);
+	return max(min(p, max_val), min_val);
 }
 
 

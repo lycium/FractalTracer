@@ -148,16 +148,23 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	const real pixel_sample_x = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 	const real pixel_sample_y = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 
-	const real time  = (frames <= 0) ? 0 : two_pi * (frame + triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random))) / frames;
+	const real shutter = 0.1f; // 1.0f;
+	const real time  = (frames <= 0) ? 0 : two_pi * (frame + shutter * triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random))) / frames;
 	const real cos_t = std::cos(time);
 	const real sin_t = std::sin(time);
 
+#if 1
 	const vec3r cam_lookat = { 0, -0.125f, 0 };
 	const vec3r   world_up = { 0, 1, 0 };
 	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.25f;
+#else
+	const vec3r cam_lookat = { -1.76, 0, -0.025 };
+	const vec3r   world_up = { 0, 0, -1 };
+	const vec3r cam_pos = cam_lookat + vec3r{ cos_t - sin_t, -7 * cos_t, 4 * cos_t + 7 * sin_t } * 0.02;
+#endif
 	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
-	const vec3r cam_right = cross(world_up, cam_forward);
-	const vec3r cam_up = cross(cam_forward, cam_right);
+	const vec3r cam_right = normalise(cross(world_up, cam_forward));
+	const vec3r cam_up = normalise(cross(cam_forward, cam_right));
 
 	const vec3r pixel_x = cam_right * (sensor_width  / xres);
 	const vec3r pixel_y = cam_up   * -(sensor_height / yres);
@@ -169,7 +176,8 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	vec3r ray_d = normalise(pixel_v);
 #if 1 // Depth of field
 	const real focal_dist = length(cam_pos - cam_lookat) * 0.65f;
-	const real lens_radius = 0.005f;
+	const real dof = 0.1f; // 1.0f;
+	const real lens_radius = 0.005f * dof;
 
 	// Random point on disc
 	const real lens_r = std::sqrt(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)) * lens_radius;
