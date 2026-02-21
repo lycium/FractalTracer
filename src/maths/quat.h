@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vec.h"
+#include <cmath>
 
 // quaternion
 
@@ -17,6 +18,24 @@ struct quat
 	inline quat(const real_type & x, const real_type & y, const real_type & z) : v(x, y, z, real_type(0)) { }
 	inline quat(const real_type & x, const real_type & y) : v(x, y, real_type(0)) { }
 	inline quat(const real_type & x) : v(x, real_type(0), real_type(0), real_type(0) ) { }
+
+	// Quaternion from Euler angles
+	static inline quat from_euler(const real_type & x_angle, const real_type & y_angle, const real_type & z_angle) noexcept
+	{
+		const real_type sx = sin(x_angle * real_type(0.5));
+		const real_type cx = cos(x_angle * real_type(0.5));
+		const real_type sy = sin(y_angle * real_type(0.5));
+		const real_type cy = cos(y_angle * real_type(0.5));
+		const real_type sz = sin(z_angle * real_type(0.5));
+		const real_type cz = cos(z_angle * real_type(0.5));
+		
+		return quat(
+			sx * cy * cz - cx * sy * sz,
+			cx * sy * cz + sx * cy * sz,
+			cx * cy * sz - sx * sy * cz,
+			cx * cy * cz + sx * sy * sz
+		);
+	}
 
 	inline explicit operator const vec<4, real_type> & () const { return v; }
 
@@ -73,6 +92,18 @@ template <typename real_type>
 inline quat<real_type> operator/(const quat<real_type> & a, const real_type & b)
 {
 	return a.v / b;
+}
+
+// Hamilton product
+template <typename real_type>
+inline quat<real_type> operator*(const quat<real_type> & a, const quat<real_type> & b)
+{
+	return quat<real_type>(
+		a.x() * b.w() + a.w() * b.x() + a.y() * b.z() - a.z() * b.y(),
+		a.y() * b.w() + a.w() * b.y() + a.z() * b.x() - a.x() * b.z(),
+		a.z() * b.w() + a.w() * b.z() + a.x() * b.y() - a.y() * b.x(),
+		a.w() * b.w() - a.x() * b.x() - a.y() * b.y() - a.z() * b.z()
+	);
 }
 
 
