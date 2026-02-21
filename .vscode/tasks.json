@@ -2,54 +2,55 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "CMake: Configure (Debug)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "-S", "${workspaceFolder}/src",
-                "-B", "${workspaceFolder}/src/cmake-build-debug",
-                "-DCMAKE_BUILD_TYPE=Debug",
-                "-DCMAKE_CXX_COMPILER=clang++",
-                "-DCMAKE_C_COMPILER=clang",
-                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-            ],
-            "group": "build",
-            "presentation": { "reveal": "always", "panel": "shared" }
+            "label": "CMake: configure Debug",
+            "type": "cmake",
+            "command": "configure",
+            "preset": "Debug",
+            "problemMatcher": []
         },
         {
-            "label": "CMake: Build (Debug)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [ "--build", "${workspaceFolder}/src/cmake-build-debug", "--parallel" ],
-            "group": { "kind": "build", "isDefault": true },
-            "dependsOn": "CMake: Configure (Debug)",
+            "label": "CMake: build Debug",
+            "type": "cmake",
+            "command": "build",
+            "preset": "Debug",
+            "dependsOn": ["CMake: configure Debug"],
             "problemMatcher": "$gcc",
-            "presentation": { "reveal": "always", "panel": "shared" }
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         },
         {
-            "label": "CMake: Configure (Release)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [
-                "-S", "${workspaceFolder}/src",
-                "-B", "${workspaceFolder}/src/cmake-build-release",
-                "-DCMAKE_BUILD_TYPE=Release",
-                "-DCMAKE_CXX_COMPILER=clang++",
-                "-DCMAKE_C_COMPILER=clang",
-                "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-            ],
-            "group": "build",
-            "presentation": { "reveal": "always", "panel": "shared" }
+            "label": "CMake: configure Release",
+            "type": "cmake",
+            "command": "configure",
+            "preset": "Release",
+            "problemMatcher": []
         },
         {
-            "label": "CMake: Build (Release)",
-            "type": "shell",
-            "command": "cmake",
-            "args": [ "--build", "${workspaceFolder}/src/cmake-build-release", "--parallel" ],
-            "group": "build",
-            "dependsOn": "CMake: Configure (Release)",
+            "label": "CMake: build Release",
+            "type": "cmake",
+            "command": "build",
+            "preset": "Release",
+            "dependsOn": ["CMake: configure Release"],
             "problemMatcher": "$gcc",
-            "presentation": { "reveal": "always", "panel": "shared" }
+            "group": "build"
+        },
+        {
+            "label": "CMake: configure RelWithDebInfo",
+            "type": "cmake",
+            "command": "configure",
+            "preset": "RelWithDebInfo",
+            "problemMatcher": []
+        },
+        {
+            "label": "CMake: build RelWithDebInfo",
+            "type": "cmake",
+            "command": "build",
+            "preset": "RelWithDebInfo",
+            "dependsOn": ["CMake: configure RelWithDebInfo"],
+            "problemMatcher": "$gcc",
+            "group": "build"
         }
     ]
 }

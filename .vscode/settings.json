@@ -1,0 +1,6 @@
+{
+    "cmake.useCMakePresets": "always",
+    "cmake.configureOnOpen": true,
+    "cmake.autoscanSourceDirectories": true,
+    "cmake.showConfigureWithDebuggerNotification": false
+}
