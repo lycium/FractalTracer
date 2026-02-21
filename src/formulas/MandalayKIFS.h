@@ -1,6 +1,7 @@
 #pragma once
 
 #include "scene_objects/DualDEObject.h"
+#include "maths/quat.h"
 
 
 
@@ -9,91 +10,88 @@
 // Ref: http://www.fractalforums.com/amazing-box-amazing-surf-and-variations/'new'-fractal-type-mandalay/msg81434/#msg81434
 struct DualMandalayKIFSIteration final : public IterationFunction
 {
-	real scale = 2;
-	real min_r2 = 0;
-	real fix_r2 = 1;
-	real fold = 1;
-	real xy_tower = 1;
-	real z_tower = 0;
-	vec3r rot_m1 = { 1, 0, 0 };
-	vec3r rot_m2 = { 0, 1, 0 };
-	vec3r rot_m3 = { 0, 0, 1 };
-	DualVec3r c  = { 0, 0, 0 };
-	bool julia_mode = true;
+    real scale = 3.0f;
+    real min_r2 = 0.0f;
+    real folding_offset = 1.0f;
+    real z_tower = 0.0f;
+    real xy_tower = 0.0f;
+    vec3r rotate = { 0.0f, 0.0f, 0.0f }; // Euler angles in radians
+    vec3r julia_c = { 0.0f, 0.0f, 0.0f };
+    bool julia_mode = true;
 
+    virtual void init(const DualVec3r& p_0) noexcept override final
+    {
+        if (julia_mode)
+            c = DualVec3r(julia_c.x(), julia_c.y(), julia_c.z());
+        else
+            c = p_0;
 
-	virtual void init(const DualVec3r & p_0) noexcept override final
-	{
-		if (!julia_mode)
-			c = p_0;
-	}
+        rotation_quat = quat<Dual4r>::from_euler(rotate.x(), rotate.y(), rotate.z());
+        rotation_conj = quat<Dual4r>(rotation_quat.v.x(), rotation_quat.v.y(), rotation_quat.v.z(), -rotation_quat.v.w());
+    }
 
-	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
-	{
-		// Rotate
-		DualVec3r p = DualVec3r(
-			dot(p_in, rot_m1),
-			dot(p_in, rot_m2),
-			dot(p_in, rot_m3));
+    virtual void eval(const DualVec3r& p_in, DualVec3r& p_out) const noexcept override final
+    {
+        DualVec3r p = p_in;
+        if (fabs(rotate.x()) + fabs(rotate.y()) + fabs(rotate.z()) > 0.0)
+        {// rotate using quaternions
+            const quat<Dual4r> p_quat(Dual4r(p_in.x()), Dual4r(p_in.y()), Dual4r(p_in.z()), Dual4r(0));
+            const quat<Dual4r> qpq = (rotation_quat * p_quat) * rotation_conj;
+            p = DualVec3r(qpq.v.x(), qpq.v.y(), qpq.v.z());
+        }
+        p = DualVec3r(fabs(p.x()), fabs(p.y()), fabs(p.z()));
+        // Kifs Octahedral fold:
+        if (p.y().v[0] > p.x().v[0]) p = DualVec3r(p.y(), p.x(), p.z());
+        if (p.z().v[0] > p.y().v[0]) p = DualVec3r(p.x(), p.z(), p.y());
+        if (p.y().v[0] > p.x().v[0]) p = DualVec3r(p.y(), p.x(), p.z());
+        // ABoxKali-like abs folding
+        const Dual3r fx = p.x() - 2.0 * folding_offset;
+        const Dual3r gy = xy_tower + p.y();
+        // Edges calculations
+        const DualVec3r q0(
+            folding_offset - fabs(-folding_offset + p.x()),
+            folding_offset - fabs(-folding_offset + p.y()),
+            z_tower > 0 ? z_tower - fabs(-folding_offset + p.z()) : z_tower + p.z()
+        );
+        DualVec3r q = q0;
+        if (fx.v[0] > 0.0 && fx.v[0] > p.y().v[0])
+        {
+            if (fx.v[0] > gy.v[0])
+            {//Top
+                q.x() = q.x() + xy_tower;
+                q.y() = folding_offset - fabs(xy_tower - folding_offset + p.y());
+            }
+            else
+            {//Edge
+                q.x() = -p.y();
+                q.y() = folding_offset - fabs(p.x() - 3.0 * folding_offset);
+            }
+        }
+        p = q;
+        // Sphere folding
+        const real r2 = length2(p);
+        const real fold_factor = (r2 < min_r2) ? min_r2 / r2 : 1.0f;
+        p = p * clamp(fold_factor, min_r2, 1.0f);
 
-		p = DualVec3r(fabs(p.x()), fabs(p.y()), fabs(p.z()));
+        p = p * scale + c;
 
-		// Octahedral fold
-		if (p.y().v[0] > p.x().v[0]) p = DualVec3r(p.y(), p.x(), p.z());
-		if (p.z().v[0] > p.y().v[0]) p = DualVec3r(p.x(), p.z(), p.y());
-		if (p.y().v[0] > p.x().v[0]) p = DualVec3r(p.y(), p.x(), p.z());
+        p_out = p;
+    }
 
-		// ABoxKali-like abs folding
-		const Dual3r fx = p.x() + fold * -2;
+    virtual real getPower() const noexcept override final { return 1; }
 
-		// Edges
-		const DualVec3r q0(
-			-fabs(p.x() - fold) + fold,
-			-fabs(p.y() - fold) + fold,
-			((z_tower > 0) ? -fabs(p.z() - fold) : p.z()) + z_tower);
-
-		const Dual3r g  = xy_tower;
-		const Dual3r gy = g + p.y();
-
-		DualVec3r q = q0;
-		if (fx.v[0] > 0 && fx.v[0] > p.y().v[0])
-		{
-			if (fx.v[0] > gy.v[0])
-			{
-				// Top
-				q.x() = q.x() + g;
-				q.y() = -fabs(g - fold + p.y()) + fold;
-			}
-			else
-			{
-				// Edges
-				q.x() = -p.y();
-				q.y() = -fabs(p.x() + fold * -3) + fold;
-			}
-		}
-		p = q;
-
-		sphereFold(p);
-
-		p = p * scale + c;
-
-		p_out = p;
-	}
-
-	virtual real getPower() const noexcept override final { return 1; }
-
-	virtual IterationFunction * clone() const override final
-	{
-		return new DualMandalayKIFSIteration(*this);
-	}
+    virtual IterationFunction* clone() const override final
+    {
+        return new DualMandalayKIFSIteration(*this);
+    }
 
 private:
-	inline DualVec3r sphereFold(const DualVec3r & p_in) const
-	{
-		const real r2 = length2(p_in);
-		return
-			(r2 < min_r2) ? p_in * (fix_r2 / min_r2) : // linear inner scaling
-			(r2 < fix_r2) ? p_in * (fix_r2 / r2) : // this is the actual sphere inversion
-			p_in;
-	}
+    inline real clamp(real x, real min_val, real max_val) const
+    {
+        return (x < min_val) ? min_val : ((x > max_val) ? max_val : x);
+    }
+
+    DualVec3r c = { 0, 0, 0 };
+    quat<Dual4r> rotation_quat;
+    quat<Dual4r> rotation_conj;
 };
