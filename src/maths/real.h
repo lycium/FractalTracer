@@ -33,3 +33,8 @@ inline double sqr(double a) { return a * a; }
 // not in C++ stdlib, but should optimize to C extlib sincos()
 inline std::pair< float,  float> sincos( float arg) { return { std::sin(arg), std::cos(arg) }; }
 inline std::pair<double, double> sincos(double arg) { return { std::sin(arg), std::cos(arg) }; }
+
+inline real clamp(real x, real min_val, real max_val)
+{
+    return (x < min_val) ? min_val : ((x > max_val) ? max_val : x);
+}

@@ -86,11 +86,6 @@ struct DualMandalayKIFSIteration final : public IterationFunction
     }
 
 private:
-    inline real clamp(real x, real min_val, real max_val) const
-    {
-        return (x < min_val) ? min_val : ((x > max_val) ? max_val : x);
-    }
-
     DualVec3r c = { 0, 0, 0 };
     quat<Dual4r> rotation_quat;
     quat<Dual4r> rotation_conj;
