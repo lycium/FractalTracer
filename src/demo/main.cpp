@@ -41,6 +41,8 @@
 #include "formulas/RiemannSphere.h"
 #include "formulas/SphereTree.h"
 #include "formulas/Lambdabulb.h"
+#include "formulas/BurningShip4D.h"
+#include "formulas/Hopfbrot.h"
 
 
 
@@ -102,10 +104,21 @@ int main(int argc, char ** argv)
 
 	// Parse command line arguments
 	enum { mode_progressive, mode_animation } mode = mode_progressive;
-	if (argc > 1)
+	bool preview = false;
+	bool box = false;
+	bool save_normal = false;
+	bool save_albedo = false;
+	std::string formula_name = "hopfbrot";
+	for (int arg = 1; arg < argc; ++arg)
 	{
-		if (std::string(argv[1]) == "--animation")
-			mode = mode_animation;
+		const std::string a = argv[arg];
+		if (a == "--animation") mode = mode_animation;
+		else if (a == "--preview") preview = true;
+		else if (a == "--box")     box = true;
+		else if (a == "--normal")  save_normal = true;
+		else if (a == "--albedo")  save_albedo = true;
+		else if (a == "--formula" && arg + 1 < argc) formula_name = argv[++arg];
+		else { fprintf(stderr, "Unknown argument: %s\n", argv[arg]); return 1; }
 	}
 
 	Scene scene;
@@ -136,6 +149,7 @@ int main(int argc, char ** argv)
 		//scene.objects.push_back(quad.clone());
 
 
+		if (box)
 		{
 			const real k = main_sphere_rad;
 			Quad q0(vec3r(-k,  k, -k), vec3r(2, 0, 0) * k, vec3r(0, 0, 2) * k); q0.mat.albedo = vec3f(0.7f, 0.7f, 0.7f); q0.mat.use_fresnel = true; scene.objects.push_back(q0.clone()); // top
@@ -146,54 +160,66 @@ int main(int argc, char ** argv)
 			Quad q5(vec3r( k, -k, -k), vec3r(0, 0, 2) * k, vec3r(0, 2, 0) * k); q5.mat.albedo = vec3f(0.02f, 0.8f, 0.05f); q5.mat.use_fresnel = true; scene.objects.push_back(q5.clone()); // right
 		}
 
-#if 0
-		//MengerSpongeCAnalytic bulb;
-		MandelbulbDual bulb;
-		bulb.radius = 1.25f;
-		bulb.step_scale = 1; //0.5f; //
-		bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
-		bulb.mat.use_fresnel = true;
-		scene.objects.push_back(bulb.clone());
-#else
-		DualPseudoKleinianIteration pki;
-		DualMandelbulbIteration mbi;
-		DualTriplexMandelbulbIteration mbti;
-		DualMengerSpongeCIteration msi; //msi.stc.x = 1.5f; msi.stc.y = 0.75f; msi.scale = 2.8f;
-		DualCubicbulbIteration cbi;
-		DualAmazingboxIteration ai; //ai.scale = 1.75f;
-		DualOctopusIteration oi;
-		DualBenesiPine2Iteration bp2;
-		DualRiemannSphereIteration rs;
-		DualMandalayKIFSIteration dki;
-		DualSphereTreeIteration sti;
-		DualLambdabulbIteration lbi;
+		// Formula dispatch based on --formula flag
+		if (formula_name == "hopfbrot")
+		{
+			Hopfbrot bulb;
+			bulb.radius = 2.0f;
+			bulb.step_scale = 0.5f;
+			bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
+			bulb.mat.use_fresnel = true;
+			scene.objects.push_back(bulb.clone());
+		}
+		else if (formula_name == "burningship4d")
+		{
+			BurningShip4D bulb;
+			bulb.radius = 2.0f;
+			bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
+			bulb.mat.use_fresnel = true;
+			scene.objects.push_back(bulb.clone());
+		}
+		else if (formula_name == "mandelbulb")
+		{
+			MandelbulbDual bulb;
+			bulb.radius = 1.25f;
+			bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
+			bulb.mat.use_fresnel = true;
+			scene.objects.push_back(bulb.clone());
+		}
+		else
+		{
+			// IterationFunction-based formulas wrapped in GeneralDualDE
+			IterationFunction * iter = nullptr;
+			if      (formula_name == "lambdabulb")      iter = new DualLambdabulbIteration;
+			else if (formula_name == "amazingbox")      iter = new DualAmazingboxIteration;
+			else if (formula_name == "octopus")         iter = new DualOctopusIteration;
+			else if (formula_name == "mengersponge")    iter = new DualMengerSpongeCIteration;
+			else if (formula_name == "cubicbulb")       iter = new DualCubicbulbIteration;
+			else if (formula_name == "pseudokleinian")  iter = new DualPseudoKleinianIteration;
+			else if (formula_name == "riemannsphere")   iter = new DualRiemannSphereIteration;
+			else if (formula_name == "mandalay")        iter = new DualMandalayKIFSIteration;
+			else if (formula_name == "spheretree")      iter = new DualSphereTreeIteration;
+			else if (formula_name == "benesipine2")     iter = new DualBenesiPine2Iteration;
+			else
+			{
+				fprintf(stderr, "Unknown formula: %s\nAvailable formulas: hopfbrot, burningship4d, mandelbulb, "
+					"lambdabulb, amazingbox, octopus, mengersponge, cubicbulb, pseudokleinian, "
+					"riemannsphere, mandalay, spheretree, benesipine2\n", formula_name.c_str());
+				return 1;
+			}
 
-		std::vector<IterationFunction *> iter_funcs;
-		//iter_funcs.push_back(oi.clone());
-		//iter_funcs.push_back(pki.clone());
-		//iter_funcs.push_back(mbi.clone());
-		//iter_funcs.push_back(mbti.clone());
-		//iter_funcs.push_back(msi.clone());
-		//iter_funcs.push_back(ai.clone());
-		//iter_funcs.push_back(oi.clone());
-		//iter_funcs.push_back(cbi.clone());
-		//iter_funcs.push_back(dki.clone());
-		//iter_funcs.push_back(bp2.clone());
-		//iter_funcs.push_back(sti.clone());
-		iter_funcs.push_back(lbi.clone());
+			std::vector<IterationFunction *> iter_funcs;
+			iter_funcs.push_back(iter);
+			const std::vector<char> iter_seq = { 0 };
 
-		const std::vector<char> iter_seq = { 0 };
-
-		const int max_iters = 30;
-		GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
-
-		hybrid.radius = main_sphere_rad; // For Mandelbulb p8, bounding sphere has approximate radius of 1.2 or so
-		hybrid.step_scale = 0.25; //1;
-		hybrid.mat.albedo = { 0.2f, 0.6f, 0.9f };
-		hybrid.mat.use_fresnel = true;
-
-		scene.objects.push_back(hybrid.clone());
-#endif
+			const int max_iters = 30;
+			GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
+			hybrid.radius = main_sphere_rad;
+			hybrid.step_scale = 0.25;
+			hybrid.mat.albedo = { 0.2f, 0.6f, 0.9f };
+			hybrid.mat.use_fresnel = true;
+			scene.objects.push_back(hybrid.clone());
+		}
 		// Test adding sphere lights
 		const int num_sphere_lights = 0;//1 << 5;
 		for (int i = 0; i < num_sphere_lights; ++i)
@@ -221,13 +247,10 @@ int main(int argc, char ** argv)
 			scene.objects.push_back(sp.clone());
 		}
 	}
-
-	const int image_multi  = 80 * 2;
-	const int image_width  = image_multi * 16;
-	const int image_height = image_multi * 9;
-	const bool save_normal = false;
-	const bool save_albedo = false;
-
+	const int image_div = preview ? 4 : 1;
+	const int image_multi  = mode == mode_animation ? 40 : 80 * 2;
+	const int image_width  = image_multi / image_div * 16;
+	const int image_height = image_multi / image_div * 9;
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
 	RenderOutput output(image_width, image_height);
 
@@ -249,8 +272,8 @@ int main(int argc, char ** argv)
 	{
 		case mode_animation:
 		{
-			const int frames = 30 * 4;
-			const int passes = 2 * 3 * 5 * 7;
+			const int frames = preview ? 30 : 30 * 4;
+			const int passes = preview ? 1 : 2 * 3; // 2 * 3 * 5 * 7;
 			printf("Rendering %d frames at resolution %d x %d with %d passes\n", frames, image_width, image_height, passes);
 
 			for (int frame = 0; frame < frames; ++frame)
@@ -272,6 +295,23 @@ int main(int argc, char ** argv)
 				if (save_normal) save_tonemapped_buffer("normal", frame, passes, output.normal);
 				if (save_albedo) save_tonemapped_buffer("albedo", frame, passes, output.albedo);
 			}
+
+			// Encode PNG sequences to MP4 using ffmpeg
+			const auto encode_video = [](const char * channel_name)
+			{
+				char cmd[512];
+				snprintf(cmd, sizeof(cmd),
+					"ffmpeg -y -framerate 30 -i %s_frame_%%08d.png -c:v libx264 -pix_fmt yuv420p -crf 18 %s.mp4",
+					channel_name, channel_name);
+				printf("Running: %s\n", cmd);
+				const int ret = system(cmd);
+				if (ret != 0)
+					fprintf(stderr, "Warning: ffmpeg exited with code %d for channel '%s' (is ffmpeg installed?)\n", ret, channel_name);
+			};
+
+			encode_video("beauty");
+			if (save_normal) encode_video("normal");
+			if (save_albedo) encode_video("albedo");
 
 			break;
 		}
