@@ -10,13 +10,13 @@
 // Ref: http://www.fractalforums.com/amazing-box-amazing-surf-and-variations/'new'-fractal-type-mandalay/msg81434/#msg81434
 struct DualMandalayKIFSIteration final : public IterationFunction
 {
-    real scale = 3.0f;
-    real min_r2 = 0.0f;
-    real folding_offset = 1.0f;
-    real z_tower = 0.0f;
-    real xy_tower = 0.0f;
-    vec3r rotate = { 0.0f, 0.0f, 0.0f }; // Euler angles in radians
-    vec3r julia_c = { 0.0f, 0.0f, 0.0f };
+    real scale = 3;
+    real min_r2 = 0;
+    real folding_offset = 1;
+    real z_tower = 0;
+    real xy_tower = 0;
+    vec3r rotate = { 0, 0, 0 }; // Euler angles in radians
+    vec3r julia_c = { 0, 0, 0 };
     bool julia_mode = true;
 
     virtual void init(const DualVec3r& p_0) noexcept override final
@@ -33,7 +33,7 @@ struct DualMandalayKIFSIteration final : public IterationFunction
     virtual void eval(const DualVec3r& p_in, DualVec3r& p_out) const noexcept override final
     {
         DualVec3r p = p_in;
-        if (fabs(rotate.x()) + fabs(rotate.y()) + fabs(rotate.z()) > 0.0)
+        if (fabs(rotate.x()) + fabs(rotate.y()) + fabs(rotate.z()) > 0)
         {// rotate using quaternions
             const quat<Dual4r> p_quat(Dual4r(p_in.x()), Dual4r(p_in.y()), Dual4r(p_in.z()), Dual4r(0));
             const quat<Dual4r> qpq = (rotation_quat * p_quat) * rotation_conj;
@@ -45,7 +45,7 @@ struct DualMandalayKIFSIteration final : public IterationFunction
         if (p.z().v[0] > p.y().v[0]) p = DualVec3r(p.x(), p.z(), p.y());
         if (p.y().v[0] > p.x().v[0]) p = DualVec3r(p.y(), p.x(), p.z());
         // ABoxKali-like abs folding
-        const Dual3r fx = p.x() - 2.0 * folding_offset;
+        const Dual3r fx = p.x() - 2 * folding_offset;
         const Dual3r gy = xy_tower + p.y();
         // Edges calculations
         const DualVec3r q0(
@@ -54,7 +54,7 @@ struct DualMandalayKIFSIteration final : public IterationFunction
             z_tower > 0 ? z_tower - fabs(-folding_offset + p.z()) : z_tower + p.z()
         );
         DualVec3r q = q0;
-        if (fx.v[0] > 0.0 && fx.v[0] > p.y().v[0])
+        if (fx.v[0] > 0 && fx.v[0] > p.y().v[0])
         {
             if (fx.v[0] > gy.v[0])
             {//Top
@@ -64,14 +64,14 @@ struct DualMandalayKIFSIteration final : public IterationFunction
             else
             {//Edge
                 q.x() = -p.y();
-                q.y() = folding_offset - fabs(p.x() - 3.0 * folding_offset);
+                q.y() = folding_offset - fabs(p.x() - 3 * folding_offset);
             }
         }
         p = q;
         // Sphere folding
         const real r2 = length2(p);
-        const real fold_factor = (r2 < min_r2) ? min_r2 / r2 : 1.0f;
-        p = p * clamp(fold_factor, min_r2, 1.0f);
+        const real fold_factor = (r2 < min_r2) ? min_r2 / r2 : 1;
+        p = p * clamp(fold_factor, min_r2, 1);
 
         p = p * scale + c;
 
