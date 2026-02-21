@@ -16,10 +16,13 @@ struct Scene
 	// Copy constructor
 	Scene(const Scene & s)
 	{
-		objects.resize(s.objects.size());
+		for (SceneObject * const o : objects)
+			delete o;
 
-		for (size_t i = 0; i < s.objects.size(); ++i)
-			objects[i] = s.objects[i]->clone();
+		objects.resize(0);
+
+		for (const SceneObject * const o : s.objects)
+			objects.push_back(o->clone());
 	}
 
 	// Scene owns all the object pointers, so delete them
