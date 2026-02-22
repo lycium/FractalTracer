@@ -526,6 +526,8 @@ struct GeneralDualDE final : public DualDEObject
 		for (int i = 0; i < num_funcs; ++i)
 			funcs[i]->init(p);
 
+		if (mat.colouring) mat.colouring->init(p);
+
 		int seq_idx = 0;
 		int i = 0;
 		for (; i < max_iters; i++)
@@ -533,6 +535,8 @@ struct GeneralDualDE final : public DualDEObject
 			DualVec3r p_new;
 			funcs[sequence[seq_idx]]->eval(p, p_new);
 			p = p_new;
+
+			if (mat.colouring) mat.colouring->iter(p);
 
 			const real r2 = length2(p);
 			if (r2 > bailout_radius2)
@@ -552,7 +556,7 @@ struct GeneralDualDE final : public DualDEObject
 #endif
 	}
 
-	virtual SceneObject * clone() const override
+	virtual SceneObject * clone() const override final
 	{
 		return new GeneralDualDE(*this);
 	}
