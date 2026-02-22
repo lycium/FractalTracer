@@ -48,10 +48,6 @@ struct RenderController
 	// HDR environment map
 	HDREnvironment hdr_env;
 
-	// Set to completed_passes value after each pass finishes (output is valid).
-	// Reset to 0 when output is resized/cleared (output is invalid).
-	// The UI updates the display when this advances past its last-seen value.
-	std::atomic<int> safe_display_passes{0};
 
 private:
 	void managerFunc();
@@ -66,7 +62,4 @@ private:
 	std::atomic<int> current_yres{0};
 
 	std::mutex params_mutex;
-
-	Scene scene;
-	std::mutex scene_mutex;
 };

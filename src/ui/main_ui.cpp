@@ -143,7 +143,6 @@ int main(int argc, char ** argv)
 
 	// Display update tracking: only refresh at power-of-two passes, param changes, or manual refresh
 	int last_displayed_passes = -1;
-	uint64_t last_displayed_gen = 0;
 	bool force_refresh = false;
 
 	Uint64 last_time = SDL_GetPerformanceCounter();
@@ -259,33 +258,26 @@ int main(int argc, char ** argv)
 		{
 			controller.updateParams(controller.params);
 			force_refresh = true;
+			last_displayed_passes = -1; // Reset so we pick up first sub-res pass
 		}
 
 		// Determine if we should update the display texture
-		// Only update when output is valid (safe_display_passes > 0 and advanced),
-		// at power-of-two sample counts, on param change, or manual refresh
-		const int cur_safe = controller.safe_display_passes.load();
-		const uint64_t cur_gen = controller.getGeneration();
+		// completed_passes only increments after workers join, so the output
+		// buffer is in a consistent state whenever it has advanced.
+		const int cur_passes = controller.getCompletedPasses();
 		bool should_update = false;
 
-		if (cur_gen != last_displayed_gen)
-		{
-			// Generation changed - reset tracking so we pick up next valid output
-			last_displayed_gen = cur_gen;
-			last_displayed_passes = -1;
-		}
-
-		if (cur_safe > 0 && cur_safe != last_displayed_passes)
+		if (cur_passes > 0 && cur_passes != last_displayed_passes)
 		{
 			if (force_refresh)
 				should_update = true;
 			// Always show the first 3 passes (sub-res previews + first full-res)
-			else if (cur_safe <= 3)
+			else if (cur_passes <= 3)
 				should_update = true;
 			// After that, only at power-of-two full-res passes
 			else
 			{
-				const int full_res = cur_safe - 2;
+				const int full_res = cur_passes - 2;
 				if (full_res > 0 && (full_res & (full_res - 1)) == 0)
 					should_update = true;
 			}
@@ -293,7 +285,7 @@ int main(int argc, char ** argv)
 
 		if (should_update)
 		{
-			last_displayed_passes = cur_safe;
+			last_displayed_passes = cur_passes;
 			force_refresh = false;
 
 			// Tonemap current render output

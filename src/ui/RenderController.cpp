@@ -23,13 +23,7 @@ void RenderController::updateParams(const SceneParams & new_params)
 		params = new_params;
 	}
 
-	// Rebuild scene
-	{
-		std::lock_guard<std::mutex> lock(scene_mutex);
-		buildScene(scene, params.fractal);
-	}
-
-	// Signal restart
+	// Signal restart - scene will be rebuilt by the manager thread
 	completed_passes = 0;
 	generation.fetch_add(1);
 }
@@ -44,13 +38,6 @@ void RenderController::start()
 {
 	if (running) return;
 	running = true;
-
-	// Initial scene build
-	{
-		std::lock_guard<std::mutex> lock(scene_mutex);
-		buildScene(scene, params.fractal);
-	}
-
 	manager_thread = std::thread(&RenderController::managerFunc, this);
 }
 
@@ -86,35 +73,27 @@ void RenderController::managerFunc()
 		{
 			std::lock_guard<std::mutex> lock(output_mutex);
 			if (output.xres != render_xres || output.yres != render_yres)
-			{
-				safe_display_passes = 0; // Output invalid during resize
 				output.resize(render_xres, render_yres);
-			}
 			else if (pass <= 2)
-			{
-				safe_display_passes = 0; // Output invalid during clear
 				output.clear();
-			}
 		}
 
-		// Snapshot params
+		// Snapshot params and build scene
 		CameraParams camera;
 		LightParams light;
 		RenderSettings settings;
+		FractalParams fractal;
 		{
 			std::lock_guard<std::mutex> lock(params_mutex);
 			camera = params.camera;
 			light = params.light;
 			settings = params.render;
+			fractal = params.fractal;
 		}
 		camera.recompute();
 
-		// Get a scene snapshot
-		Scene * scene_ptr;
-		{
-			std::lock_guard<std::mutex> lock(scene_mutex);
-			scene_ptr = &scene;
-		}
+		Scene render_scene;
+		buildScene(render_scene, fractal);
 
 		// Use the pass index, but for sub-resolution levels always use pass 0
 		const int render_pass = (pass < 2) ? 0 : pass - 2;
@@ -129,7 +108,7 @@ void RenderController::managerFunc()
 				const int xres = render_xres;
 				const int yres = render_yres;
 
-				Scene local_scene(*scene_ptr);
+				Scene local_scene(render_scene);
 
 				constexpr int bucket_size = 32;
 				const int x_buckets = (xres + bucket_size - 1) / bucket_size;
@@ -168,6 +147,5 @@ void RenderController::managerFunc()
 			output.passes = render_pass + 1;
 		}
 		completed_passes.fetch_add(1);
-		safe_display_passes = completed_passes.load();
 	}
 }
