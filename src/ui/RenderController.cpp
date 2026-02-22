@@ -120,7 +120,7 @@ void RenderController::managerFunc()
 
 				Scene local_scene(render_scene);
 
-				constexpr int bucket_size = 64;
+				constexpr int bucket_size = 16;
 				const int x_buckets = (xres + bucket_size - 1) / bucket_size;
 				const int y_buckets = (yres + bucket_size - 1) / bucket_size;
 				const int num_buckets = x_buckets * y_buckets;
