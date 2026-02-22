@@ -141,6 +141,11 @@ int main(int argc, char ** argv)
 	int tex_w = 0, tex_h = 0;
 	std::vector<sRGBPixel> display_pixels;
 
+	// Display update tracking: only refresh at power-of-two passes, param changes, or manual refresh
+	int last_displayed_passes = -1;
+	uint64_t last_displayed_gen = 0;
+	bool force_refresh = false;
+
 	Uint64 last_time = SDL_GetPerformanceCounter();
 	float fps = 0;
 
@@ -216,7 +221,7 @@ int main(int argc, char ** argv)
 		ImGui::End();
 
 		// Stats overlay
-		drawStatsOverlay(
+		force_refresh |= drawStatsOverlay(
 			controller.getCompletedPasses(),
 			controller.getCurrentXRes(),
 			controller.getCurrentYRes(),
@@ -250,30 +255,59 @@ int main(int argc, char ** argv)
 		}
 
 		if (params_changed)
+		{
 			controller.updateParams(controller.params);
-
-		// Tonemap current render output
-		int cur_xres, cur_yres;
-		{
-			std::lock_guard<std::mutex> lock(controller.output_mutex);
-			cur_xres = controller.output.xres;
-			cur_yres = controller.output.yres;
-			tonemapToPixels(display_pixels, controller.output);
+			force_refresh = true;
 		}
 
-		// Recreate texture if resolution changed
-		if (cur_xres != tex_w || cur_yres != tex_h)
+		// Determine if we should update the display texture
+		// Only update at power-of-two passes, on param change, or on manual refresh
+		const int cur_passes = controller.getCompletedPasses();
+		const uint64_t cur_gen = controller.getGeneration();
+		bool should_update = force_refresh;
+
+		if (cur_gen != last_displayed_gen)
+			should_update = true; // Generation changed (params changed, sub-res step)
+
+		if (cur_passes != last_displayed_passes)
 		{
-			if (texture) SDL_DestroyTexture(texture);
-			texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_RGB24,
-				SDL_TEXTUREACCESS_STREAMING, cur_xres, cur_yres);
-			tex_w = cur_xres;
-			tex_h = cur_yres;
+			// Always show the first 3 passes (sub-res previews + first full-res)
+			if (cur_passes <= 3)
+				should_update = true;
+			// After that, only at power-of-two full-res passes
+			else if (cur_passes > 2 && (cur_passes & (cur_passes - 1)) == 0)
+				should_update = true;
 		}
 
-		// Upload pixels
-		if (texture && !display_pixels.empty())
-			SDL_UpdateTexture(texture, nullptr, display_pixels.data(), cur_xres * 3);
+		if (should_update)
+		{
+			last_displayed_passes = cur_passes;
+			last_displayed_gen = cur_gen;
+			force_refresh = false;
+
+			// Tonemap current render output
+			int cur_xres, cur_yres;
+			{
+				std::lock_guard<std::mutex> lock(controller.output_mutex);
+				cur_xres = controller.output.xres;
+				cur_yres = controller.output.yres;
+				tonemapToPixels(display_pixels, controller.output);
+			}
+
+			// Recreate texture if resolution changed
+			if (cur_xres != tex_w || cur_yres != tex_h)
+			{
+				if (texture) SDL_DestroyTexture(texture);
+				texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_RGB24,
+					SDL_TEXTUREACCESS_STREAMING, cur_xres, cur_yres);
+				tex_w = cur_xres;
+				tex_h = cur_yres;
+			}
+
+			// Upload pixels
+			if (texture && !display_pixels.empty())
+				SDL_UpdateTexture(texture, nullptr, display_pixels.data(), cur_xres * 3);
+		}
 
 		// Render scene
 		SDL_RenderClear(sdl_renderer);

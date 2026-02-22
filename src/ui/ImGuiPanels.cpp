@@ -255,8 +255,9 @@ bool drawRenderSettingsPanel(RenderSettings & settings)
 }
 
 
-void drawStatsOverlay(int passes, int xres, int yres, float fps)
+bool drawStatsOverlay(int passes, int xres, int yres, float fps)
 {
+	bool refresh = false;
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
 	ImGui::SetNextWindowBgAlpha(0.5f);
 	if (ImGui::Begin("Stats", nullptr,
@@ -267,8 +268,11 @@ void drawStatsOverlay(int passes, int xres, int yres, float fps)
 		ImGui::Text("Resolution: %d x %d", xres, yres);
 		ImGui::Text("Passes: %d", passes);
 		ImGui::Text("FPS: %.1f", fps);
+		if (ImGui::Button("Refresh"))
+			refresh = true;
 	}
 	ImGui::End();
+	return refresh;
 }
 
 

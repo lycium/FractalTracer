@@ -155,7 +155,12 @@ void RenderController::managerFunc()
 		// If generation changed during render, restart
 		if (generation.load() != gen) continue;
 
-		// Pass completed
+		// Pass completed - update the pass count used for normalisation
+		{
+			std::lock_guard<std::mutex> lock(output_mutex);
+			const int render_pass = (pass < 2) ? 0 : pass - 2;
+			output.passes = render_pass + 1;
+		}
 		completed_passes.fetch_add(1);
 	}
 }

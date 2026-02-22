@@ -10,7 +10,8 @@ bool drawCameraPanel(CameraParams & camera);
 bool drawMaterialPanel(FractalParams & fp);
 bool drawLightPanel(LightParams & light);
 bool drawRenderSettingsPanel(RenderSettings & settings);
-void drawStatsOverlay(int passes, int xres, int yres, float fps);
+// Returns true if the Refresh button was pressed
+bool drawStatsOverlay(int passes, int xres, int yres, float fps);
 
 // File menu: returns true if params were loaded (caller should updateParams)
 bool drawFileMenu(SceneParams & params);
