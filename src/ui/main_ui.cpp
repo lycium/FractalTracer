@@ -145,16 +145,21 @@ int main(int argc, char ** argv)
 	int last_displayed_passes = -1;
 	bool force_refresh = false;
 
+	// UI frame rate settings
+	int ui_max_fps = 30;
+	bool ui_lazy_mode = false;
+
 	Uint64 last_time = SDL_GetPerformanceCounter();
 	float fps = 0;
+	int prev_passes = -1;
 
 	bool quit = false;
 	while (!quit)
 	{
 		// Timing
-		const Uint64 now = SDL_GetPerformanceCounter();
-		const float dt = (float)(now - last_time) / SDL_GetPerformanceFrequency();
-		last_time = now;
+		const Uint64 frame_start = SDL_GetPerformanceCounter();
+		const float dt = (float)(frame_start - last_time) / SDL_GetPerformanceFrequency();
+		last_time = frame_start;
 		fps = fps * 0.95f + (1.0f / std::max(dt, 0.001f)) * 0.05f;
 
 		// Detect window size changes (handles resize, monitor drag, DPI changes)
@@ -171,9 +176,11 @@ int main(int argc, char ** argv)
 		}
 
 		// Poll events
+		bool had_events = false;
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
+			had_events = true;
 			ImGui_ImplSDL2_ProcessEvent(&event);
 
 			if (event.type == SDL_QUIT) quit = true;
@@ -211,6 +218,14 @@ int main(int argc, char ** argv)
 			ImGui::Checkbox("Orbit Mode (Tab)", &interactive_cam.orbit_mode);
 			ImGui::SliderFloat("Move Speed", &interactive_cam.move_speed, 0.1f, 10.0f);
 			ImGui::SliderFloat("Mouse Sensitivity", &interactive_cam.mouse_sensitivity, 0.001f, 0.01f);
+
+			if (ImGui::CollapsingHeader("UI Settings"))
+			{
+				ImGui::SliderInt("UI Max FPS", &ui_max_fps, 5, 120);
+				ImGui::Checkbox("Lazy Mode (experimental)", &ui_lazy_mode);
+				if (ui_lazy_mode)
+					ImGui::TextWrapped("UI sleeps when idle. May feel less responsive.");
+			}
 
 			ImGui::Separator();
 			if (drawFileMenu(controller.params))
@@ -332,6 +347,26 @@ int main(int argc, char ** argv)
 		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), sdl_renderer);
 
 		SDL_RenderPresent(sdl_renderer);
+
+		// Track activity for lazy mode
+		const bool render_updated = (cur_passes != prev_passes);
+		prev_passes = cur_passes;
+		const bool had_activity = had_events || params_changed || render_updated || should_update;
+
+		// Frame rate limiting
+		const Uint64 frame_end = SDL_GetPerformanceCounter();
+		const float frame_ms = (float)(frame_end - frame_start) * 1000.0f / SDL_GetPerformanceFrequency();
+
+		if (ui_lazy_mode && !had_activity)
+		{
+			SDL_Delay(200); // Sleep when idle; queued events wake us on next iteration
+		}
+		else if (ui_max_fps > 0)
+		{
+			const float target_ms = 1000.0f / ui_max_fps;
+			if (frame_ms < target_ms)
+				SDL_Delay((Uint32)(target_ms - frame_ms));
+		}
 	}
 
 	controller.stop();
