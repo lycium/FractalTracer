@@ -8,10 +8,11 @@
 // Base class for dual number based distance estimated (DE) objects
 struct DualDEObject : public SceneObject
 {
-	vec3r centre = { 0, 0, 0 };
-	real  radius = 1;
+	vec3r centre      = { 0, 0, 0 };
+	real  radius      = 1;
+	real  scene_scale = 1;
+	real  step_scale  = 1; // Method of last resort to prevent overstepping, interpreted as a Lipschitz constant
 	real  bailout_radius2 = 64;
-	real  step_scale = 1; // Method of last resort to prevent overstepping, interpreted as a Lipschitz constant
 
 
 	real getLinearDE(const DualVec3r & p_os, vec3r & normal_os_out) const noexcept
@@ -429,7 +430,8 @@ struct DualDEObject : public SceneObject
 	// Dual numbers provide exact normals as part of the evaluation
 	virtual vec3r getNormal(const vec3r & p) noexcept override final
 	{
-		const DualVec3r p_dual(Dual3r(p.x(), 0), Dual3r(p.y(), 1), Dual3r(p.z(), 2));
+		const vec3r p_os = (p - centre) / scene_scale;
+		const DualVec3r p_dual(Dual3r(p_os.x(), 0), Dual3r(p_os.y(), 1), Dual3r(p_os.z(), 2));
 
 		vec3r normal_os;
 		const real de_ignored = getDE(p_dual, normal_os);
@@ -452,16 +454,21 @@ struct DualDEObject : public SceneObject
 		const real t2 = -b + std::sqrt(discriminant);
 		if (t2 <= ray_epsilon) return -1;
 
-		// Ray could be inside bounding sphere, start from ray epsilon
 		const real thresh = DE_thresh;
+		const real DE_step_scale = scene_scale * step_scale;
+		const real inv_scene_scale = 1 / scene_scale;
+
+		// Ray could be inside bounding sphere, start from ray epsilon
 		real t = std::max(ray_epsilon, t1);
 		while (t < t2)
 		{
-			const vec3r p_os = s + r.d * t;
+			// Transform from world space to object space
+			const vec3r p_os = (s + r.d * t) * inv_scene_scale;
 			const DualVec3r p_os_dual(Dual3r(p_os.x(), 0), Dual3r(p_os.y(), 1), Dual3r(p_os.z(), 2));
 	
+			// Scale DE from object space to world space
 			vec3r normal_ignored;
-			const real DE = getDE(p_os_dual, normal_ignored) * step_scale;
+			const real DE = getDE(p_os_dual, normal_ignored) * DE_step_scale;
 			(void) normal_ignored;
 			t += DE;
 
