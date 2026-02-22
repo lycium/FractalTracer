@@ -52,17 +52,42 @@ void RenderController::managerFunc()
 {
 	std::vector<std::thread> workers(num_threads);
 
+	// Cached scene and params - only rebuilt when generation changes
+	uint64_t scene_gen = UINT64_MAX; // Force initial build
+	Scene render_scene;
+	CameraParams camera;
+	LightParams light;
+	RenderSettings settings;
+
 	while (running)
 	{
 		const uint64_t gen = generation.load();
 		const int pass = completed_passes.load();
 
-		// Determine sub-resolution level
-		// pass 0: 1/4 res, pass 1: 1/2 res, pass 2+: full res
+		// Only snapshot params and rebuild scene when generation changes
+		if (gen != scene_gen)
+		{
+			FractalParams fractal;
+			{
+				std::lock_guard<std::mutex> lock(params_mutex);
+				camera = params.camera;
+				light = params.light;
+				settings = params.render;
+				fractal = params.fractal;
+			}
+			camera.recompute();
+			buildScene(render_scene, fractal);
+			scene_gen = gen;
+		}
+
+		// Determine sub-resolution level - aggressive downscaling for fast preview
+		// pass 0: 1/16 res, pass 1: 1/8 res, pass 2: 1/4 res, pass 3: 1/2 res, pass 4+: full res
 		int render_xres = full_xres;
 		int render_yres = full_yres;
-		if (pass == 0)      { render_xres /= 4; render_yres /= 4; }
-		else if (pass == 1) { render_xres /= 2; render_yres /= 2; }
+		if (pass == 0)      { render_xres /= 16; render_yres /= 16; }
+		else if (pass == 1) { render_xres /= 8;  render_yres /= 8;  }
+		else if (pass == 2) { render_xres /= 4;  render_yres /= 4;  }
+		else if (pass == 3) { render_xres /= 2;  render_yres /= 2;  }
 		render_xres = std::max(render_xres, 32);
 		render_yres = std::max(render_yres, 18);
 
@@ -74,29 +99,12 @@ void RenderController::managerFunc()
 			std::lock_guard<std::mutex> lock(output_mutex);
 			if (output.xres != render_xres || output.yres != render_yres)
 				output.resize(render_xres, render_yres);
-			else if (pass <= 2)
+			else if (pass <= 4)
 				output.clear();
 		}
 
-		// Snapshot params and build scene
-		CameraParams camera;
-		LightParams light;
-		RenderSettings settings;
-		FractalParams fractal;
-		{
-			std::lock_guard<std::mutex> lock(params_mutex);
-			camera = params.camera;
-			light = params.light;
-			settings = params.render;
-			fractal = params.fractal;
-		}
-		camera.recompute();
-
-		Scene render_scene;
-		buildScene(render_scene, fractal);
-
 		// Use the pass index, but for sub-resolution levels always use pass 0
-		const int render_pass = (pass < 2) ? 0 : pass - 2;
+		const int render_pass = (pass < 4) ? 0 : pass - 4;
 
 		// Render one pass using bucket-based multi-threading
 		ThreadControl thread_control = { 1 }; // 1 pass at a time
@@ -110,7 +118,7 @@ void RenderController::managerFunc()
 
 				Scene local_scene(render_scene);
 
-				constexpr int bucket_size = 32;
+				constexpr int bucket_size = 64;
 				const int x_buckets = (xres + bucket_size - 1) / bucket_size;
 				const int y_buckets = (yres + bucket_size - 1) / bucket_size;
 				const int num_buckets = x_buckets * y_buckets;
@@ -128,8 +136,11 @@ void RenderController::managerFunc()
 					const int y0 = bucket_y * bucket_size, y1 = std::min(y0 + bucket_size, yres);
 
 					for (int y = y0; y < y1; ++y)
-					for (int x = x0; x < x1; ++x)
-						render(x, y, 0, render_pass, 0, camera, light, settings, local_scene, output, &hdr_env);
+					{
+						if (generation.load() != gen) break; // Check per-row for faster cancellation
+						for (int x = x0; x < x1; ++x)
+							render(x, y, 0, render_pass, 0, camera, light, settings, local_scene, output, &hdr_env);
+					}
 				}
 			});
 		}
@@ -143,7 +154,6 @@ void RenderController::managerFunc()
 		// Pass completed - update the pass count used for normalisation
 		{
 			std::lock_guard<std::mutex> lock(output_mutex);
-			const int render_pass = (pass < 2) ? 0 : pass - 2;
 			output.passes = render_pass + 1;
 		}
 		completed_passes.fetch_add(1);

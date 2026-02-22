@@ -269,15 +269,18 @@ int main(int argc, char ** argv)
 
 		if (cur_passes > 0 && cur_passes != last_displayed_passes)
 		{
+			// 4 sub-res passes (1/16, 1/8, 1/4, 1/2) then full-res accumulation
+			constexpr int sub_res_passes = 4;
+
 			if (force_refresh)
 				should_update = true;
-			// Always show the first 3 passes (sub-res previews + first full-res)
-			else if (cur_passes <= 3)
+			// Always show sub-res previews + first full-res
+			else if (cur_passes <= sub_res_passes + 1)
 				should_update = true;
 			// After that, only at power-of-two full-res passes
 			else
 			{
-				const int full_res = cur_passes - 2;
+				const int full_res = cur_passes - sub_res_passes;
 				if (full_res > 0 && (full_res & (full_res - 1)) == 0)
 					should_update = true;
 			}

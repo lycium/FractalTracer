@@ -270,7 +270,7 @@ bool drawStatsOverlay(int passes, int target_passes, int xres, int yres, float f
 		ImGui::Text("FPS: %.1f", fps);
 
 		// Log2 sampling progress slider
-		const int full_res_passes = std::max(0, passes - 2);
+		const int full_res_passes = std::max(0, passes - 4);
 		const float log2_current = (full_res_passes > 0) ? std::log2((float)full_res_passes) : 0;
 		const float log2_target  = (target_passes > 0)   ? std::log2((float)target_passes)   : 1;
 		float progress = log2_current; // non-editable, just for display
