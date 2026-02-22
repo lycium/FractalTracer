@@ -79,6 +79,10 @@ bool saveScene(const std::string & path, const SceneParams & params)
 	fp["lambdabulb_power"] = f.lambdabulb_power;
 	fp["lambdabulb_c"]     = vec3rToJson(f.lambdabulb_c);
 
+	fp["amosersine_scale"]      = f.amosersine_scale;
+	fp["amosersine_julia_c"]    = vec3rToJson(f.amosersine_julia_c);
+	fp["amosersine_julia_mode"] = f.amosersine_julia_mode;
+
 	fp["octopus_xz_mul"]     = f.octopus_xz_mul;
 	fp["octopus_sq_mul"]     = f.octopus_sq_mul;
 	fp["octopus_julia_mode"] = f.octopus_julia_mode;
@@ -119,10 +123,11 @@ bool saveScene(const std::string & path, const SceneParams & params)
 
 	// Render settings
 	auto & rs = j["render"];
-	rs["max_bounces"]   = params.render.max_bounces;
-	rs["target_passes"] = params.render.target_passes;
-	rs["resolution_x"]  = params.render.resolution_x;
-	rs["resolution_y"]  = params.render.resolution_y;
+	rs["max_bounces"]      = params.render.max_bounces;
+	rs["target_passes"]    = params.render.target_passes;
+	rs["resolution_x"]     = params.render.resolution_x;
+	rs["resolution_y"]     = params.render.resolution_y;
+	rs["preview_divisor"]  = params.render.preview_divisor;
 
 	std::ofstream file(path);
 	if (!file.is_open()) return false;
@@ -226,6 +231,10 @@ bool loadScene(const std::string & path, SceneParams & params)
 		f.lambdabulb_power = get(fp, "lambdabulb_power", defaults_fp.lambdabulb_power);
 		if (fp.contains("lambdabulb_c")) f.lambdabulb_c = jsonToVec3r(fp["lambdabulb_c"]);
 
+		f.amosersine_scale      = get(fp, "amosersine_scale",      defaults_fp.amosersine_scale);
+		if (fp.contains("amosersine_julia_c")) f.amosersine_julia_c = jsonToVec3r(fp["amosersine_julia_c"]);
+		f.amosersine_julia_mode = get(fp, "amosersine_julia_mode", defaults_fp.amosersine_julia_mode);
+
 		f.octopus_xz_mul     = get(fp, "octopus_xz_mul",     defaults_fp.octopus_xz_mul);
 		f.octopus_sq_mul     = get(fp, "octopus_sq_mul",     defaults_fp.octopus_sq_mul);
 		f.octopus_julia_mode = get(fp, "octopus_julia_mode", defaults_fp.octopus_julia_mode);
@@ -272,10 +281,11 @@ bool loadScene(const std::string & path, SceneParams & params)
 	if (j.contains("render"))
 	{
 		auto & rs = j["render"];
-		params.render.max_bounces   = get(rs, "max_bounces",   defaults_rs.max_bounces);
-		params.render.target_passes = get(rs, "target_passes", defaults_rs.target_passes);
-		params.render.resolution_x  = get(rs, "resolution_x",  defaults_rs.resolution_x);
-		params.render.resolution_y  = get(rs, "resolution_y",  defaults_rs.resolution_y);
+		params.render.max_bounces     = get(rs, "max_bounces",     defaults_rs.max_bounces);
+		params.render.target_passes   = get(rs, "target_passes",   defaults_rs.target_passes);
+		params.render.resolution_x    = get(rs, "resolution_x",    defaults_rs.resolution_x);
+		params.render.resolution_y    = get(rs, "resolution_y",    defaults_rs.resolution_y);
+		params.render.preview_divisor = get(rs, "preview_divisor", defaults_rs.preview_divisor);
 	}
 
 	return true;

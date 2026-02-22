@@ -6,7 +6,7 @@
 
 struct FractalParams
 {
-	std::string formula_name = "mandalay";
+	std::string formula_name = "amosersine";
 
 	// Common DE parameters
 	real radius          = 1.35f;
@@ -53,6 +53,11 @@ struct FractalParams
 	// Lambdabulb-specific
 	real  lambdabulb_power = 4;
 	vec3r lambdabulb_c     = { 1.035f, -0.317f, 0.013f };
+
+	// AmoserSine-specific
+	real amosersine_scale = 2;
+	vec3r amosersine_julia_c = { 0, 0, 0 };
+	bool amosersine_julia_mode = false;
 
 	// Octopus-specific
 	real octopus_xz_mul    = 1.25f;

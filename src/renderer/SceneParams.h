@@ -21,10 +21,11 @@ struct LightParams
 
 struct RenderSettings
 {
-	int max_bounces   = 8;
-	int target_passes = 2310; // 2*3*5*7*11
-	int resolution_x  = 1280;
-	int resolution_y  = 720;
+	int max_bounces     = 8;
+	int target_passes   = 2310; // 2*3*5*7*11
+	int resolution_x    = 1280;
+	int resolution_y    = 720;
+	int preview_divisor = 32;   // Sub-resolution divisor for interactive preview
 };
 
 

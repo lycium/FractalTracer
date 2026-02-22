@@ -55,7 +55,7 @@ bool drawFormulaPanel(FractalParams & fp)
 
 	// Formula selector
 	const char * formulas[] = {
-		"mandalay", "amazingbox", "amazingbox_mandalay", "mandelbulb", "hopfbrot",
+		"amosersine", "mandalay", "amazingbox", "amazingbox_mandalay", "mandelbulb", "hopfbrot",
 		"burningship4d", "lambdabulb", "octopus", "mengersponge", "cubicbulb",
 		"pseudokleinian", "riemannsphere", "spheretree", "benesipine2", "sphere"
 	};
@@ -80,7 +80,15 @@ bool drawFormulaPanel(FractalParams & fp)
 	// Formula-specific parameters
 	const std::string & name = fp.formula_name;
 
-	if (name == "mandalay")
+	if (name == "amosersine")
+	{
+		ImGui::Separator();
+		ImGui::Text("AmoserSine Parameters");
+		changed |= SliderReal("Scale##amosersine", &fp.amosersine_scale, 0.5f, 5.0f);
+		changed |= DragVec3r("Julia C##amosersine", fp.amosersine_julia_c, 0.01f);
+		changed |= ImGui::Checkbox("Julia Mode##amosersine", &fp.amosersine_julia_mode);
+	}
+	else if (name == "mandalay")
 	{
 		ImGui::Separator();
 		ImGui::Text("MandalayKIFS Parameters");
@@ -250,6 +258,7 @@ bool drawRenderSettingsPanel(RenderSettings & settings)
 
 	changed |= ImGui::SliderInt("Max Bounces", &settings.max_bounces, 1, 32);
 	changed |= ImGui::SliderInt("Target Passes", &settings.target_passes, 1, 10000);
+	changed |= ImGui::SliderInt("Preview Divisor", &settings.preview_divisor, 1, 64);
 
 	return changed;
 }

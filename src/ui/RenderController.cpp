@@ -59,6 +59,9 @@ void RenderController::managerFunc()
 	LightParams light;
 	RenderSettings settings;
 
+	// Local render buffer - output is only updated with completed frames
+	RenderOutput render_buf(1, 1);
+
 	while (running)
 	{
 		const uint64_t gen = generation.load();
@@ -80,31 +83,30 @@ void RenderController::managerFunc()
 			scene_gen = gen;
 		}
 
-		// Determine sub-resolution level - aggressive downscaling for fast preview
-		// pass 0: 1/16 res, pass 1: 1/8 res, pass 2: 1/4 res, pass 3: 1/2 res, pass 4+: full res
-		int render_xres = full_xres;
-		int render_yres = full_yres;
-		if (pass == 0)      { render_xres /= 16; render_yres /= 16; }
-		else if (pass == 1) { render_xres /= 8;  render_yres /= 8;  }
-		else if (pass == 2) { render_xres /= 4;  render_yres /= 4;  }
-		else if (pass == 3) { render_xres /= 2;  render_yres /= 2;  }
-		render_xres = std::max(render_xres, 32);
-		render_yres = std::max(render_yres, 18);
+		// Progressive sub-resolution preview: each pass halves the divisor
+		// e.g. divisor=32: pass 0 @ /32, pass 1 @ /16, ... pass 5 @ /1 (full res), pass 6+ accumulate
+		const int divisor = std::max(1, settings.preview_divisor);
+		const int cur_divisor = std::max(1, divisor >> pass);
+		const int target_xres = full_xres.load();
+		const int target_yres = full_yres.load();
+		int render_xres = std::max(1, target_xres / cur_divisor);
+		int render_yres = std::max(1, target_yres / cur_divisor);
+
+		// Count sub-resolution levels (passes before full res)
+		int sub_res_count = 0;
+		for (int d = divisor; d > 1; d >>= 1) sub_res_count++;
 
 		current_xres = render_xres;
 		current_yres = render_yres;
 
-		// Resize/clear output if resolution changed
-		{
-			std::lock_guard<std::mutex> lock(output_mutex);
-			if (output.xres != render_xres || output.yres != render_yres)
-				output.resize(render_xres, render_yres);
-			else if (pass <= 4)
-				output.clear();
-		}
+		// Prepare render buffer
+		if (render_buf.xres != render_xres || render_buf.yres != render_yres)
+			render_buf.resize(render_xres, render_yres);
+		else if (pass <= sub_res_count)
+			render_buf.clear();
 
-		// Use the pass index, but for sub-resolution levels always use pass 0
-		const int render_pass = (pass < 4) ? 0 : pass - 4;
+		// Sub-res passes use render_pass 0, full-res passes accumulate from 0
+		const int render_pass = (pass < sub_res_count) ? 0 : pass - sub_res_count;
 
 		// Render one pass using bucket-based multi-threading
 		ThreadControl thread_control = { 1 }; // 1 pass at a time
@@ -139,7 +141,7 @@ void RenderController::managerFunc()
 					{
 						if (generation.load() != gen) break; // Check per-row for faster cancellation
 						for (int x = x0; x < x1; ++x)
-							render(x, y, 0, render_pass, 0, camera, light, settings, local_scene, output, &hdr_env);
+							render(x, y, 0, render_pass, 0, camera, light, settings, local_scene, render_buf, &hdr_env);
 					}
 				}
 			});
@@ -151,9 +153,15 @@ void RenderController::managerFunc()
 		// If generation changed during render, restart
 		if (generation.load() != gen) continue;
 
-		// Pass completed - update the pass count used for normalisation
+		// Pass completed - publish to display output
 		{
 			std::lock_guard<std::mutex> lock(output_mutex);
+			if (output.xres != render_xres || output.yres != render_yres)
+				output.resize(render_xres, render_yres);
+			const size_t n = (size_t)render_xres * render_yres;
+			memcpy((void *)output.beauty.data(), render_buf.beauty.data(), n * sizeof(vec3f));
+			memcpy((void *)output.normal.data(), render_buf.normal.data(), n * sizeof(vec3f));
+			memcpy((void *)output.albedo.data(), render_buf.albedo.data(), n * sizeof(vec3f));
 			output.passes = render_pass + 1;
 		}
 		completed_passes.fetch_add(1);

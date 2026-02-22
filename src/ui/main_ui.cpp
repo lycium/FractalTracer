@@ -157,8 +157,20 @@ int main(int argc, char ** argv)
 		last_time = now;
 		fps = fps * 0.95f + (1.0f / std::max(dt, 0.001f)) * 0.05f;
 
-		// Poll events
+		// Detect window size changes (handles resize, monitor drag, DPI changes)
 		bool params_changed = false;
+		{
+			int win_w, win_h;
+			SDL_GetWindowSize(window, &win_w, &win_h);
+			if (win_w != controller.full_xres.load() || win_h != controller.full_yres.load())
+			{
+				controller.full_xres = win_w;
+				controller.full_yres = win_h;
+				params_changed = true;
+			}
+		}
+
+		// Poll events
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
@@ -166,13 +178,6 @@ int main(int argc, char ** argv)
 
 			if (event.type == SDL_QUIT) quit = true;
 			if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) quit = true;
-
-			if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED)
-			{
-				controller.full_xres = event.window.data1;
-				controller.full_yres = event.window.data2;
-				params_changed = true;
-			}
 
 			// Interactive camera mouse events
 			params_changed |= interactive_cam.processEvent(event, controller.params.camera);
@@ -269,18 +274,20 @@ int main(int argc, char ** argv)
 
 		if (cur_passes > 0 && cur_passes != last_displayed_passes)
 		{
-			// 4 sub-res passes (1/16, 1/8, 1/4, 1/2) then full-res accumulation
-			constexpr int sub_res_passes = 4;
+			// Count sub-resolution levels from preview_divisor
+			const int divisor = controller.params.render.preview_divisor;
+			int sub_res_count = 0;
+			for (int d = divisor; d > 1; d >>= 1) sub_res_count++;
 
 			if (force_refresh)
 				should_update = true;
-			// Always show sub-res previews + first full-res
-			else if (cur_passes <= sub_res_passes + 1)
+			// Always show every sub-res preview + first full-res pass
+			else if (cur_passes <= sub_res_count + 1)
 				should_update = true;
 			// After that, only at power-of-two full-res passes
 			else
 			{
-				const int full_res = cur_passes - sub_res_passes;
+				const int full_res = cur_passes - sub_res_count;
 				if (full_res > 0 && (full_res & (full_res - 1)) == 0)
 					should_update = true;
 			}

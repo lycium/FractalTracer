@@ -39,8 +39,8 @@ struct RenderController
 	int getCurrentXRes() const { return current_xres.load(); }
 	int getCurrentYRes() const { return current_yres.load(); }
 
-	// Full target resolution
-	int full_xres, full_yres;
+	// Full target resolution (written by UI thread, read by render thread)
+	std::atomic<int> full_xres, full_yres;
 
 	// Current parameters - use updateParams() to modify and trigger restart
 	SceneParams params;

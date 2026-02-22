@@ -13,6 +13,7 @@
 #include "formulas/Cubicbulb.h"
 #include "formulas/Amazingbox.h"
 #include "formulas/Octopus.h"
+#include "formulas/AmoserSine.h"
 #include "formulas/PseudoKleinian.h"
 #include "formulas/MandalayKIFS.h"
 #include "formulas/BenesiPine2.h"
@@ -125,6 +126,7 @@ inline bool buildScene(Scene & scene, const FractalParams & fp)
 		else if (name == "riemannsphere")  { auto * p = new DualRiemannSphereIteration;     p->scale = fp.riemannsphere_scale; p->s_shift = fp.riemannsphere_s_shift; p->t_shift = fp.riemannsphere_t_shift; p->x_shift = fp.riemannsphere_x_shift; p->r_shift = fp.riemannsphere_r_shift; p->r_pow = fp.riemannsphere_r_pow; iter = p; }
 		else if (name == "mandalay")       { auto * p = new DualMandalayKIFSIteration;      p->scale = fp.mandalay_scale; p->min_r2 = fp.mandalay_min_r2; p->folding_offset = fp.mandalay_folding_offset; p->z_tower = fp.mandalay_z_tower; p->xy_tower = fp.mandalay_xy_tower; p->rotate = fp.mandalay_rotate; p->julia_c = fp.mandalay_julia_c; p->julia_mode = fp.mandalay_julia_mode; iter = p; }
 		else if (name == "spheretree")     { iter = new DualSphereTreeIteration; }
+		else if (name == "amosersine")     { auto * p = new DualAmoserSineIteration;        p->scale = fp.amosersine_scale; p->julia_c = fp.amosersine_julia_c; p->julia_mode = fp.amosersine_julia_mode; iter = p; }
 		else if (name == "benesipine2")    { auto * p = new DualBenesiPine2Iteration;       p->scale = fp.benesipine2_scale; p->offset = fp.benesipine2_offset; p->julia_mode = fp.benesipine2_julia_mode; iter = p; }
 		else
 			return false; // Unknown formula
