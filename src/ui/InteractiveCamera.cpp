@@ -75,14 +75,14 @@ bool InteractiveCamera::processEvent(const SDL_Event & event, CameraParams & cam
 
 	bool changed = false;
 
-	if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_RIGHT)
+	if (event.type == SDL_MOUSEBUTTONDOWN && (event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT))
 	{
 		mouse_captured = true;
 		last_mouse_x = event.button.x;
 		last_mouse_y = event.button.y;
 		SDL_SetRelativeMouseMode(SDL_TRUE);
 	}
-	else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_RIGHT)
+	else if (event.type == SDL_MOUSEBUTTONUP && (event.button.button == SDL_BUTTON_LEFT || event.button.button == SDL_BUTTON_RIGHT))
 	{
 		mouse_captured = false;
 		SDL_SetRelativeMouseMode(SDL_FALSE);

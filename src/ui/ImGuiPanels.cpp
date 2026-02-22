@@ -255,7 +255,7 @@ bool drawRenderSettingsPanel(RenderSettings & settings)
 }
 
 
-bool drawStatsOverlay(int passes, int xres, int yres, float fps)
+bool drawStatsOverlay(int passes, int target_passes, int xres, int yres, float fps)
 {
 	bool refresh = false;
 	ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
@@ -266,8 +266,18 @@ bool drawStatsOverlay(int passes, int xres, int yres, float fps)
 		ImGuiWindowFlags_NoMove))
 	{
 		ImGui::Text("Resolution: %d x %d", xres, yres);
-		ImGui::Text("Passes: %d", passes);
+		ImGui::Text("Passes: %d / %d", passes, target_passes);
 		ImGui::Text("FPS: %.1f", fps);
+
+		// Log2 sampling progress slider
+		const int full_res_passes = std::max(0, passes - 2);
+		const float log2_current = (full_res_passes > 0) ? std::log2((float)full_res_passes) : 0;
+		const float log2_target  = (target_passes > 0)   ? std::log2((float)target_passes)   : 1;
+		float progress = log2_current; // non-editable, just for display
+		char label[64];
+		snprintf(label, sizeof(label), "%.1f / %.1f", log2_current, log2_target);
+		ImGui::SliderFloat("log2(spp)", &progress, 0, log2_target, label, ImGuiSliderFlags_NoInput);
+
 		if (ImGui::Button("Refresh"))
 			refresh = true;
 	}

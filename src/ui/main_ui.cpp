@@ -223,6 +223,7 @@ int main(int argc, char ** argv)
 		// Stats overlay
 		force_refresh |= drawStatsOverlay(
 			controller.getCompletedPasses(),
+			controller.params.render.target_passes,
 			controller.getCurrentXRes(),
 			controller.getCurrentYRes(),
 			fps);
