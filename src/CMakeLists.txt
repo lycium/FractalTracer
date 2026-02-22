@@ -16,12 +16,22 @@ include(libs.cmake)
 find_package(OpenMP)
 find_package(Threads)
 
+# Fetch nlohmann/json (used by both CLI and UI for scene serialization)
+include(FetchContent)
+FetchContent_Declare(
+    json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG v3.11.3
+)
+FetchContent_MakeAvailable(json)
+
 # CLI batch renderer
-add_executable(FractalTracer demo/main.cpp)
+add_executable(FractalTracer demo/main.cpp ui/SceneSerializer.cpp)
 target_include_directories(FractalTracer PUBLIC .)
 target_link_libraries(FractalTracer
     Threads::Threads OpenMP::OpenMP_CXX
     TracerLib
+    nlohmann_json::nlohmann_json
     )
 
 # Interactive UI (SDL2 + Dear ImGui)
@@ -51,14 +61,6 @@ if(SDL2_FOUND)
         ${imgui_SOURCE_DIR}/backends
     )
     target_link_libraries(imgui_lib PUBLIC SDL2::SDL2)
-
-    # Fetch nlohmann/json
-    FetchContent_Declare(
-        json
-        GIT_REPOSITORY https://github.com/nlohmann/json.git
-        GIT_TAG v3.11.3
-    )
-    FetchContent_MakeAvailable(json)
 
     add_executable(FractalTracerUI
         ui/main_ui.cpp

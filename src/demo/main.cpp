@@ -30,6 +30,7 @@
 #include "renderer/HDREnvironment.h"
 #include "renderer/Renderer.h"
 #include "renderer/SceneBuilder.h"
+#include "ui/SceneSerializer.h"
 
 
 
@@ -98,6 +99,7 @@ int main(int argc, char ** argv)
 	bool preview = false;
 	bool save_normal = false;
 	bool save_albedo = false;
+	std::string scene_path;
 
 	SceneParams params;
 
@@ -111,7 +113,19 @@ int main(int argc, char ** argv)
 		else if (a == "--albedo")  save_albedo = true;
 		else if (a == "--formula" && arg + 1 < argc) params.fractal.formula_name = argv[++arg];
 		else if (a == "--hdrenv"  && arg + 1 < argc) params.light.hdr_env_path   = argv[++arg];
-		else { fprintf(stderr, "Unknown argument: %s\nUsage: FractalTracer [--formula <name>] [--hdrenv <path>] [--animation] [--preview] [--box] [--normal] [--albedo]\n", argv[arg]); return 1; }
+		else if (a == "--scene"  && arg + 1 < argc)  scene_path = argv[++arg];
+		else { fprintf(stderr, "Unknown argument: %s\nUsage: FractalTracer [--scene <path>] [--formula <name>] [--hdrenv <path>] [--animation] [--preview] [--box] [--normal] [--albedo]\n", argv[arg]); return 1; }
+	}
+
+	// Load scene file if specified (overrides defaults, CLI args can override further)
+	if (!scene_path.empty())
+	{
+		if (!loadScene(scene_path, params))
+		{
+			fprintf(stderr, "Failed to load scene: %s\n", scene_path.c_str());
+			return 1;
+		}
+		printf("Loaded scene: %s\n", scene_path.c_str());
 	}
 
 	// Set formula-specific defaults that differ from the struct defaults
@@ -160,7 +174,7 @@ int main(int argc, char ** argv)
 	Scene scene;
 	if (!buildScene(scene, params.fractal))
 	{
-		fprintf(stderr, "Unknown formula: %s\nAvailable formulas: sphere, amazingbox_mandalay, hopfbrot, burningship4d, mandelbulb, "
+		fprintf(stderr, "Unknown formula: %s\nAvailable formulas: amosersine, sphere, amazingbox_mandalay, hopfbrot, burningship4d, mandelbulb, "
 			"lambdabulb, amazingbox, octopus, mengersponge, cubicbulb, pseudokleinian, "
 			"riemannsphere, mandalay, spheretree, benesipine2\n", params.fractal.formula_name.c_str());
 		return 1;

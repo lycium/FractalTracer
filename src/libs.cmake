@@ -35,6 +35,7 @@ target_sources(TracerLib INTERFACE
     formulas/Mandelbulb.h
     formulas/MengerSponge.h
     formulas/MengerSpongeC.h
+    formulas/AmoserSine.h
     formulas/Octopus.h
     formulas/PseudoKleinian.h
     formulas/QuadraticJuliabulb.h

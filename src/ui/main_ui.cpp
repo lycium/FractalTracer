@@ -106,8 +106,7 @@ int main(int argc, char ** argv)
 	// Setup Dear ImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO & io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	// Note: NavEnableKeyboard is intentionally NOT set — it conflicts with WASD camera controls
 	ImGui::StyleColorsDark();
 
 	ImGui_ImplSDL2_InitForSDLRenderer(window, sdl_renderer);
