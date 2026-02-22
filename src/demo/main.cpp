@@ -11,6 +11,9 @@
 #include <thread>
 #include <algorithm> // For std::pair and std::min and max
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "../util/stb_image.h"
+
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../util/stb_image_write.h"
 
@@ -24,7 +27,9 @@
 
 #include "renderer/Ray.h"
 #include "renderer/Scene.h"
+#include "renderer/HDREnvironment.h"
 #include "renderer/Renderer.h"
+#include "renderer/ColouringFunction.h"
 
 #include "scene_objects/SimpleObjects.h"
 
@@ -54,11 +59,11 @@ struct sRGBPixel
 };
 
 
-void renderPasses(std::vector<std::thread> & threads, RenderOutput & output, int frame, int base_pass, int num_passes, int frames, Scene & scene) noexcept
+void renderPasses(std::vector<std::thread> & threads, RenderOutput & output, int frame, int base_pass, int num_passes, int frames, Scene & scene, const HDREnvironment * hdr_env) noexcept
 {
 	ThreadControl thread_control = { num_passes };
 
-	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &output, frame, base_pass, frames, &scene);
+	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &output, frame, base_pass, frames, &scene, hdr_env);
 	for (std::thread & t : threads) t.join();
 }
 
@@ -109,6 +114,7 @@ int main(int argc, char ** argv)
 	bool save_normal = false;
 	bool save_albedo = false;
 	std::string formula_name = "hopfbrot";
+	std::string hdrenv_path;
 	for (int arg = 1; arg < argc; ++arg)
 	{
 		const std::string a = argv[arg];
@@ -118,7 +124,28 @@ int main(int argc, char ** argv)
 		else if (a == "--normal")  save_normal = true;
 		else if (a == "--albedo")  save_albedo = true;
 		else if (a == "--formula" && arg + 1 < argc) formula_name = argv[++arg];
-		else { fprintf(stderr, "Unknown argument: %s\n", argv[arg]); return 1; }
+		else if (a == "--hdrenv"  && arg + 1 < argc) hdrenv_path  = argv[++arg];
+		else { fprintf(stderr, "Unknown argument: %s\nUsage: FractalTracer [--formula <name>] [--hdrenv <path>] [--animation] [--preview] [--box] [--normal] [--albedo]\n", argv[arg]); return 1; }
+	}
+
+	// Load HDR environment map if specified
+	HDREnvironment hdr_env;
+	if (!hdrenv_path.empty())
+	{
+		int channels;
+		float * hdr_data = stbi_loadf(hdrenv_path.c_str(), &hdr_env.xres, &hdr_env.yres, &channels, 3);
+		if (hdr_data == nullptr)
+		{
+			fprintf(stderr, "Failed to load HDR environment map: %s\n", hdrenv_path.c_str());
+			return 1;
+		}
+
+		hdr_env.data.resize(hdr_env.xres * hdr_env.yres);
+		for (int i = 0; i < hdr_env.xres * hdr_env.yres; ++i)
+			hdr_env.data[i] = { hdr_data[i * 3 + 0], hdr_data[i * 3 + 1], hdr_data[i * 3 + 2] };
+
+		stbi_image_free(hdr_data);
+		printf("Loaded HDR environment map: %s (%d x %d)\n", hdrenv_path.c_str(), hdr_env.xres, hdr_env.yres);
 	}
 
 	Scene scene;
@@ -166,6 +193,7 @@ int main(int argc, char ** argv)
 			Hopfbrot bulb;
 			bulb.radius = 2.0f;
 			bulb.step_scale = 0.5f;
+		    bulb.scene_scale = 2.0f;
 			bulb.mat.albedo = { 0.1f, 0.3f, 0.7f };
 			bulb.mat.use_fresnel = true;
 			scene.objects.push_back(bulb.clone());
@@ -218,6 +246,7 @@ int main(int argc, char ** argv)
 			hybrid.step_scale = 0.25;
 			hybrid.mat.albedo = { 0.2f, 0.6f, 0.9f };
 			hybrid.mat.use_fresnel = true;
+			hybrid.mat.colouring = new MinRadiusPaletteColouring();
 			scene.objects.push_back(hybrid.clone());
 		}
 		// Test adding sphere lights
@@ -282,7 +311,7 @@ int main(int argc, char ** argv)
 
 				const auto t1 = std::chrono::steady_clock::now();
 
-				renderPasses(threads, output, frame, 0, passes, frames, scene);
+				renderPasses(threads, output, frame, 0, passes, frames, scene, &hdr_env);
 
 				if (print_timing)
 				{
@@ -330,7 +359,7 @@ int main(int argc, char ** argv)
 
 				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
 				const int num_passes = target_passes - pass;
-				renderPasses(threads, output, 0, pass, num_passes, 0, scene);
+				renderPasses(threads, output, 0, pass, num_passes, 0, scene, &hdr_env);
 
 				if (print_timing)
 				{

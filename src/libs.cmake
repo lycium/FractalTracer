@@ -6,8 +6,11 @@ target_sources(TracerLib INTERFACE
     maths/triplex.h
     maths/vec.h
 
+    util/stb_image.h
     util/stb_image_write.h
 
+    renderer/ColouringFunction.h
+    renderer/HDREnvironment.h
     renderer/Material.h
     renderer/Ray.h
     renderer/Renderer.h

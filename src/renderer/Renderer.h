@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "Scene.h"
+#include "HDREnvironment.h"
 
 
 
@@ -31,19 +32,19 @@ void HilbertFibonacci(const vec2i dx, const vec2i dy, vec2i p, int size, uint64_
 }
 
 // From PBRT
-double RadicalInverse(int a, int base) noexcept
+double RadicalInverse(int sample, int base) noexcept
 {
 	const double invBase = 1.0 / base;
 
 	int reversedDigits = 0;
 	double invBaseN = 1;
-	while (a)
+	while (sample)
 	{
-		const int next  = a / base;
-		const int digit = a - base * next;
+		const int next  = sample / base;
+		const int digit = sample - base * next;
 		reversedDigits = reversedDigits * base + digit;
 		invBaseN *= invBase;
-		a = next;
+		sample = next;
 	}
 
 	return std::min(reversedDigits * invBaseN, DoubleOneMinusEpsilon);
@@ -135,7 +136,7 @@ struct ThreadControl
 };
 
 
-inline void render(const int x, const int y, const int frame, const int pass, const int frames, Scene & scene, RenderOutput & output) noexcept
+inline void render(const int x, const int y, const int frame, const int pass, const int frames, Scene & scene, RenderOutput & output, const HDREnvironment * hdr_env) noexcept
 {
 	constexpr int max_bounces = 8;
 	constexpr int num_primes  = 6;
@@ -221,11 +222,19 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 		// Did we hit anything? If not, return skylight colour
 		if (nearest_hit_obj == nullptr)
 		{
-			const vec3f sky_up  = vec3f{  53, 112, 128 } * (1.0f / 255) * 0.75f;
-			const vec3f sky_hz  = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
-			const float height  = 1 - std::max(0.0f, (float)ray.d.y());
-			const float height2 = height * height;
-			const vec3f sky = sky_up + (sky_hz - sky_up) * height2 * height2;
+			vec3f sky;
+			if (hdr_env && hdr_env->isLoaded())
+			{
+				sky = hdr_env->sample(ray.d);
+			}
+			else
+			{
+				const vec3f sky_up  = vec3f{  53, 112, 128 } * (1.0f / 255) * 0.75f;
+				const vec3f sky_hz  = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
+				const float height  = 1 - std::max(0.0f, (float)ray.d.y());
+				const float height2 = height * height;
+				sky = sky_up + (sky_hz - sky_up) * height2 * height2;
+			}
 			contribution += throughput * sky;
 			break;
 		}
@@ -238,15 +247,27 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 		const Material & mat = nearest_hit_obj->mat;
 
+		// Resolve base albedo and emission from colouring function or material
+		vec3f base_albedo, base_emission;
+		if (mat.colouring != nullptr)
+		{
+			mat.colouring->getMaterial(base_albedo, base_emission);
+		}
+		else
+		{
+			base_albedo = mat.albedo;
+			base_emission = mat.emission;
+		}
+
 		// Output render channels
 		if (bounce == 0)
 		{
 			normal_out = vec3f{ (float)normal.x(), (float)normal.z(), (float)normal.y() } * 0.5f + 0.5f; // Swap Y and Z
-			albedo_out = mat.albedo;
+			albedo_out = base_albedo;
 		}
 
 		// Add emission
-		contribution += throughput * mat.emission;
+		contribution += throughput * base_emission;
 
 		// Add some shininess using Schlick Frensel approximation
 		bool sample_specular;
@@ -260,12 +281,12 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 			const real mat_u = wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
 			sample_specular = mat_u < fresnel;
-			albedo = (sample_specular) ? 0.95f : mat.albedo;
+			albedo = (sample_specular) ? 0.95f : base_albedo;
 		}
 		else
 		{
 			sample_specular = false;
-			albedo = mat.albedo;
+			albedo = base_albedo;
 		}
 
 		// Do direct lighting from a fixed point light
@@ -355,7 +376,8 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 void renderThreadFunction(
 	ThreadControl * const thread_control,
 	RenderOutput * const output,
-	const int frame, const int base_pass, const int frames, const Scene * const scene_) noexcept
+	const int frame, const int base_pass, const int frames, const Scene * const scene_,
+	const HDREnvironment * const hdr_env) noexcept
 {
 	const int xres = output->xres;
 	const int yres = output->yres;
@@ -387,6 +409,6 @@ void renderThreadFunction(
 
 		for (int y = bucket_y0; y < bucket_y1; ++y)
 		for (int x = bucket_x0; x < bucket_x1; ++x)
-			render(x, y, frame, base_pass + sub_pass, frames, scene, *output);
+			render(x, y, frame, base_pass + sub_pass, frames, scene, *output, hdr_env);
 	}
 }
