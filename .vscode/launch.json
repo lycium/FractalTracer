@@ -30,6 +30,36 @@
             "cwd": "${workspaceFolder}",
             "MIMode": "gdb",
             "preLaunchTask": "CMake: build RelWithDebInfo"
+        },
+        {
+            "name": "(Debug) FractalTracerUI",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Debug/src/FractalTracerUI",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "preLaunchTask": "CMake: build Debug"
+        },
+        {
+            "name": "(Release) FractalTracerUI",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Release/src/FractalTracerUI",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "preLaunchTask": "CMake: build Release"
+        },
+        {
+            "name": "(RelWithDebInfo) FractalTracerUI",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/RelWithDebInfo/src/FractalTracerUI",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "preLaunchTask": "CMake: build RelWithDebInfo"
         }
     ]
 }
