@@ -4,17 +4,25 @@
 #include <vector>
 #include <array>
 #include <algorithm>
+#include <cstring>
 
 #include "Scene.h"
 #include "HDREnvironment.h"
+#include "CameraParams.h"
+#include "SceneParams.h"
 
 
 
 constexpr int noise_size = 1 << 8;
-std::array<uint16_t, noise_size * noise_size> noise_data;
+inline std::array<uint16_t, noise_size * noise_size> & getNoiseData()
+{
+	static std::array<uint16_t, noise_size * noise_size> data;
+	return data;
+}
+#define noise_data (getNoiseData())
 
 
-void HilbertFibonacci(const vec2i dx, const vec2i dy, vec2i p, int size, uint64_t & next_val)
+inline void HilbertFibonacci(const vec2i dx, const vec2i dy, vec2i p, int size, uint64_t & next_val)
 {
 	if (size > 1)
 	{
@@ -32,7 +40,7 @@ void HilbertFibonacci(const vec2i dx, const vec2i dy, vec2i p, int size, uint64_
 }
 
 // From PBRT
-double RadicalInverse(int sample, int base) noexcept
+inline double RadicalInverse(int sample, int base) noexcept
 {
 	const double invBase = 1.0 / base;
 
@@ -103,7 +111,7 @@ inline vec2r CauchyDist(const vec2r & u)
 
 struct RenderOutput
 {
-	const int xres, yres;
+	int xres, yres;
 	int passes = 0;
 
 	std::vector<vec3f> beauty;
@@ -116,6 +124,17 @@ struct RenderOutput
 		beauty.resize(xres * yres);
 		normal.resize(xres * yres);
 		albedo.resize(xres * yres);
+	}
+
+	void resize(int new_xres, int new_yres)
+	{
+		xres = new_xres;
+		yres = new_yres;
+		const size_t n = (size_t)xres * yres;
+		beauty.resize(n);
+		normal.resize(n);
+		albedo.resize(n);
+		clear();
 	}
 
 	void clear()
@@ -136,9 +155,13 @@ struct ThreadControl
 };
 
 
-inline void render(const int x, const int y, const int frame, const int pass, const int frames, Scene & scene, RenderOutput & output, const HDREnvironment * hdr_env) noexcept
+inline void render(
+	const int x, const int y,
+	const int frame, const int pass, const int frames,
+	const CameraParams & camera, const LightParams & light, const RenderSettings & settings,
+	Scene & scene, RenderOutput & output, const HDREnvironment * hdr_env) noexcept
 {
-	constexpr int max_bounces = 8;
+	const int max_bounces = settings.max_bounces;
 	constexpr int num_primes  = 6;
 	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
 	const int xres = output.xres;
@@ -146,8 +169,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	const int pixel_idx = y * xres + x;
 
 	const real aspect_ratio = xres / (real)yres;
-	const real fov_deg = 80.f;
-	const real fov_rad = fov_deg * two_pi / 360; // Convert from degrees to radians
+	const real fov_rad = camera.fov_deg * two_pi / 360;
 	const real sensor_width  = 2 * std::tan(fov_rad / 2);
 	const real sensor_height = sensor_width / aspect_ratio;
 
@@ -166,23 +188,16 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 	const vec2r pixel_offset = CauchyDist(pixel_u);
 #endif
 
-	const real shutter = 0.1f; // 1.0f;
+	const real shutter = 0.1f;
 	const real time  = (frames <= 0) ? 0 : two_pi * (frame + shutter * triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random))) / frames;
 	const real cos_t = std::cos(time);
 	const real sin_t = std::sin(time);
+	(void)cos_t; (void)sin_t; // Used only in animation orbit mode
 
-#if 1
-	const vec3r cam_lookat = { 0, -0.125f, 0 };
-	const vec3r   world_up = { 0, 1, 0 };
-	const vec3r cam_pos = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.25f;
-#else
-	const vec3r cam_lookat = { -1.76, 0, -0.025 };
-	const vec3r   world_up = { 0, 0, -1 };
-	const vec3r cam_pos = cam_lookat + vec3r{ cos_t - sin_t, -7 * cos_t, 4 * cos_t + 7 * sin_t } * 0.02;
-#endif
-	const vec3r cam_forward = normalise(cam_lookat - cam_pos);
-	const vec3r cam_right = normalise(cross(world_up, cam_forward));
-	const vec3r cam_up = normalise(cross(cam_forward, cam_right));
+	const vec3r & cam_pos     = camera.position;
+	const vec3r & cam_forward = camera.forward;
+	const vec3r & cam_right   = camera.right;
+	const vec3r & cam_up      = camera.up;
 
 	const vec3r pixel_x = cam_right * (sensor_width  / xres);
 	const vec3r pixel_y = cam_up   * -(sensor_height / yres);
@@ -192,23 +207,17 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 	vec3r ray_p = cam_pos;
 	vec3r ray_d = normalise(pixel_v);
-#if 1 // Depth of field
-	const real focal_dist = length(cam_pos - cam_lookat) * 0.65f;
-	const real dof = 0.1f; // 1.0f;
-	const real lens_radius = 0.005f * dof;
 
-	// Random point on disc
+	// Depth of field
+	const real focal_dist = length(cam_pos - camera.look_at) * camera.focal_dist_scale;
+	const real lens_radius = camera.lens_radius * camera.dof_amount;
+
 	const real lens_r = std::sqrt(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)) * lens_radius;
 	const real lens_a = two_pi *  wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
 	const vec3r focal_point = ray_p + ray_d * (focal_dist / dot(ray_d, cam_forward));
 
 	ray_p += cam_right * (std::cos(lens_a) * lens_r) + cam_up * (std::sin(lens_a) * lens_r);
 	ray_d = normalise(focal_point - ray_p);
-#endif
-
-	// Useful for debugging
-	//if (x == xres/2 && y == yres/2)
-	//	int a = 9;
 
 	vec3f
 		contribution = 0,
@@ -233,11 +242,9 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 			}
 			else
 			{
-				const vec3f sky_up  = vec3f{  53, 112, 128 } * (1.0f / 255) * 0.75f;
-				const vec3f sky_hz  = vec3f{ 182, 175, 157 } * (1.0f / 255) * 0.8f;
 				const float height  = 1 - std::max(0.0f, (float)ray.d.y());
 				const float height2 = height * height;
-				sky = sky_up + (sky_hz - sky_up) * height2 * height2;
+				sky = light.sky_up_colour + (light.sky_hz_colour - light.sky_up_colour) * height2 * height2;
 			}
 			contribution += throughput * sky;
 			break;
@@ -296,9 +303,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 		// Do direct lighting from a fixed point light
 		if (!sample_specular)
 		{
-			// Compute vector from intersection point to light
-			const vec3r light_pos = { 8, 12, -6 };
-			const vec3r light_vec = light_pos - hit_p;
+			const vec3r light_vec = light.light_pos - hit_p;
 
 			// Compute reflected light (simple diffuse / Lambertian) with 1/distance^2 falloff
 			const real n_dot_l = dot(normal, light_vec);
@@ -308,7 +313,7 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 				const real  light_len = std::sqrt(light_ln2);
 				const vec3r light_dir = light_vec * (1 / light_len);
 
-				const vec3f refl_colour = albedo * (float)n_dot_l / (float)(light_ln2 * light_len) * 720; // 420;
+				const vec3f refl_colour = albedo * (float)n_dot_l / (float)(light_ln2 * light_len) * (float)light.light_intensity;
 
 				// Trace shadow ray from the hit point towards the light
 				const Ray shadow_ray = { hit_p, light_dir };
@@ -377,10 +382,12 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 }
 
 
-void renderThreadFunction(
+inline void renderThreadFunction(
 	ThreadControl * const thread_control,
 	RenderOutput * const output,
-	const int frame, const int base_pass, const int frames, const Scene * const scene_,
+	const int frame, const int base_pass, const int frames,
+	const CameraParams * const camera, const LightParams * const light, const RenderSettings * const settings,
+	const Scene * const scene_,
 	const HDREnvironment * const hdr_env) noexcept
 {
 	const int xres = output->xres;
@@ -413,6 +420,6 @@ void renderThreadFunction(
 
 		for (int y = bucket_y0; y < bucket_y1; ++y)
 		for (int x = bucket_x0; x < bucket_x1; ++x)
-			render(x, y, frame, base_pass + sub_pass, frames, scene, *output, hdr_env);
+			render(x, y, frame, base_pass + sub_pass, frames, *camera, *light, *settings, scene, *output, hdr_env);
 	}
 }
