@@ -82,16 +82,19 @@ void RenderController::managerFunc()
 		current_xres = render_xres;
 		current_yres = render_yres;
 
-		// Mark output as not safe to read while we modify and render
-		display_ready = false;
-
 		// Resize/clear output if resolution changed
 		{
 			std::lock_guard<std::mutex> lock(output_mutex);
 			if (output.xres != render_xres || output.yres != render_yres)
+			{
+				safe_display_passes = 0; // Output invalid during resize
 				output.resize(render_xres, render_yres);
+			}
 			else if (pass <= 2)
+			{
+				safe_display_passes = 0; // Output invalid during clear
 				output.clear();
+			}
 		}
 
 		// Snapshot params
@@ -165,6 +168,6 @@ void RenderController::managerFunc()
 			output.passes = render_pass + 1;
 		}
 		completed_passes.fetch_add(1);
-		display_ready = true;
+		safe_display_passes = completed_passes.load();
 	}
 }

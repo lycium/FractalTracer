@@ -262,44 +262,38 @@ int main(int argc, char ** argv)
 		}
 
 		// Determine if we should update the display texture
-		// Only update when a pass has fully completed (display_ready), and then
-		// only at power-of-two sample counts, or on param change / manual refresh
-		const int cur_passes = controller.getCompletedPasses();
+		// Only update when output is valid (safe_display_passes > 0 and advanced),
+		// at power-of-two sample counts, on param change, or manual refresh
+		const int cur_safe = controller.safe_display_passes.load();
 		const uint64_t cur_gen = controller.getGeneration();
-		const bool output_safe = controller.display_ready.load();
 		bool should_update = false;
 
-		if (output_safe && cur_passes > 0)
+		if (cur_gen != last_displayed_gen)
+		{
+			// Generation changed - reset tracking so we pick up next valid output
+			last_displayed_gen = cur_gen;
+			last_displayed_passes = -1;
+		}
+
+		if (cur_safe > 0 && cur_safe != last_displayed_passes)
 		{
 			if (force_refresh)
 				should_update = true;
-
-			if (cur_gen != last_displayed_gen)
-			{
-				// Generation changed - reset tracking, show first available result
-				last_displayed_gen = cur_gen;
-				last_displayed_passes = 0;
+			// Always show the first 3 passes (sub-res previews + first full-res)
+			else if (cur_safe <= 3)
 				should_update = true;
-			}
-
-			if (cur_passes != last_displayed_passes)
+			// After that, only at power-of-two full-res passes
+			else
 			{
-				// Always show the first 3 passes (sub-res previews + first full-res)
-				if (cur_passes <= 3)
+				const int full_res = cur_safe - 2;
+				if (full_res > 0 && (full_res & (full_res - 1)) == 0)
 					should_update = true;
-				// After that, only at power-of-two full-res passes
-				else
-				{
-					const int full_res = cur_passes - 2;
-					if (full_res > 0 && (full_res & (full_res - 1)) == 0)
-						should_update = true;
-				}
 			}
 		}
 
 		if (should_update)
 		{
-			last_displayed_passes = cur_passes;
+			last_displayed_passes = cur_safe;
 			force_refresh = false;
 
 			// Tonemap current render output

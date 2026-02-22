@@ -48,8 +48,10 @@ struct RenderController
 	// HDR environment map
 	HDREnvironment hdr_env;
 
-	// True when a pass is complete and output is safe to read (no workers writing)
-	std::atomic<bool> display_ready{false};
+	// Set to completed_passes value after each pass finishes (output is valid).
+	// Reset to 0 when output is resized/cleared (output is invalid).
+	// The UI updates the display when this advances past its last-seen value.
+	std::atomic<int> safe_display_passes{0};
 
 private:
 	void managerFunc();
