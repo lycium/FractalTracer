@@ -48,6 +48,9 @@ struct RenderController
 	// HDR environment map
 	HDREnvironment hdr_env;
 
+	// True when a pass is complete and output is safe to read (no workers writing)
+	std::atomic<bool> display_ready{false};
+
 private:
 	void managerFunc();
 

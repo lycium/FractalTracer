@@ -82,6 +82,9 @@ void RenderController::managerFunc()
 		current_xres = render_xres;
 		current_yres = render_yres;
 
+		// Mark output as not safe to read while we modify and render
+		display_ready = false;
+
 		// Resize/clear output if resolution changed
 		{
 			std::lock_guard<std::mutex> lock(output_mutex);
@@ -162,5 +165,6 @@ void RenderController::managerFunc()
 			output.passes = render_pass + 1;
 		}
 		completed_passes.fetch_add(1);
+		display_ready = true;
 	}
 }

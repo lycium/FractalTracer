@@ -262,28 +262,44 @@ int main(int argc, char ** argv)
 		}
 
 		// Determine if we should update the display texture
-		// Only update at power-of-two passes, on param change, or on manual refresh
+		// Only update when a pass has fully completed (display_ready), and then
+		// only at power-of-two sample counts, or on param change / manual refresh
 		const int cur_passes = controller.getCompletedPasses();
 		const uint64_t cur_gen = controller.getGeneration();
-		bool should_update = force_refresh;
+		const bool output_safe = controller.display_ready.load();
+		bool should_update = false;
 
-		if (cur_gen != last_displayed_gen)
-			should_update = true; // Generation changed (params changed, sub-res step)
-
-		if (cur_passes != last_displayed_passes)
+		if (output_safe && cur_passes > 0)
 		{
-			// Always show the first 3 passes (sub-res previews + first full-res)
-			if (cur_passes <= 3)
+			if (force_refresh)
 				should_update = true;
-			// After that, only at power-of-two full-res passes
-			else if (cur_passes > 2 && (cur_passes & (cur_passes - 1)) == 0)
+
+			if (cur_gen != last_displayed_gen)
+			{
+				// Generation changed - reset tracking, show first available result
+				last_displayed_gen = cur_gen;
+				last_displayed_passes = 0;
 				should_update = true;
+			}
+
+			if (cur_passes != last_displayed_passes)
+			{
+				// Always show the first 3 passes (sub-res previews + first full-res)
+				if (cur_passes <= 3)
+					should_update = true;
+				// After that, only at power-of-two full-res passes
+				else
+				{
+					const int full_res = cur_passes - 2;
+					if (full_res > 0 && (full_res & (full_res - 1)) == 0)
+						should_update = true;
+				}
+			}
 		}
 
 		if (should_update)
 		{
 			last_displayed_passes = cur_passes;
-			last_displayed_gen = cur_gen;
 			force_refresh = false;
 
 			// Tonemap current render output
