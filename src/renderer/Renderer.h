@@ -153,14 +153,18 @@ inline void render(const int x, const int y, const int frame, const int pass, co
 
 	int dim = 0;
 	const real  hash_random   = noise_data[(y % noise_size) * noise_size + (x % noise_size)] * (1.0f / 65536);
-	//const real pixel_sample_x = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
-	//const real pixel_sample_y = triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random));
 	const vec2r pixel_u =
 	{
 		wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random),
 		wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)
 	};
+#if 1
+	const vec2r pixel_offset(
+		triDist(pixel_u.x()),
+		triDist(pixel_u.y()));
+#else
 	const vec2r pixel_offset = CauchyDist(pixel_u);
+#endif
 
 	const real shutter = 0.1f; // 1.0f;
 	const real time  = (frames <= 0) ? 0 : two_pi * (frame + shutter * triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random))) / frames;

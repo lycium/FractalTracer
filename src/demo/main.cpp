@@ -113,7 +113,7 @@ int main(int argc, char ** argv)
 	bool box = false;
 	bool save_normal = false;
 	bool save_albedo = false;
-	std::string formula_name = "hopfbrot";
+	std::string formula_name = "mandalay";
 	std::string hdrenv_path;
 	for (int arg = 1; arg < argc; ++arg)
 	{
@@ -188,7 +188,47 @@ int main(int argc, char ** argv)
 		}
 
 		// Formula dispatch based on --formula flag
-		if (formula_name == "hopfbrot")
+		if (formula_name == "sphere")
+		{
+			Sphere mirror;
+			mirror.centre = { 0, 0, 0 };
+			mirror.radius = main_sphere_rad;
+			mirror.mat.albedo = { 0.9f, 0.9f, 0.9f };
+			mirror.mat.use_fresnel = true;
+			mirror.mat.r0 = 0.95f; // Near-perfect mirror
+			scene.objects.push_back(mirror.clone());
+		}
+		else if (formula_name == "amazingbox_mandalay")
+		{
+			// Hybrid of Amazingbox and MandalayKIFS
+			auto * amazingbox = new DualAmazingboxIteration;
+			amazingbox->scale = -1.77f;
+			amazingbox->fold_limit = 1.0f;
+			amazingbox->min_r2 = 0.25f;
+
+			auto * mandalay = new DualMandalayKIFSIteration;
+			mandalay->scale = 2.8f;
+			mandalay->folding_offset = 1.0f;
+			mandalay->z_tower = 0.35f;
+			mandalay->xy_tower = 0.2f;
+			mandalay->rotate = { 0.12f, 0.08f, 0.0f };
+			mandalay->julia_mode = false;
+
+			std::vector<IterationFunction *> iter_funcs;
+			iter_funcs.push_back(amazingbox);
+			iter_funcs.push_back(mandalay);
+			const std::vector<char> iter_seq = { 0, 0, 1 }; // 2 amazingbox per 1 mandalay
+
+			const int max_iters = 30;
+			GeneralDualDE hybrid(max_iters, iter_funcs, iter_seq);
+			hybrid.radius = main_sphere_rad;
+			hybrid.step_scale = 0.25;
+			hybrid.mat.albedo = { 0.2f, 0.6f, 0.9f };
+			hybrid.mat.use_fresnel = true;
+			hybrid.mat.colouring = new OrbitTrapColouring();
+			scene.objects.push_back(hybrid.clone());
+		}
+		else if (formula_name == "hopfbrot")
 		{
 			Hopfbrot bulb;
 			bulb.radius = 2.0f;
@@ -230,7 +270,7 @@ int main(int argc, char ** argv)
 			else if (formula_name == "benesipine2")     iter = new DualBenesiPine2Iteration;
 			else
 			{
-				fprintf(stderr, "Unknown formula: %s\nAvailable formulas: hopfbrot, burningship4d, mandelbulb, "
+				fprintf(stderr, "Unknown formula: %s\nAvailable formulas: amazingbox_mandalay, hopfbrot, burningship4d, mandelbulb, "
 					"lambdabulb, amazingbox, octopus, mengersponge, cubicbulb, pseudokleinian, "
 					"riemannsphere, mandalay, spheretree, benesipine2\n", formula_name.c_str());
 				return 1;
@@ -246,7 +286,8 @@ int main(int argc, char ** argv)
 			hybrid.step_scale = 0.25;
 			hybrid.mat.albedo = { 0.2f, 0.6f, 0.9f };
 			hybrid.mat.use_fresnel = true;
-			hybrid.mat.colouring = new MinRadiusPaletteColouring();
+			hybrid.mat.r0 = 0.25f; // Shiny surface for strong env map reflections
+			hybrid.mat.colouring = new OrbitTrapColouring();
 			scene.objects.push_back(hybrid.clone());
 		}
 		// Test adding sphere lights

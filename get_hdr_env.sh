@@ -5,7 +5,7 @@
 set -e
 
 ASSET="${1:-autumn_park}"
-RES="${2:-2k}"
+RES="${2:-8k}"
 OUT_DIR="data"
 
 mkdir -p "$OUT_DIR"
