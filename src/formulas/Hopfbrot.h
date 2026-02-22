@@ -12,7 +12,7 @@ Oliver Knill
 <https://arxiv.org/abs/2305.17848>
 */
 
-DualVec4r hopfTrig(const DualVec4r &z, int m)
+inline DualVec4r hopfTrig(const DualVec4r &z, int m)
 {
 	auto u = atan2(z.y(), z.x());
 	auto v = atan2(z.w(), z.z());
@@ -25,7 +25,7 @@ DualVec4r hopfTrig(const DualVec4r &z, int m)
 	return DualVec4r(cos(u)*cos(t), sin(u)*cos(t), cos(v)*sin(t), sin(v)*sin(t)) * r2;
 }
 
-DualVec4r hopfPoly2(const DualVec4r &p)
+inline DualVec4r hopfPoly2(const DualVec4r &p)
 {
 	// cos(2 * atan2(y, x)) = (x^2 - y^2) / (x^2 + y^2)
 	// sin(2 * atan2(y, x)) = 2 * x * y / (x^2 + y^2)
@@ -67,7 +67,7 @@ DualVec4r hopfPoly2(const DualVec4r &p)
 	}
 }
 
-DualVec4r hopf(const DualVec4r &z, int m)
+inline DualVec4r hopf(const DualVec4r &z, int m)
 {
 	if (m == 2)
 	{

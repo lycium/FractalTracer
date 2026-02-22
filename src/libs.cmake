@@ -9,12 +9,16 @@ target_sources(TracerLib INTERFACE
     util/stb_image.h
     util/stb_image_write.h
 
+    renderer/CameraParams.h
     renderer/ColouringFunction.h
+    renderer/FractalParams.h
     renderer/HDREnvironment.h
     renderer/Material.h
     renderer/Ray.h
     renderer/Renderer.h
     renderer/Scene.h
+    renderer/SceneBuilder.h
+    renderer/SceneParams.h
 
     scene_objects/AnalyticDEObject.h
     scene_objects/DualDEObject.h
@@ -23,11 +27,15 @@ target_sources(TracerLib INTERFACE
 
     formulas/Amazingbox.h
     formulas/BenesiPine2.h
+    formulas/BurningShip4D.h
     formulas/Cubicbulb.h
+    formulas/Hopfbrot.h
+    formulas/Lambdabulb.h
     formulas/MandalayKIFS.h
     formulas/Mandelbulb.h
     formulas/MengerSponge.h
     formulas/MengerSpongeC.h
+    formulas/AmoserSine.h
     formulas/Octopus.h
     formulas/PseudoKleinian.h
     formulas/QuadraticJuliabulb.h
