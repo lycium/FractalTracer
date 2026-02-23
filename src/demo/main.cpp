@@ -99,6 +99,9 @@ int main(int argc, char ** argv)
 	bool preview = false;
 	bool save_normal = false;
 	bool save_albedo = false;
+	int cli_spp = 0;       // 0 = use default
+	int cli_width = 0;     // 0 = use default
+	int cli_height = 0;
 	std::string scene_path;
 
 	SceneParams params;
@@ -119,7 +122,9 @@ int main(int argc, char ** argv)
 		else if (a == "--formula" && arg + 1 < argc) { params.objects[0].formula_name = argv[++arg]; setupFormulas(params.objects[0]); }
 		else if (a == "--hdrenv"  && arg + 1 < argc) params.light.hdr_env_path   = argv[++arg];
 		else if (a == "--scene"  && arg + 1 < argc)  scene_path = argv[++arg];
-		else { fprintf(stderr, "Unknown argument: %s\nUsage: FractalTracer [--scene <path>] [--formula <name>] [--hdrenv <path>] [--animation] [--preview] [--box] [--normal] [--albedo]\n", argv[arg]); return 1; }
+		else if (a == "--spp"    && arg + 1 < argc)  cli_spp = atoi(argv[++arg]);
+		else if (a == "--res"    && arg + 1 < argc) { if (sscanf(argv[++arg], "%dx%d", &cli_width, &cli_height) != 2) { fprintf(stderr, "Invalid resolution format, use WxH (e.g. 1920x1080)\n"); return 1; } }
+		else { fprintf(stderr, "Unknown argument: %s\nUsage: FractalTracer [--scene <path>] [--formula <name>] [--hdrenv <path>] [--animation] [--preview] [--box] [--normal] [--albedo] [--spp N] [--res WxH]\n", argv[arg]); return 1; }
 	}
 
 	// Load scene file if specified (overrides defaults, CLI args can override further)
@@ -190,10 +195,19 @@ int main(int argc, char ** argv)
 		return 1;
 	}
 
-	const int image_div = preview ? 4 : 1;
-	const int image_multi  = mode == mode_animation ? 40 : 80 * 2;
-	const int image_width  = image_multi / image_div * 16;
-	const int image_height = image_multi / image_div * 9;
+	int image_width, image_height;
+	if (cli_width > 0 && cli_height > 0)
+	{
+		image_width  = cli_width;
+		image_height = cli_height;
+	}
+	else
+	{
+		const int image_div = preview ? 4 : 1;
+		const int image_multi  = mode == mode_animation ? 40 : 80 * 2;
+		image_width  = image_multi / image_div * 16;
+		image_height = image_multi / image_div * 9;
+	}
 	std::vector<sRGBPixel> image_LDR(image_width * image_height);
 	RenderOutput output(image_width, image_height);
 
@@ -216,31 +230,42 @@ int main(int argc, char ** argv)
 		case mode_animation:
 		{
 			const int frames = preview ? 30 : 30 * 4;
-			const int passes = preview ? 1 : 2 * 3;
-			printf("Rendering %d frames at resolution %d x %d with %d passes\n", frames, image_width, image_height, passes);
+			int passes = preview ? 1 : 8;
+			if (cli_spp > 0) { int p = 1; while (p < cli_spp) p <<= 1; passes = p; } // Round up to power of 2
+			printf("Rendering %d frames at resolution %d x %d with %d spp\n", frames, image_width, image_height, passes);
+
+			// Camera orbit function: takes normalised time in [0, 2*pi)
+			const auto set_camera = [&](real t)
+			{
+				const real cos_t = std::cos(t);
+				const real sin_t = std::sin(t);
+				params.camera.position = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.25f;
+				params.camera.look_at  = { 0, -0.125f, 0 };
+				params.camera.recompute();
+			};
 
 			for (int frame = 0; frame < frames; ++frame)
 			{
 				output.clear();
 
-				// Compute camera orbit for this frame
-				const real time  = (frames <= 0) ? 0 : two_pi * frame / frames;
-				const real cos_t = std::cos(time);
-				const real sin_t = std::sin(time);
-				params.camera.position = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.25f;
-				params.camera.look_at  = { 0, -0.125f, 0 };
-				params.camera.recompute();
-
 				const auto t1 = std::chrono::steady_clock::now();
 
-				renderPasses(threads, output, frame, 0, passes, frames,
-					params.camera, params.light, params.render, scene, &hdr_env);
+				// Render one pass at a time with per-pass camera jitter for motion blur
+				for (int pass = 0; pass < passes; ++pass)
+				{
+					const real t01 = uintToUnitReal(lowbias32((uint32_t)pass));
+					const real t = two_pi * (frame + t01) / frames;
+					set_camera(t);
+
+					renderPasses(threads, output, frame, pass, 1, 0,
+						params.camera, params.light, params.render, scene, &hdr_env);
+				}
 
 				if (print_timing)
 				{
 					const auto t2 = std::chrono::steady_clock::now();
 					const auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-					printf("Frame took %.2f seconds to render.\n", time_span.count());
+					printf("Frame %d/%d took %.2f seconds to render.\n", frame + 1, frames, time_span.count());
 				}
 
 				save_tonemapped_buffer("beauty", frame, passes, output.beauty);
@@ -275,7 +300,7 @@ int main(int argc, char ** argv)
 			params.camera.look_at  = { 0, -0.125f, 0 };
 			params.camera.recompute();
 
-			const int max_passes = params.render.target_passes;
+			const int max_passes = (cli_spp > 0) ? cli_spp : params.render.target_passes;
 			printf("Progressive rendering at resolution %d x %d with doubling passes to max %d\n", image_width, image_height, max_passes);
 			output.clear();
 
