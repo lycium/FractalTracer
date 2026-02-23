@@ -31,6 +31,7 @@
 #include "renderer/Renderer.h"
 #include "renderer/SceneBuilder.h"
 #include "ui/SceneSerializer.h"
+#include "ui/Timeline.h"
 
 
 
@@ -44,13 +45,13 @@ struct sRGBPixel
 
 void renderPasses(
 	std::vector<std::thread> & threads, RenderOutput & output,
-	int frame, int base_pass, int num_passes, int frames,
+	int base_pass, int num_passes,
 	const CameraParams & camera, const LightParams & light, const RenderSettings & settings,
 	Scene & scene, const HDREnvironment * hdr_env) noexcept
 {
 	ThreadControl thread_control = { num_passes };
 
-	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &output, frame, base_pass, frames, &camera, &light, &settings, &scene, hdr_env);
+	for (std::thread & t : threads) t = std::thread(renderThreadFunction, &thread_control, &output, base_pass, &camera, &light, &settings, &scene, hdr_env);
 	for (std::thread & t : threads) t.join();
 }
 
@@ -95,7 +96,7 @@ int main(int argc, char ** argv)
 	const bool print_timing = true;
 
 	// Parse command line arguments
-	enum { mode_progressive, mode_animation } mode = mode_progressive;
+	bool animation = false;
 	bool preview = false;
 	bool save_normal = false;
 	bool save_albedo = false;
@@ -114,7 +115,7 @@ int main(int argc, char ** argv)
 	for (int arg = 1; arg < argc; ++arg)
 	{
 		const std::string a = argv[arg];
-		if (a == "--animation") mode = mode_animation;
+		if (a == "--animation") animation = true;
 		else if (a == "--preview") preview = true;
 		else if (a == "--box")     params.show_box = true;
 		else if (a == "--normal")  save_normal = true;
@@ -204,7 +205,7 @@ int main(int argc, char ** argv)
 	else
 	{
 		const int image_div = preview ? 4 : 1;
-		const int image_multi  = mode == mode_animation ? 40 : 80 * 2;
+		const int image_multi  = animation ? 40 : 80 * 2;
 		image_width  = image_multi / image_div * 16;
 		image_height = image_multi / image_div * 9;
 	}
@@ -225,112 +226,121 @@ int main(int argc, char ** argv)
 		printf("Saved %s with %d passes\n", filename, passes);
 	};
 
-	switch (mode)
+	if (animation)
 	{
-		case mode_animation:
+		// Set up timeline for Cornell Box animation
+		Timeline timeline;
+		timeline.duration_seconds = 3.0f;
+		timeline.fps = 30;
+		timeline.loop = true;
+
+		struct KfData { float t; vec3r pos; };
+		const KfData kf_data[] = {
+			{ 0.00f, vec3r( 0.0f, 0.0f, -3.5f) },
+			{ 0.75f, vec3r( 1.5f, 0.5f, -3.0f) },
+			{ 1.50f, vec3r( 0.0f, 1.0f, -3.5f) },
+			{ 2.25f, vec3r(-1.5f, 0.5f, -3.0f) },
+			{ 3.00f, vec3r( 0.0f, 0.0f, -3.5f) },  // loop closure
+		};
+		for (const auto & kd : kf_data)
 		{
-			const int frames = preview ? 30 : 30 * 4;
-			int passes = preview ? 1 : 8;
-			if (cli_spp > 0) { int p = 1; while (p < cli_spp) p <<= 1; passes = p; } // Round up to power of 2
-			printf("Rendering %d frames at resolution %d x %d with %d spp\n", frames, image_width, image_height, passes);
-
-			// Camera orbit function: takes normalised time in [0, 2*pi)
-			const auto set_camera = [&](real t)
-			{
-				const real cos_t = std::cos(t);
-				const real sin_t = std::sin(t);
-				params.camera.position = vec3r{ 4 * cos_t + 10 * sin_t, 5, -10 * cos_t + 4 * sin_t } * 0.25f;
-				params.camera.look_at  = { 0, -0.125f, 0 };
-				params.camera.recompute();
-			};
-
-			for (int frame = 0; frame < frames; ++frame)
-			{
-				output.clear();
-
-				const auto t1 = std::chrono::steady_clock::now();
-
-				// Render one pass at a time with per-pass camera jitter for motion blur
-				for (int pass = 0; pass < passes; ++pass)
-				{
-					const real t01 = uintToUnitReal(lowbias32((uint32_t)pass));
-					const real t = two_pi * (frame + t01) / frames;
-					set_camera(t);
-
-					renderPasses(threads, output, frame, pass, 1, 0,
-						params.camera, params.light, params.render, scene, &hdr_env);
-				}
-
-				if (print_timing)
-				{
-					const auto t2 = std::chrono::steady_clock::now();
-					const auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-					printf("Frame %d/%d took %.2f seconds to render.\n", frame + 1, frames, time_span.count());
-				}
-
-				save_tonemapped_buffer("beauty", frame, passes, output.beauty);
-				if (save_normal) save_tonemapped_buffer("normal", frame, passes, output.normal);
-				if (save_albedo) save_tonemapped_buffer("albedo", frame, passes, output.albedo);
-			}
-
-			// Encode PNG sequences to MP4 using ffmpeg
-			const auto encode_video = [](const char * channel_name)
-			{
-				char cmd[512];
-				snprintf(cmd, sizeof(cmd),
-					"ffmpeg -y -framerate 30 -i %s_frame_%%08d.png -c:v libx264 -pix_fmt yuv420p -crf 18 %s.mp4",
-					channel_name, channel_name);
-				printf("Running: %s\n", cmd);
-				const int ret = system(cmd);
-				if (ret != 0)
-					fprintf(stderr, "Warning: ffmpeg exited with code %d for channel '%s' (is ffmpeg installed?)\n", ret, channel_name);
-			};
-
-			encode_video("beauty");
-			if (save_normal) encode_video("normal");
-			if (save_albedo) encode_video("albedo");
-
-			break;
+			Keyframe kf;
+			kf.time_seconds = kd.t;
+			kf.camera = params.camera;
+			kf.camera.position = kd.pos;
+			kf.camera.look_at = vec3r(0, 0, 0);
+			kf.camera.recompute();
+			kf.objects = params.objects;
+			kf.light = params.light;
+			timeline.addKeyframe(kf);
 		}
 
-		case mode_progressive:
-		{
-			// Set up static camera for progressive mode
-			params.camera.position = vec3r{ 10, 5, -10 } * 0.25f;
-			params.camera.look_at  = { 0, -0.125f, 0 };
-			params.camera.recompute();
+		const int frames = timeline.getTotalFrames();
+		int passes = 32;
+		if (cli_spp > 0) { int p = 1; while (p < cli_spp) p <<= 1; passes = p; } // Round up to power of 2
+		printf("Rendering %d frames at resolution %d x %d with %d spp\n", frames, image_width, image_height, passes);
 
-			const int max_passes = (cli_spp > 0) ? cli_spp : params.render.target_passes;
-			printf("Progressive rendering at resolution %d x %d with doubling passes to max %d\n", image_width, image_height, max_passes);
+		for (int frame = 0; frame < frames; ++frame)
+		{
 			output.clear();
 
-			int pass = 0;
-			int target_passes = 1;
-			while (pass < max_passes)
+			const auto t1 = std::chrono::steady_clock::now();
+
+			// Render one pass at a time with per-pass camera jitter for motion blur
+			for (int pass = 0; pass < passes; ++pass)
 			{
-				const auto t1 = std::chrono::steady_clock::now();
+				const float t01 = (float)uintToUnitReal(lowbias32((uint32_t)pass));
+				const float world_time = (frame + t01) / (float)timeline.fps;
+				CameraParams pass_camera = timeline.evaluate(world_time).camera;
+				pass_camera.recompute();
 
-				// Note that we force num_frames to be zero since we usually don't want motion blur for stills
-				const int num_passes = target_passes - pass;
-				renderPasses(threads, output, 0, pass, num_passes, 0,
-					params.camera, params.light, params.render, scene, &hdr_env);
-
-				if (print_timing)
-				{
-					const auto t2 = std::chrono::steady_clock::now();
-					const auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
-					printf("%d passes took %.2f seconds (%.2f seconds per pass).\n", num_passes, time_span.count(), time_span.count() / num_passes);
-				}
-
-				save_tonemapped_buffer("beauty", 0, target_passes, output.beauty);
-				if (save_normal) save_tonemapped_buffer("normal", 0, target_passes, output.normal);
-				if (save_albedo) save_tonemapped_buffer("albedo", 0, target_passes, output.albedo);
-
-				pass = target_passes;
-				target_passes = std::min(target_passes << 1, max_passes);
+				renderPasses(threads, output, pass, 1,
+					pass_camera, params.light, params.render, scene, &hdr_env);
 			}
 
-			break;
+			if (print_timing)
+			{
+				const auto t2 = std::chrono::steady_clock::now();
+				const auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+				printf("Frame %d/%d took %.2f seconds to render.\n", frame + 1, frames, time_span.count());
+			}
+
+			save_tonemapped_buffer("beauty", frame, passes, output.beauty);
+			if (save_normal) save_tonemapped_buffer("normal", frame, passes, output.normal);
+			if (save_albedo) save_tonemapped_buffer("albedo", frame, passes, output.albedo);
+		}
+
+		// Encode PNG sequences to MP4 using ffmpeg
+		const auto encode_video = [](const char * channel_name)
+		{
+			char cmd[512];
+			snprintf(cmd, sizeof(cmd),
+				"ffmpeg -y -framerate 30 -i %s_frame_%%08d.png -c:v libx265 -x265-params lossless=1 -pix_fmt yuv444p %s.mp4",
+				channel_name, channel_name);
+			printf("Running: %s\n", cmd);
+			const int ret = system(cmd);
+			if (ret != 0)
+				fprintf(stderr, "Warning: ffmpeg exited with code %d for channel '%s' (is ffmpeg/libx265 installed?)\n", ret, channel_name);
+		};
+
+		encode_video("beauty");
+		if (save_normal) encode_video("normal");
+		if (save_albedo) encode_video("albedo");
+	}
+	else
+	{
+		// Progressive rendering with static camera
+		params.camera.position = vec3r{ 10, 5, -10 } * 0.25f;
+		params.camera.look_at  = { 0, -0.125f, 0 };
+		params.camera.recompute();
+
+		const int max_passes = (cli_spp > 0) ? cli_spp : params.render.target_passes;
+		printf("Progressive rendering at resolution %d x %d with doubling passes to max %d\n", image_width, image_height, max_passes);
+		output.clear();
+
+		int pass = 0;
+		int target_passes = 1;
+		while (pass < max_passes)
+		{
+			const auto t1 = std::chrono::steady_clock::now();
+
+			const int num_passes = target_passes - pass;
+			renderPasses(threads, output, pass, num_passes,
+				params.camera, params.light, params.render, scene, &hdr_env);
+
+			if (print_timing)
+			{
+				const auto t2 = std::chrono::steady_clock::now();
+				const auto time_span = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+				printf("%d passes took %.2f seconds (%.2f seconds per pass).\n", num_passes, time_span.count(), time_span.count() / num_passes);
+			}
+
+			save_tonemapped_buffer("beauty", 0, target_passes, output.beauty);
+			if (save_normal) save_tonemapped_buffer("normal", 0, target_passes, output.normal);
+			if (save_albedo) save_tonemapped_buffer("albedo", 0, target_passes, output.albedo);
+
+			pass = target_passes;
+			target_passes = std::min(target_passes << 1, max_passes);
 		}
 	}
 

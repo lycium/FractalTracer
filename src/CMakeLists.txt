@@ -26,7 +26,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(json)
 
 # CLI batch renderer
-add_executable(FractalTracer demo/main.cpp ui/SceneSerializer.cpp)
+add_executable(FractalTracer demo/main.cpp ui/SceneSerializer.cpp ui/Timeline.cpp)
 target_include_directories(FractalTracer PUBLIC .)
 target_link_libraries(FractalTracer
     Threads::Threads OpenMP::OpenMP_CXX
@@ -69,6 +69,7 @@ if(SDL2_FOUND)
         ui/InteractiveCamera.cpp
         ui/SceneSerializer.cpp
         ui/Timeline.cpp
+        ui/TimelinePanel.cpp
         ui/AnimationRenderer.cpp
     )
     target_include_directories(FractalTracerUI PUBLIC .)

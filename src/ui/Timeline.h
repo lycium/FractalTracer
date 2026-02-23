@@ -21,6 +21,7 @@ struct Timeline
 	float duration_seconds = 10.0f;
 	float current_time = 0;
 	bool playing = false;
+	bool loop = false;
 	int fps = 30;
 
 	// Evaluate the timeline at time t, interpolating between keyframes

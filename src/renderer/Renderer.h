@@ -76,6 +76,40 @@ inline real uintToUnitReal(uint32_t v)
 #endif
 }
 
+// https://nullprogram.com/blog/2018/07/31/
+inline uint32_t lowbias32(uint32_t x)
+{
+	x ^= x >> 16;
+	x *= 0x45d9f3bu;
+	x ^= x >> 16;
+	return x;
+}
+
+// Owen-scrambled Halton: random digit permutations using a per-(pixel,dim) seed
+inline real haltonScrambled(uint32_t sample, int base, uint32_t seed) noexcept
+{
+	const double invBase = 1.0 / base;
+	double result = 0;
+	double frac = invBase;
+	while (sample > 0)
+	{
+		const uint32_t digit = sample % (uint32_t)base;
+		sample /= (uint32_t)base;
+		seed = lowbias32(seed ^ digit);
+		result += (seed % (uint32_t)base) * frac;
+		frac *= invBase;
+	}
+	return std::min(result, DoubleOneMinusEpsilon);
+}
+
+// Advance dim counter and return the next scrambled Halton sample
+inline real nextSample(int pass, int & dim, uint32_t pixel_hash) noexcept
+{
+	constexpr static int primes[6] = { 2, 3, 5, 7, 11, 13 };
+	const int d = dim;
+	dim = (d < 5) ? d + 1 : 0;
+	return haltonScrambled((uint32_t)pass, primes[d], lowbias32(pixel_hash ^ ((uint32_t)d * 0x9e3779b1u)));
+}
 
 inline real wrap1r(real u, real v) { return (u + v < 1) ? u + v : u + v - 1; }
 
@@ -157,13 +191,11 @@ struct ThreadControl
 
 inline void render(
 	const int x, const int y,
-	const int frame, const int pass, const int frames,
+	const int pass,
 	const CameraParams & camera, const LightParams & light, const RenderSettings & settings,
 	Scene & scene, RenderOutput & output, const HDREnvironment * hdr_env) noexcept
 {
 	const int max_bounces = settings.max_bounces;
-	constexpr int num_primes  = 6;
-	constexpr static int primes[num_primes] = { 2, 3, 5, 7, 11, 13 };
 	const int xres = output.xres;
 	const int yres = output.yres;
 	const int pixel_idx = y * xres + x;
@@ -174,11 +206,11 @@ inline void render(
 	const real sensor_height = sensor_width / aspect_ratio;
 
 	int dim = 0;
-	const real  hash_random   = noise_data[(y % noise_size) * noise_size + (x % noise_size)] * (1.0f / 65536);
+	const uint32_t pixel_hash = noise_data[(y % noise_size) * noise_size + (x % noise_size)];
 	const vec2r pixel_u =
 	{
-		wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random),
-		wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)
+		nextSample(pass, dim, pixel_hash),
+		nextSample(pass, dim, pixel_hash)
 	};
 #if 1
 	const vec2r pixel_offset(
@@ -187,12 +219,6 @@ inline void render(
 #else
 	const vec2r pixel_offset = CauchyDist(pixel_u);
 #endif
-
-	const real shutter = 0.1f;
-	const real time  = (frames <= 0) ? 0 : two_pi * (frame + shutter * triDist(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random))) / frames;
-	const real cos_t = std::cos(time);
-	const real sin_t = std::sin(time);
-	(void)cos_t; (void)sin_t; // Used only in animation orbit mode
 
 	const vec3r & cam_pos     = camera.position;
 	const vec3r & cam_forward = camera.forward;
@@ -212,8 +238,8 @@ inline void render(
 	const real focal_dist = length(cam_pos - camera.look_at) * camera.focal_dist_scale;
 	const real lens_radius = camera.lens_radius * camera.dof_amount;
 
-	const real lens_r = std::sqrt(wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random)) * lens_radius;
-	const real lens_a = two_pi *  wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
+	const real lens_r = std::sqrt(nextSample(pass, dim, pixel_hash)) * lens_radius;
+	const real lens_a = two_pi *  nextSample(pass, dim, pixel_hash);
 	const vec3r focal_point = ray_p + ray_d * (focal_dist / dot(ray_d, cam_forward));
 
 	ray_p += cam_right * (std::cos(lens_a) * lens_r) + cam_up * (std::sin(lens_a) * lens_r);
@@ -290,7 +316,7 @@ inline void render(
 			const real p2 = p1 * p1;
 			const real fresnel = r0 + (1 - r0) * p2 * p2 * p1;
 
-			const real mat_u = wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
+			const real mat_u = nextSample(pass, dim, pixel_hash);
 			sample_specular = mat_u < fresnel;
 			albedo = (sample_specular) ? 0.95f : base_albedo;
 		}
@@ -337,7 +363,7 @@ inline void render(
 		// Use Russian roulette on albedo to possibly terminate the path after 2 bounces
 		if (bounce > 3)
 		{
-			const float rr_u = (float)wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
+			const float rr_u = (float)nextSample(pass, dim, pixel_hash);
 			const float rr_thresh = std::max(0.0f, std::min(1.0f, max_albedo));
 			if (rr_u > rr_thresh)
 				break;
@@ -351,8 +377,8 @@ inline void render(
 		}
 		else
 		{
-			const real refl_sample_x = wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
-			const real refl_sample_y = wrap1r((real)RadicalInverse(pass, primes[wrap6i(dim)]), hash_random);
+			const real refl_sample_x = nextSample(pass, dim, pixel_hash);
+			const real refl_sample_y = nextSample(pass, dim, pixel_hash);
 
 			// Generate uniform point on sphere, see https://mathworld.wolfram.com/SpherePointPicking.html
 			const real a = refl_sample_x * two_pi;
@@ -385,7 +411,7 @@ inline void render(
 inline void renderThreadFunction(
 	ThreadControl * const thread_control,
 	RenderOutput * const output,
-	const int frame, const int base_pass, const int frames,
+	const int base_pass,
 	const CameraParams * const camera, const LightParams * const light, const RenderSettings * const settings,
 	const Scene * const scene_,
 	const HDREnvironment * const hdr_env) noexcept
@@ -420,6 +446,6 @@ inline void renderThreadFunction(
 
 		for (int y = bucket_y0; y < bucket_y1; ++y)
 		for (int x = bucket_x0; x < bucket_x1; ++x)
-			render(x, y, frame, base_pass + sub_pass, frames, *camera, *light, *settings, scene, *output, hdr_env);
+			render(x, y, base_pass + sub_pass, *camera, *light, *settings, scene, *output, hdr_env);
 	}
 }

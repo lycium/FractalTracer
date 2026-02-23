@@ -197,7 +197,7 @@ void AnimationRenderer::renderFunc(Timeline timeline, SceneParams base_params,
 
 						for (int y = y0; y < y1; ++y)
 						for (int x = x0; x < x1; ++x)
-							render(x, y, frame, pass, 0, pass_camera, frame_params.light,
+							render(x, y, pass, pass_camera, frame_params.light,
 								frame_params.render, local_scene, output, &hdr_env);
 					}
 				});

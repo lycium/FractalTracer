@@ -143,7 +143,7 @@ void RenderController::managerFunc()
 					{
 						if (generation.load() != gen) break; // Check per-row for faster cancellation
 						for (int x = x0; x < x1; ++x)
-							render(x, y, 0, render_pass, 0, camera, light, settings, local_scene, render_buf, &hdr_env);
+							render(x, y, render_pass, camera, light, settings, local_scene, render_buf, &hdr_env);
 					}
 				}
 			});

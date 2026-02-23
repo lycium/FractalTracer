@@ -447,6 +447,7 @@ static void loadCornellBoxAnimPreset(SceneParams & params, Timeline & timeline, 
 	timeline.fps = 30;
 	timeline.current_time = 0;
 	timeline.playing = false;
+	timeline.loop = true;
 
 	struct KfData { float t; vec3r pos; };
 	const KfData kf_data[] =
