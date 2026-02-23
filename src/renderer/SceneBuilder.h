@@ -30,6 +30,10 @@ inline bool buildScene(Scene & scene, const std::vector<SceneObjectDesc> & objec
 		Quad q2(vec3r(-k, -k,  k), vec3r(0, 2, 0) * k, vec3r(2, 0, 0) * k); q2.mat.albedo = vec3f(0.7f, 0.7f, 0.7f); q2.mat.use_fresnel = true; scene.objects.push_back(q2.clone());
 		Quad q4(vec3r(-k, -k, -k), vec3r(0, 2, 0) * k, vec3r(0, 0, 2) * k); q4.mat.albedo = vec3f(0.90f, 0.2f, 0.02f); q4.mat.use_fresnel = true; scene.objects.push_back(q4.clone());
 		Quad q5(vec3r( k, -k, -k), vec3r(0, 0, 2) * k, vec3r(0, 2, 0) * k); q5.mat.albedo = vec3f(0.02f, 0.8f, 0.05f); q5.mat.use_fresnel = true; scene.objects.push_back(q5.clone());
+
+		// Ceiling light (emissive quad, normal faces down)
+		const real lk = k * 0.4f;
+		Quad ql(vec3r(-lk, k - 0.01f, lk), vec3r(0, 0, -2*lk), vec3r(2*lk, 0, 0)); ql.mat.albedo = vec3f(1, 1, 1); ql.mat.emission = vec3f(15, 15, 12); scene.objects.push_back(ql.clone());
 	}
 
 	for (const SceneObjectDesc & obj : objects)
