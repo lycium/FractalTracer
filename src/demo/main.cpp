@@ -103,15 +103,20 @@ int main(int argc, char ** argv)
 
 	SceneParams params;
 
+	// Create default fractal object
+	SceneObjectDesc default_obj;
+	setupFormulas(default_obj);
+	params.objects.push_back(std::move(default_obj));
+
 	for (int arg = 1; arg < argc; ++arg)
 	{
 		const std::string a = argv[arg];
 		if (a == "--animation") mode = mode_animation;
 		else if (a == "--preview") preview = true;
-		else if (a == "--box")     params.fractal.show_box = true;
+		else if (a == "--box")     params.show_box = true;
 		else if (a == "--normal")  save_normal = true;
 		else if (a == "--albedo")  save_albedo = true;
-		else if (a == "--formula" && arg + 1 < argc) params.fractal.formula_name = argv[++arg];
+		else if (a == "--formula" && arg + 1 < argc) { params.objects[0].formula_name = argv[++arg]; setupFormulas(params.objects[0]); }
 		else if (a == "--hdrenv"  && arg + 1 < argc) params.light.hdr_env_path   = argv[++arg];
 		else if (a == "--scene"  && arg + 1 < argc)  scene_path = argv[++arg];
 		else { fprintf(stderr, "Unknown argument: %s\nUsage: FractalTracer [--scene <path>] [--formula <name>] [--hdrenv <path>] [--animation] [--preview] [--box] [--normal] [--albedo]\n", argv[arg]); return 1; }
@@ -129,25 +134,29 @@ int main(int argc, char ** argv)
 	}
 
 	// Set formula-specific defaults that differ from the struct defaults
-	const std::string & formula_name = params.fractal.formula_name;
-	if (formula_name == "hopfbrot")
+	if (!params.objects.empty())
 	{
-		params.fractal.radius     = 2.0f;
-		params.fractal.step_scale = 0.5f;
-		params.fractal.albedo     = { 0.1f, 0.3f, 0.7f };
-		params.fractal.use_orbit_trap_colouring = false;
-	}
-	else if (formula_name == "burningship4d")
-	{
-		params.fractal.radius = 2.0f;
-		params.fractal.albedo = { 0.1f, 0.3f, 0.7f };
-		params.fractal.use_orbit_trap_colouring = false;
-	}
-	else if (formula_name == "mandelbulb")
-	{
-		params.fractal.radius = 1.25f;
-		params.fractal.albedo = { 0.1f, 0.3f, 0.7f };
-		params.fractal.use_orbit_trap_colouring = false;
+		auto & obj = params.objects[0];
+		const std::string & formula_name = obj.formula_name;
+		if (formula_name == "hopfbrot")
+		{
+			obj.radius     = 2.0f;
+			obj.step_scale = 0.5f;
+			obj.albedo     = { 0.1f, 0.3f, 0.7f };
+			obj.use_orbit_trap_colouring = false;
+		}
+		else if (formula_name == "burningship4d")
+		{
+			obj.radius = 2.0f;
+			obj.albedo = { 0.1f, 0.3f, 0.7f };
+			obj.use_orbit_trap_colouring = false;
+		}
+		else if (formula_name == "mandelbulb")
+		{
+			obj.radius = 1.25f;
+			obj.albedo = { 0.1f, 0.3f, 0.7f };
+			obj.use_orbit_trap_colouring = false;
+		}
 	}
 
 	// Load HDR environment map if specified
@@ -170,13 +179,14 @@ int main(int argc, char ** argv)
 		printf("Loaded HDR environment map: %s (%d x %d)\n", params.light.hdr_env_path.c_str(), hdr_env.xres, hdr_env.yres);
 	}
 
-	// Build scene from fractal params
+	// Build scene
 	Scene scene;
-	if (!buildScene(scene, params.fractal))
+	if (!buildScene(scene, params))
 	{
 		fprintf(stderr, "Unknown formula: %s\nAvailable formulas: amosersine, sphere, amazingbox_mandalay, hopfbrot, burningship4d, mandelbulb, "
 			"lambdabulb, amazingbox, octopus, mengersponge, cubicbulb, pseudokleinian, "
-			"riemannsphere, mandalay, spheretree, benesipine2\n", params.fractal.formula_name.c_str());
+			"riemannsphere, mandalay, spheretree, benesipine2\n",
+			params.objects.empty() ? "(none)" : params.objects[0].formula_name.c_str());
 		return 1;
 	}
 

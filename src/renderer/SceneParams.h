@@ -2,7 +2,7 @@
 
 #include "maths/vec.h"
 #include "renderer/CameraParams.h"
-#include "renderer/FractalParams.h"
+#include "renderer/SceneObjectDesc.h"
 
 
 struct LightParams
@@ -32,7 +32,9 @@ struct RenderSettings
 struct SceneParams
 {
 	CameraParams   camera;
-	FractalParams  fractal;
+	std::vector<SceneObjectDesc> objects;
 	LightParams    light;
 	RenderSettings render;
+	int  selected_object = 0;
+	bool show_box = false;
 };

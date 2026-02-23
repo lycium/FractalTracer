@@ -9,7 +9,7 @@ struct Keyframe
 {
 	float time_seconds = 0;
 	CameraParams camera;
-	FractalParams fractal;
+	std::vector<SceneObjectDesc> objects;
 	LightParams light;
 	int interpolation_mode = 1; // 0=linear, 1=catmull-rom
 };

@@ -12,13 +12,18 @@ struct DualCubicbulbIteration final : public IterationFunction
 	real y_mul = 3;
 	real z_mul = 3;
 	real aux_mul = 1;
-	DualVec3r c = { -0.5f, -0.5f, -0.25f };
+	vec3r julia_c = { -0.5f, -0.5f, -0.25f };
 	bool julia_mode = true;
 
+private:
+	DualVec3r c = { -0.5f, -0.5f, -0.25f };
 
+public:
 	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
-		if (!julia_mode)
+		if (julia_mode)
+			c = DualVec3r(julia_c.x(), julia_c.y(), julia_c.z());
+		else
 			c = p_0;
 	}
 
@@ -35,5 +40,16 @@ struct DualCubicbulbIteration final : public IterationFunction
 	virtual IterationFunction * clone() const override final
 	{
 		return new DualCubicbulbIteration(*this);
+	}
+
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "Y Mul",      ParamInfo::Real, &y_mul,      0.0f, 6.0f },
+			{ "Z Mul",      ParamInfo::Real, &z_mul,      0.0f, 6.0f },
+			{ "Aux Mul",    ParamInfo::Real, &aux_mul,    0.0f, 3.0f },
+			{ "Julia C",    ParamInfo::Vec3r, &julia_c },
+			{ "Julia Mode", ParamInfo::Bool, &julia_mode },
+		};
 	}
 };

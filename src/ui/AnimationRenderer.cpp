@@ -132,7 +132,7 @@ void AnimationRenderer::renderFunc(Timeline timeline, SceneParams base_params,
 		{
 			SceneParams interpolated = timeline.evaluate(frame_time);
 			frame_params.camera = interpolated.camera;
-			frame_params.fractal = interpolated.fractal;
+			frame_params.objects = interpolated.objects;
 			frame_params.light = interpolated.light;
 		}
 
@@ -140,7 +140,7 @@ void AnimationRenderer::renderFunc(Timeline timeline, SceneParams base_params,
 
 		// Build scene for this frame
 		Scene scene;
-		if (!buildScene(scene, frame_params.fractal))
+		if (!buildScene(scene, frame_params))
 		{
 			std::lock_guard<std::mutex> lock(status_mutex);
 			status_message = "Error: failed to build scene for frame " + std::to_string(frame);

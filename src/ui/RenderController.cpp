@@ -70,16 +70,18 @@ void RenderController::managerFunc()
 		// Only snapshot params and rebuild scene when generation changes
 		if (gen != scene_gen)
 		{
-			FractalParams fractal;
+			std::vector<SceneObjectDesc> local_objects;
+			bool show_box;
 			{
 				std::lock_guard<std::mutex> lock(params_mutex);
 				camera = params.camera;
 				light = params.light;
 				settings = params.render;
-				fractal = params.fractal;
+				local_objects = params.objects;
+				show_box = params.show_box;
 			}
 			camera.recompute();
-			buildScene(render_scene, fractal);
+			buildScene(render_scene, local_objects, show_box);
 			scene_gen = gen;
 		}
 

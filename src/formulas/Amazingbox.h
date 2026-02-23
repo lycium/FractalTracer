@@ -12,13 +12,18 @@ struct DualAmazingboxIteration final : public IterationFunction
 	real min_r2 = 0.25f;
 	real fix_r2 = 1;
 	real fold_limit = 1;
-	DualVec3r c = { 0.0f, 0.0f, 0.0f };
+	vec3r julia_c = { 0, 0, 0 };
 	bool julia_mode = false;
 
+private:
+	DualVec3r c = { 0.0f, 0.0f, 0.0f };
 
+public:
 	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
-		if (!julia_mode)
+		if (julia_mode)
+			c = DualVec3r(julia_c.x(), julia_c.y(), julia_c.z());
+		else
 			c = p_0;
 	}
 
@@ -37,6 +42,18 @@ struct DualAmazingboxIteration final : public IterationFunction
 	virtual IterationFunction * clone() const override final
 	{
 		return new DualAmazingboxIteration(*this);
+	}
+
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "Scale",      ParamInfo::Real, &scale,      -5.0f, 5.0f },
+			{ "Min R2",     ParamInfo::Real, &min_r2,      0.0f, 2.0f },
+			{ "Fix R2",     ParamInfo::Real, &fix_r2,      0.0f, 2.0f },
+			{ "Fold Limit", ParamInfo::Real, &fold_limit,   0.0f, 3.0f },
+			{ "Julia C",    ParamInfo::Vec3r, &julia_c },
+			{ "Julia Mode", ParamInfo::Bool, &julia_mode },
+		};
 	}
 
 protected:

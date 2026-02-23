@@ -5,9 +5,8 @@
 #include "Timeline.h"
 
 // Returns true if any parameter was changed
-bool drawFormulaPanel(FractalParams & fp);
+bool drawObjectEditor(SceneParams & params);
 bool drawCameraPanel(CameraParams & camera);
-bool drawMaterialPanel(FractalParams & fp);
 bool drawLightPanel(LightParams & light);
 bool drawRenderSettingsPanel(RenderSettings & settings);
 // Returns true if the Refresh button was pressed

@@ -10,6 +10,7 @@
 #include "renderer/Renderer.h"
 #include "renderer/SceneParams.h"
 #include "renderer/SceneBuilder.h"
+#include "renderer/FormulaFactory.h"
 
 #include "RenderController.h"
 #include "ImGuiPanels.h"
@@ -116,6 +117,13 @@ int main(int argc, char ** argv)
 	const int num_threads = std::max(1, (int)std::thread::hardware_concurrency());
 	RenderController controller(num_threads, window_w, window_h);
 
+	// Create default scene
+	{
+		SceneObjectDesc default_obj;
+		setupFormulas(default_obj);
+		controller.params.objects.push_back(std::move(default_obj));
+	}
+
 	// Set default camera
 	controller.params.camera.position = vec3r{ 10, 5, -10 } * 0.25f;
 	controller.params.camera.look_at  = { 0, -0.125f, 0 };
@@ -203,13 +211,12 @@ int main(int argc, char ** argv)
 		ImGui::SetNextWindowSize(ImVec2(350, (float)window_h), ImGuiCond_FirstUseEver);
 		if (ImGui::Begin("Parameters"))
 		{
-			params_changed |= drawFormulaPanel(controller.params.fractal);
+			params_changed |= drawObjectEditor(controller.params);
 			if (drawCameraPanel(controller.params.camera))
 			{
 				params_changed = true;
 				interactive_cam.initFromCamera(controller.params.camera);
 			}
-			params_changed |= drawMaterialPanel(controller.params.fractal);
 			params_changed |= drawLightPanel(controller.params.light);
 			params_changed |= drawRenderSettingsPanel(controller.params.render);
 
@@ -266,7 +273,7 @@ int main(int argc, char ** argv)
 			{
 				SceneParams interpolated = timeline.evaluate(timeline.current_time);
 				controller.params.camera = interpolated.camera;
-				controller.params.fractal = interpolated.fractal;
+				controller.params.objects = interpolated.objects;
 				controller.params.light = interpolated.light;
 				interactive_cam.initFromCamera(controller.params.camera);
 				params_changed = true;

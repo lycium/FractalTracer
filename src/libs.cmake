@@ -11,13 +11,14 @@ target_sources(TracerLib INTERFACE
 
     renderer/CameraParams.h
     renderer/ColouringFunction.h
-    renderer/FractalParams.h
+    renderer/FormulaFactory.h
     renderer/HDREnvironment.h
     renderer/Material.h
     renderer/Ray.h
     renderer/Renderer.h
     renderer/Scene.h
     renderer/SceneBuilder.h
+    renderer/SceneObjectDesc.h
     renderer/SceneParams.h
 
     scene_objects/AnalyticDEObject.h

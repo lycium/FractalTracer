@@ -97,6 +97,20 @@ struct DualMandalayKIFSIteration final : public IterationFunction
 		return new DualMandalayKIFSIteration(*this);
 	}
 
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "Scale",          ParamInfo::Real, &scale,          -5.0f, 5.0f },
+			{ "Min R2",         ParamInfo::Real, &min_r2,          0.0f, 2.0f },
+			{ "Folding Offset", ParamInfo::Real, &folding_offset,  0.0f, 3.0f },
+			{ "Z Tower",        ParamInfo::Real, &z_tower,        -2.0f, 2.0f },
+			{ "XY Tower",       ParamInfo::Real, &xy_tower,       -2.0f, 2.0f },
+			{ "Rotate",         ParamInfo::Vec3r, &rotate },
+			{ "Julia C",        ParamInfo::Vec3r, &julia_c },
+			{ "Julia Mode",     ParamInfo::Bool, &julia_mode },
+		};
+	}
+
 private:
 	DualVec3r c = { 0, 0, 0 };
 	quat<Dual4r> rotation_quat;

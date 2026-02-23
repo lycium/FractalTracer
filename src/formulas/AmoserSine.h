@@ -40,4 +40,13 @@ public:
 	{
 		return new DualAmoserSineIteration(*this);
 	}
+
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "Scale",      ParamInfo::Real, &scale,      0.5f, 5.0f },
+			{ "Julia C",    ParamInfo::Vec3r, &julia_c },
+			{ "Julia Mode", ParamInfo::Bool, &julia_mode },
+		};
+	}
 };

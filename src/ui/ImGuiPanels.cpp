@@ -1,5 +1,6 @@
 #include "ImGuiPanels.h"
 #include "SceneSerializer.h"
+#include "renderer/FormulaFactory.h"
 #include "imgui.h"
 
 #include <cstring>
@@ -46,151 +47,238 @@ static bool DragVec3r(const char * label, vec3r & v, real speed = 0.01f)
 }
 
 
-bool drawFormulaPanel(FractalParams & fp)
+// Draw generic formula parameters from getParams()
+static bool drawFormulaParams(IterationFunction * formula, int formula_idx)
+{
+	bool changed = false;
+	auto params = formula->getParams();
+
+	for (auto & p : params)
+	{
+		// Create unique ID to avoid ImGui ID collisions between formulas
+		char label[128];
+		snprintf(label, sizeof(label), "%s##f%d", p.name, formula_idx);
+
+		switch (p.type)
+		{
+			case ParamInfo::Real:
+				changed |= SliderReal(label, (real *)p.ptr, p.min, p.max);
+				break;
+			case ParamInfo::Vec3r:
+				changed |= DragVec3r(label, *(vec3r *)p.ptr, 0.01f);
+				break;
+			case ParamInfo::Bool:
+				changed |= ImGui::Checkbox(label, (bool *)p.ptr);
+				break;
+			case ParamInfo::Real4:
+				changed |= ImGui::SliderFloat4(label, (float *)p.ptr, p.min, p.max);
+				break;
+		}
+	}
+
+	return changed;
+}
+
+
+// Draw material editor for a single object
+static bool drawMaterialEditor(SceneObjectDesc & obj, int obj_idx)
 {
 	bool changed = false;
 
-	if (!ImGui::CollapsingHeader("Fractal Formula", ImGuiTreeNodeFlags_DefaultOpen))
+	char label[128];
+	snprintf(label, sizeof(label), "Albedo##obj%d", obj_idx);
+	changed |= ImGui::ColorEdit3(label, &obj.albedo.x());
+
+	snprintf(label, sizeof(label), "Emission##obj%d", obj_idx);
+	changed |= ImGui::ColorEdit3(label, &obj.emission.x());
+
+	snprintf(label, sizeof(label), "Use Fresnel##obj%d", obj_idx);
+	changed |= ImGui::Checkbox(label, &obj.use_fresnel);
+
+	if (obj.use_fresnel)
+	{
+		snprintf(label, sizeof(label), "R0 (Fresnel)##obj%d", obj_idx);
+		changed |= ImGui::SliderFloat(label, &obj.r0, 0.0f, 1.0f);
+	}
+
+	if (obj.type == "fractal")
+	{
+		snprintf(label, sizeof(label), "Orbit Trap Colouring##obj%d", obj_idx);
+		changed |= ImGui::Checkbox(label, &obj.use_orbit_trap_colouring);
+	}
+
+	return changed;
+}
+
+
+bool drawObjectEditor(SceneParams & params)
+{
+	bool changed = false;
+
+	if (!ImGui::CollapsingHeader("Scene Objects", ImGuiTreeNodeFlags_DefaultOpen))
 		return false;
 
-	// Formula selector
-	const char * formulas[] = {
-		"amosersine", "mandalay", "amazingbox", "amazingbox_mandalay", "mandelbulb", "hopfbrot",
-		"burningship4d", "lambdabulb", "octopus", "mengersponge", "cubicbulb",
-		"pseudokleinian", "riemannsphere", "spheretree", "benesipine2", "sphere"
-	};
-	const int num_formulas = sizeof(formulas) / sizeof(formulas[0]);
-
-	int current = 0;
-	for (int i = 0; i < num_formulas; i++)
-		if (fp.formula_name == formulas[i]) { current = i; break; }
-
-	if (ImGui::Combo("Formula", &current, formulas, num_formulas))
+	// Object list with add/remove
+	if (ImGui::Button("Add Fractal"))
 	{
-		fp.formula_name = formulas[current];
+		SceneObjectDesc obj;
+		obj.name = "Fractal " + std::to_string(params.objects.size());
+		setupFormulas(obj);
+		params.objects.push_back(std::move(obj));
+		params.selected_object = (int)params.objects.size() - 1;
+		changed = true;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Add Sphere"))
+	{
+		SceneObjectDesc obj;
+		obj.type = "sphere";
+		obj.name = "Sphere " + std::to_string(params.objects.size());
+		obj.radius = 1.0f;
+		obj.albedo = { 0.9f, 0.9f, 0.9f };
+		params.objects.push_back(std::move(obj));
+		params.selected_object = (int)params.objects.size() - 1;
+		changed = true;
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Add Quad"))
+	{
+		SceneObjectDesc obj;
+		obj.type = "quad";
+		obj.name = "Quad " + std::to_string(params.objects.size());
+		obj.albedo = { 0.7f, 0.7f, 0.7f };
+		params.objects.push_back(std::move(obj));
+		params.selected_object = (int)params.objects.size() - 1;
 		changed = true;
 	}
 
-	// Common DE parameters
-	changed |= ImGui::SliderInt("Max Iterations", &fp.max_iters, 1, 200);
-	changed |= SliderReal("Radius", &fp.radius, 0.1f, 10.0f);
-	changed |= SliderReal("Step Scale", &fp.step_scale, 0.01f, 2.0f);
-	changed |= SliderReal("Bailout Radius^2", &fp.bailout_radius2, 1.0f, 10000.0f, "%.1f");
+	// Object selector
+	if (!params.objects.empty())
+	{
+		// Build list of object names for combo
+		std::vector<const char *> obj_names;
+		for (auto & obj : params.objects)
+			obj_names.push_back(obj.name.c_str());
 
-	// Formula-specific parameters
-	const std::string & name = fp.formula_name;
+		if (params.selected_object >= (int)params.objects.size())
+			params.selected_object = (int)params.objects.size() - 1;
 
-	if (name == "amosersine")
-	{
-		ImGui::Separator();
-		ImGui::Text("AmoserSine Parameters");
-		changed |= SliderReal("Scale##amosersine", &fp.amosersine_scale, 0.5f, 5.0f);
-		changed |= DragVec3r("Julia C##amosersine", fp.amosersine_julia_c, 0.01f);
-		changed |= ImGui::Checkbox("Julia Mode##amosersine", &fp.amosersine_julia_mode);
+		ImGui::Combo("Object", &params.selected_object, obj_names.data(), (int)obj_names.size());
+
+		// Remove button
+		ImGui::SameLine();
+		if (ImGui::Button("Remove") && !params.objects.empty())
+		{
+			params.objects.erase(params.objects.begin() + params.selected_object);
+			if (params.selected_object >= (int)params.objects.size())
+				params.selected_object = std::max(0, (int)params.objects.size() - 1);
+			changed = true;
+		}
 	}
-	else if (name == "mandalay")
+
+	// Edit selected object
+	if (params.selected_object >= 0 && params.selected_object < (int)params.objects.size())
 	{
-		ImGui::Separator();
-		ImGui::Text("MandalayKIFS Parameters");
-		changed |= SliderReal("Scale##mandalay", &fp.mandalay_scale, -5.0f, 5.0f);
-		changed |= SliderReal("Min R2##mandalay", &fp.mandalay_min_r2, 0.0f, 2.0f);
-		changed |= SliderReal("Folding Offset##mandalay", &fp.mandalay_folding_offset, 0.0f, 3.0f);
-		changed |= SliderReal("Z Tower##mandalay", &fp.mandalay_z_tower, -2.0f, 2.0f);
-		changed |= SliderReal("XY Tower##mandalay", &fp.mandalay_xy_tower, -2.0f, 2.0f);
-		changed |= DragVec3r("Rotate##mandalay", fp.mandalay_rotate, 0.005f);
-		changed |= DragVec3r("Julia C##mandalay", fp.mandalay_julia_c, 0.01f);
-		changed |= ImGui::Checkbox("Julia Mode##mandalay", &fp.mandalay_julia_mode);
-	}
-	else if (name == "amazingbox")
-	{
-		ImGui::Separator();
-		ImGui::Text("Amazingbox Parameters");
-		changed |= SliderReal("Scale##amazingbox", &fp.amazingbox_scale, -5.0f, 5.0f);
-		changed |= SliderReal("Min R2##amazingbox", &fp.amazingbox_min_r2, 0.0f, 2.0f);
-		changed |= SliderReal("Fix R2##amazingbox", &fp.amazingbox_fix_r2, 0.0f, 2.0f);
-		changed |= SliderReal("Fold Limit##amazingbox", &fp.amazingbox_fold_limit, 0.0f, 3.0f);
-		changed |= ImGui::Checkbox("Julia Mode##amazingbox", &fp.amazingbox_julia_mode);
-	}
-	else if (name == "amazingbox_mandalay")
-	{
-		ImGui::Separator();
-		ImGui::Text("Hybrid Amazingbox Parameters");
-		changed |= SliderReal("AB Scale", &fp.hybrid_amazingbox_scale, -5.0f, 5.0f);
-		changed |= SliderReal("AB Fold Limit", &fp.hybrid_amazingbox_fold_limit, 0.0f, 3.0f);
-		changed |= SliderReal("AB Min R2", &fp.hybrid_amazingbox_min_r2, 0.0f, 2.0f);
+		SceneObjectDesc & obj = params.objects[params.selected_object];
+		const int idx = params.selected_object;
 
 		ImGui::Separator();
-		ImGui::Text("Hybrid Mandalay Parameters");
-		changed |= SliderReal("MK Scale", &fp.hybrid_mandalay_scale, -5.0f, 5.0f);
-		changed |= SliderReal("MK Folding Offset", &fp.hybrid_mandalay_folding_offset, 0.0f, 3.0f);
-		changed |= SliderReal("MK Z Tower", &fp.hybrid_mandalay_z_tower, -2.0f, 2.0f);
-		changed |= SliderReal("MK XY Tower", &fp.hybrid_mandalay_xy_tower, -2.0f, 2.0f);
-		changed |= DragVec3r("MK Rotate", fp.hybrid_mandalay_rotate, 0.005f);
-		changed |= ImGui::Checkbox("MK Julia Mode", &fp.hybrid_mandalay_julia_mode);
-	}
-	else if (name == "lambdabulb")
-	{
+
+		// Name
+		char name_buf[128];
+		strncpy(name_buf, obj.name.c_str(), sizeof(name_buf) - 1);
+		name_buf[sizeof(name_buf) - 1] = '\0';
+		char name_label[32];
+		snprintf(name_label, sizeof(name_label), "Name##obj%d", idx);
+		if (ImGui::InputText(name_label, name_buf, sizeof(name_buf)))
+			obj.name = name_buf;
+
+		// Type selector
+		const char * types[] = { "fractal", "sphere", "quad" };
+		int cur_type = 0;
+		if (obj.type == "sphere") cur_type = 1;
+		else if (obj.type == "quad") cur_type = 2;
+
+		char type_label[32];
+		snprintf(type_label, sizeof(type_label), "Type##obj%d", idx);
+		if (ImGui::Combo(type_label, &cur_type, types, 3))
+		{
+			obj.type = types[cur_type];
+			changed = true;
+		}
+
+		// Geometry
+		if (obj.type == "sphere")
+		{
+			char label[64];
+			snprintf(label, sizeof(label), "Centre##obj%d", idx);
+			changed |= DragVec3r(label, obj.position, 0.05f);
+			snprintf(label, sizeof(label), "Radius##obj%d", idx);
+			changed |= SliderReal(label, &obj.radius, 0.01f, 10.0f);
+		}
+		else if (obj.type == "quad")
+		{
+			char label[64];
+			snprintf(label, sizeof(label), "Position##obj%d", idx);
+			changed |= DragVec3r(label, obj.position, 0.05f);
+			snprintf(label, sizeof(label), "U##obj%d", idx);
+			changed |= DragVec3r(label, obj.quad_u, 0.05f);
+			snprintf(label, sizeof(label), "V##obj%d", idx);
+			changed |= DragVec3r(label, obj.quad_v, 0.05f);
+		}
+		else if (obj.type == "fractal")
+		{
+			// Formula selector
+			const auto & formula_names = getFormulaNames();
+			int current_formula = 0;
+			for (int i = 0; i < (int)formula_names.size(); i++)
+				if (obj.formula_name == formula_names[i]) { current_formula = i; break; }
+
+			char formula_label[64];
+			snprintf(formula_label, sizeof(formula_label), "Formula##obj%d", idx);
+			if (ImGui::Combo(formula_label, &current_formula, formula_names.data(), (int)formula_names.size()))
+			{
+				obj.formula_name = formula_names[current_formula];
+				setupFormulas(obj);
+				changed = true;
+			}
+
+			// Common DE parameters
+			char label[64];
+			snprintf(label, sizeof(label), "Max Iterations##obj%d", idx);
+			changed |= ImGui::SliderInt(label, &obj.max_iters, 1, 200);
+			snprintf(label, sizeof(label), "Radius##obj%d", idx);
+			changed |= SliderReal(label, &obj.radius, 0.1f, 10.0f);
+			snprintf(label, sizeof(label), "Step Scale##obj%d", idx);
+			changed |= SliderReal(label, &obj.step_scale, 0.01f, 2.0f);
+			snprintf(label, sizeof(label), "Bailout Radius^2##obj%d", idx);
+			changed |= SliderReal(label, &obj.bailout_radius2, 1.0f, 10000.0f, "%.1f");
+
+			if (obj.formula_name == "hopfbrot")
+			{
+				snprintf(label, sizeof(label), "Scene Scale##obj%d", idx);
+				changed |= SliderReal(label, &obj.scene_scale, 0.5f, 5.0f);
+			}
+
+			// Formula-specific parameters via getParams()
+			if (!obj.formulas.empty())
+			{
+				ImGui::Separator();
+				for (int fi = 0; fi < (int)obj.formulas.size(); fi++)
+				{
+					if (obj.formulas.size() > 1)
+					{
+						ImGui::Text("Formula %d", fi);
+					}
+					changed |= drawFormulaParams(obj.formulas[fi], idx * 100 + fi);
+				}
+			}
+		}
+
+		// Material
 		ImGui::Separator();
-		ImGui::Text("Lambdabulb Parameters");
-		changed |= SliderReal("Power##lambdabulb", &fp.lambdabulb_power, 2.0f, 8.0f);
-		changed |= DragVec3r("C##lambdabulb", fp.lambdabulb_c, 0.005f);
-	}
-	else if (name == "octopus")
-	{
-		ImGui::Separator();
-		ImGui::Text("Octopus Parameters");
-		changed |= SliderReal("XZ Mul##octopus", &fp.octopus_xz_mul, 0.0f, 3.0f);
-		changed |= SliderReal("Sq Mul##octopus", &fp.octopus_sq_mul, 0.0f, 3.0f);
-		changed |= ImGui::Checkbox("Julia Mode##octopus", &fp.octopus_julia_mode);
-	}
-	else if (name == "cubicbulb")
-	{
-		ImGui::Separator();
-		ImGui::Text("Cubicbulb Parameters");
-		changed |= SliderReal("Y Mul##cubicbulb", &fp.cubicbulb_y_mul, 0.0f, 6.0f);
-		changed |= SliderReal("Z Mul##cubicbulb", &fp.cubicbulb_z_mul, 0.0f, 6.0f);
-		changed |= SliderReal("Aux Mul##cubicbulb", &fp.cubicbulb_aux_mul, 0.0f, 3.0f);
-		changed |= DragVec3r("C##cubicbulb", fp.cubicbulb_c, 0.005f);
-		changed |= ImGui::Checkbox("Julia Mode##cubicbulb", &fp.cubicbulb_julia_mode);
-	}
-	else if (name == "mengersponge")
-	{
-		ImGui::Separator();
-		ImGui::Text("Menger Sponge Parameters");
-		changed |= SliderReal("Scale##menger", &fp.mengersponge_scale, 1.0f, 6.0f);
-		changed |= DragVec3r("Scale Centre##menger", fp.mengersponge_scale_centre, 0.01f);
-	}
-	else if (name == "benesipine2")
-	{
-		ImGui::Separator();
-		ImGui::Text("BenesiPine2 Parameters");
-		changed |= SliderReal("Scale##benesi", &fp.benesipine2_scale, 0.5f, 5.0f);
-		changed |= SliderReal("Offset##benesi", &fp.benesipine2_offset, 0.0f, 2.0f);
-		changed |= ImGui::Checkbox("Julia Mode##benesi", &fp.benesipine2_julia_mode);
-	}
-	else if (name == "riemannsphere")
-	{
-		ImGui::Separator();
-		ImGui::Text("Riemann Sphere Parameters");
-		changed |= SliderReal("Scale##riemann", &fp.riemannsphere_scale, -3.0f, 3.0f);
-		changed |= SliderReal("S Shift##riemann", &fp.riemannsphere_s_shift, -2.0f, 2.0f);
-		changed |= SliderReal("T Shift##riemann", &fp.riemannsphere_t_shift, -2.0f, 2.0f);
-		changed |= SliderReal("X Shift##riemann", &fp.riemannsphere_x_shift, -2.0f, 2.0f);
-		changed |= SliderReal("R Shift##riemann", &fp.riemannsphere_r_shift, -2.0f, 2.0f);
-		changed |= SliderReal("R Power##riemann", &fp.riemannsphere_r_pow, 1.0f, 8.0f);
-	}
-	else if (name == "pseudokleinian")
-	{
-		ImGui::Separator();
-		ImGui::Text("PseudoKleinian Parameters");
-		changed |= ImGui::SliderFloat4("Mins##pk", fp.pseudokleinian_mins, -2.0f, 2.0f);
-		changed |= ImGui::SliderFloat4("Maxs##pk", fp.pseudokleinian_maxs, -2.0f, 2.0f);
-	}
-	else if (name == "hopfbrot")
-	{
-		ImGui::Separator();
-		ImGui::Text("Hopfbrot Parameters");
-		changed |= SliderReal("Scene Scale##hopf", &fp.hopfbrot_scene_scale, 0.5f, 5.0f);
+		ImGui::Text("Material");
+		changed |= drawMaterialEditor(obj, idx);
 	}
 
 	return changed;
@@ -210,24 +298,6 @@ bool drawCameraPanel(CameraParams & camera)
 	changed |= SliderReal("DOF Amount", &camera.dof_amount, 0.0f, 2.0f);
 	changed |= SliderReal("Lens Radius", &camera.lens_radius, 0.0f, 0.1f, "%.5f");
 	changed |= SliderReal("Focal Dist Scale", &camera.focal_dist_scale, 0.01f, 2.0f);
-
-	return changed;
-}
-
-
-bool drawMaterialPanel(FractalParams & fp)
-{
-	bool changed = false;
-
-	if (!ImGui::CollapsingHeader("Material"))
-		return false;
-
-	changed |= ImGui::ColorEdit3("Albedo", &fp.albedo.x());
-	changed |= ImGui::ColorEdit3("Emission", &fp.emission.x());
-	changed |= ImGui::Checkbox("Use Fresnel", &fp.use_fresnel);
-	if (fp.use_fresnel)
-		changed |= ImGui::SliderFloat("R0 (Fresnel)", &fp.r0, 0.0f, 1.0f);
-	changed |= ImGui::Checkbox("Orbit Trap Colouring", &fp.use_orbit_trap_colouring);
 
 	return changed;
 }
@@ -295,6 +365,93 @@ bool drawStatsOverlay(int passes, int target_passes, int xres, int yres, float f
 }
 
 
+// Example scene presets
+static void loadCornellBoxPreset(SceneParams & params)
+{
+	params.objects.clear();
+
+	const real k = 2.0f;
+
+	// Floor (white)
+	{
+		SceneObjectDesc q; q.type = "quad"; q.name = "Floor";
+		q.position = vec3r(-k, -k, -k); q.quad_u = vec3r(2*k, 0, 0); q.quad_v = vec3r(0, 0, 2*k);
+		q.albedo = { 0.7f, 0.7f, 0.7f }; q.use_fresnel = false;
+		params.objects.push_back(std::move(q));
+	}
+	// Ceiling (white)
+	{
+		SceneObjectDesc q; q.type = "quad"; q.name = "Ceiling";
+		q.position = vec3r(-k, k, k); q.quad_u = vec3r(2*k, 0, 0); q.quad_v = vec3r(0, 0, -2*k);
+		q.albedo = { 0.7f, 0.7f, 0.7f }; q.use_fresnel = false;
+		params.objects.push_back(std::move(q));
+	}
+	// Back wall (white)
+	{
+		SceneObjectDesc q; q.type = "quad"; q.name = "Back Wall";
+		q.position = vec3r(-k, -k, k); q.quad_u = vec3r(2*k, 0, 0); q.quad_v = vec3r(0, 2*k, 0);
+		q.albedo = { 0.7f, 0.7f, 0.7f }; q.use_fresnel = false;
+		params.objects.push_back(std::move(q));
+	}
+	// Left wall (red)
+	{
+		SceneObjectDesc q; q.type = "quad"; q.name = "Left Wall";
+		q.position = vec3r(-k, -k, -k); q.quad_u = vec3r(0, 2*k, 0); q.quad_v = vec3r(0, 0, 2*k);
+		q.albedo = { 0.9f, 0.1f, 0.1f }; q.use_fresnel = false;
+		params.objects.push_back(std::move(q));
+	}
+	// Right wall (green)
+	{
+		SceneObjectDesc q; q.type = "quad"; q.name = "Right Wall";
+		q.position = vec3r(k, -k, -k); q.quad_u = vec3r(0, 0, 2*k); q.quad_v = vec3r(0, 2*k, 0);
+		q.albedo = { 0.1f, 0.9f, 0.1f }; q.use_fresnel = false;
+		params.objects.push_back(std::move(q));
+	}
+	// Ceiling light (emissive sphere)
+	{
+		SceneObjectDesc s; s.type = "sphere"; s.name = "Light";
+		s.position = vec3r(0, k - 0.01f, 0); s.radius = 0.5f;
+		s.albedo = { 1, 1, 1 }; s.emission = { 15, 15, 12 };
+		s.use_fresnel = false;
+		params.objects.push_back(std::move(s));
+	}
+	// Mandelbulb fractal
+	{
+		SceneObjectDesc f; f.name = "Mandelbulb";
+		f.formula_name = "mandelbulb";
+		f.radius = 1.25f;
+		f.albedo = { 0.1f, 0.3f, 0.7f };
+		f.use_orbit_trap_colouring = false;
+		f.use_fresnel = true;
+		setupFormulas(f);
+		params.objects.push_back(std::move(f));
+	}
+
+	// Camera
+	params.camera.position = vec3r(0, 0, -3.5f);
+	params.camera.look_at  = vec3r(0, 0, 0);
+	params.camera.recompute();
+
+	params.selected_object = 6; // Mandelbulb
+}
+
+static void loadDefaultPreset(SceneParams & params)
+{
+	params.objects.clear();
+
+	SceneObjectDesc obj;
+	obj.name = "AmoserSine";
+	setupFormulas(obj);
+	params.objects.push_back(std::move(obj));
+
+	params.camera.position = vec3r{ 10, 5, -10 } * 0.25f;
+	params.camera.look_at  = { 0, -0.125f, 0 };
+	params.camera.recompute();
+
+	params.selected_object = 0;
+}
+
+
 bool drawFileMenu(SceneParams & params)
 {
 	static char save_path[256] = "scene.json";
@@ -323,6 +480,22 @@ bool drawFileMenu(SceneParams & params)
 			}
 			else
 				snprintf(status_msg, sizeof(status_msg), "Load failed: %s", save_path);
+		}
+
+		ImGui::Separator();
+		ImGui::Text("Presets");
+		if (ImGui::Button("Default Fractal"))
+		{
+			loadDefaultPreset(params);
+			loaded = true;
+			snprintf(status_msg, sizeof(status_msg), "Loaded default preset");
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cornell Box + Mandelbulb"))
+		{
+			loadCornellBoxPreset(params);
+			loaded = true;
+			snprintf(status_msg, sizeof(status_msg), "Loaded Cornell Box preset");
 		}
 
 		if (status_msg[0])

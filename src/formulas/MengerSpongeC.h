@@ -107,7 +107,6 @@ struct DualMengerSpongeCIteration final : public IterationFunction
 	real  scale = 3;
 	vec3r scale_centre = { 1.0f, 1.0f, 1.0f };
 
-
 	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
 		DualVec3r z(
@@ -134,5 +133,13 @@ struct DualMengerSpongeCIteration final : public IterationFunction
 	virtual IterationFunction * clone() const override final
 	{
 		return new DualMengerSpongeCIteration(*this);
+	}
+
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "Scale",        ParamInfo::Real, &scale,         1.0f, 6.0f },
+			{ "Scale Centre", ParamInfo::Vec3r, &scale_centre },
+		};
 	}
 };

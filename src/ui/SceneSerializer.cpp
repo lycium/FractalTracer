@@ -3,6 +3,8 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
+#include "renderer/FormulaFactory.h"
+
 using json = nlohmann::json;
 
 
@@ -15,10 +17,176 @@ static json vec3fToJson(const vec3f & v) { return { v.x(), v.y(), v.z() }; }
 static vec3f jsonToVec3f(const json & j) { return { (float)j[0], (float)j[1], (float)j[2] }; }
 
 
+// Serialize formula params generically via getParams()
+static json formulaParamsToJson(IterationFunction * formula)
+{
+	json fp;
+	if (!formula) return fp;
+
+	for (const auto & p : formula->getParams())
+	{
+		switch (p.type)
+		{
+			case ParamInfo::Real:
+				fp[p.name] = *(real *)p.ptr;
+				break;
+			case ParamInfo::Vec3r:
+				fp[p.name] = vec3rToJson(*(vec3r *)p.ptr);
+				break;
+			case ParamInfo::Bool:
+				fp[p.name] = *(bool *)p.ptr;
+				break;
+			case ParamInfo::Real4:
+			{
+				const real * v = (const real *)p.ptr;
+				fp[p.name] = { v[0], v[1], v[2], v[3] };
+				break;
+			}
+		}
+	}
+	return fp;
+}
+
+
+// Deserialize formula params generically via getParams()
+static void jsonToFormulaParams(IterationFunction * formula, const json & fp)
+{
+	if (!formula || fp.empty()) return;
+
+	for (auto & p : formula->getParams())
+	{
+		if (!fp.contains(p.name)) continue;
+
+		switch (p.type)
+		{
+			case ParamInfo::Real:
+				*(real *)p.ptr = (real)fp[p.name];
+				break;
+			case ParamInfo::Vec3r:
+				*(vec3r *)p.ptr = jsonToVec3r(fp[p.name]);
+				break;
+			case ParamInfo::Bool:
+				*(bool *)p.ptr = (bool)fp[p.name];
+				break;
+			case ParamInfo::Real4:
+			{
+				real * v = (real *)p.ptr;
+				const auto & a = fp[p.name];
+				for (int i = 0; i < 4; i++) v[i] = (real)a[i];
+				break;
+			}
+		}
+	}
+}
+
+
+static json objectToJson(const SceneObjectDesc & obj)
+{
+	json j;
+	j["type"] = obj.type;
+	j["name"] = obj.name;
+
+	// Material
+	j["albedo"]   = vec3fToJson(obj.albedo);
+	j["emission"] = vec3fToJson(obj.emission);
+	j["use_fresnel"] = obj.use_fresnel;
+	j["r0"]       = obj.r0;
+	j["use_orbit_trap_colouring"] = obj.use_orbit_trap_colouring;
+
+	// Geometry
+	j["position"] = vec3rToJson(obj.position);
+	j["radius"]   = obj.radius;
+
+	if (obj.type == "quad")
+	{
+		j["quad_u"] = vec3rToJson(obj.quad_u);
+		j["quad_v"] = vec3rToJson(obj.quad_v);
+	}
+
+	if (obj.type == "fractal")
+	{
+		j["formula_name"]    = obj.formula_name;
+		j["max_iters"]       = obj.max_iters;
+		j["scene_scale"]     = obj.scene_scale;
+		j["step_scale"]      = obj.step_scale;
+		j["bailout_radius2"] = obj.bailout_radius2;
+
+		// Serialize iteration_sequence
+		json seq = json::array();
+		for (char c : obj.iteration_sequence) seq.push_back((int)c);
+		j["iteration_sequence"] = seq;
+
+		// Serialize formula params
+		json formulas_json = json::array();
+		for (auto * f : obj.formulas)
+			formulas_json.push_back(formulaParamsToJson(f));
+		j["formula_params"] = formulas_json;
+	}
+
+	return j;
+}
+
+
+static SceneObjectDesc jsonToObject(const json & j)
+{
+	SceneObjectDesc obj;
+
+	obj.type = j.value("type", std::string("fractal"));
+	obj.name = j.value("name", std::string("Object"));
+
+	// Material
+	if (j.contains("albedo"))   obj.albedo   = jsonToVec3f(j["albedo"]);
+	if (j.contains("emission")) obj.emission = jsonToVec3f(j["emission"]);
+	obj.use_fresnel = j.value("use_fresnel", obj.use_fresnel);
+	obj.r0          = j.value("r0",          obj.r0);
+	obj.use_orbit_trap_colouring = j.value("use_orbit_trap_colouring", obj.use_orbit_trap_colouring);
+
+	// Geometry
+	if (j.contains("position")) obj.position = jsonToVec3r(j["position"]);
+	obj.radius = j.value("radius", (real)obj.radius);
+
+	if (obj.type == "quad")
+	{
+		if (j.contains("quad_u")) obj.quad_u = jsonToVec3r(j["quad_u"]);
+		if (j.contains("quad_v")) obj.quad_v = jsonToVec3r(j["quad_v"]);
+	}
+
+	if (obj.type == "fractal")
+	{
+		obj.formula_name    = j.value("formula_name", obj.formula_name);
+		obj.max_iters       = j.value("max_iters", obj.max_iters);
+		obj.scene_scale     = j.value("scene_scale", (real)obj.scene_scale);
+		obj.step_scale      = j.value("step_scale", (real)obj.step_scale);
+		obj.bailout_radius2 = j.value("bailout_radius2", (real)obj.bailout_radius2);
+
+		// Load iteration_sequence
+		if (j.contains("iteration_sequence"))
+		{
+			obj.iteration_sequence.clear();
+			for (const auto & v : j["iteration_sequence"])
+				obj.iteration_sequence.push_back((char)(int)v);
+		}
+
+		// Create formula instances from formula_name
+		setupFormulas(obj);
+
+		// Restore formula params
+		if (j.contains("formula_params"))
+		{
+			const auto & fp = j["formula_params"];
+			for (size_t i = 0; i < std::min(fp.size(), obj.formulas.size()); i++)
+				jsonToFormulaParams(obj.formulas[i], fp[i]);
+		}
+	}
+
+	return obj;
+}
+
+
 bool saveScene(const std::string & path, const SceneParams & params)
 {
 	json j;
-	j["version"] = 1;
+	j["version"] = 2;
 
 	// Camera
 	auto & cam = j["camera"];
@@ -30,88 +198,12 @@ bool saveScene(const std::string & path, const SceneParams & params)
 	cam["lens_radius"]      = params.camera.lens_radius;
 	cam["focal_dist_scale"] = params.camera.focal_dist_scale;
 
-	// Fractal
-	auto & fr = j["fractal"];
-	fr["formula_name"]    = params.fractal.formula_name;
-	fr["radius"]          = params.fractal.radius;
-	fr["scene_scale"]     = params.fractal.scene_scale;
-	fr["step_scale"]      = params.fractal.step_scale;
-	fr["bailout_radius2"] = params.fractal.bailout_radius2;
-	fr["max_iters"]       = params.fractal.max_iters;
-	fr["show_box"]        = params.fractal.show_box;
-
-	// Material
-	auto & mat = j["material"];
-	mat["albedo"]      = vec3fToJson(params.fractal.albedo);
-	mat["emission"]    = vec3fToJson(params.fractal.emission);
-	mat["use_fresnel"] = params.fractal.use_fresnel;
-	mat["r0"]          = params.fractal.r0;
-	mat["use_orbit_trap_colouring"] = params.fractal.use_orbit_trap_colouring;
-
-	// Formula-specific params
-	auto & fp = j["formula_params"];
-	const auto & f = params.fractal;
-	fp["mandalay_scale"]          = f.mandalay_scale;
-	fp["mandalay_min_r2"]         = f.mandalay_min_r2;
-	fp["mandalay_folding_offset"] = f.mandalay_folding_offset;
-	fp["mandalay_z_tower"]        = f.mandalay_z_tower;
-	fp["mandalay_xy_tower"]       = f.mandalay_xy_tower;
-	fp["mandalay_rotate"]         = vec3rToJson(f.mandalay_rotate);
-	fp["mandalay_julia_c"]        = vec3rToJson(f.mandalay_julia_c);
-	fp["mandalay_julia_mode"]     = f.mandalay_julia_mode;
-
-	fp["amazingbox_scale"]      = f.amazingbox_scale;
-	fp["amazingbox_min_r2"]     = f.amazingbox_min_r2;
-	fp["amazingbox_fix_r2"]     = f.amazingbox_fix_r2;
-	fp["amazingbox_fold_limit"] = f.amazingbox_fold_limit;
-	fp["amazingbox_julia_mode"] = f.amazingbox_julia_mode;
-
-	fp["hybrid_amazingbox_scale"]        = f.hybrid_amazingbox_scale;
-	fp["hybrid_amazingbox_fold_limit"]   = f.hybrid_amazingbox_fold_limit;
-	fp["hybrid_amazingbox_min_r2"]       = f.hybrid_amazingbox_min_r2;
-	fp["hybrid_mandalay_scale"]          = f.hybrid_mandalay_scale;
-	fp["hybrid_mandalay_folding_offset"] = f.hybrid_mandalay_folding_offset;
-	fp["hybrid_mandalay_z_tower"]        = f.hybrid_mandalay_z_tower;
-	fp["hybrid_mandalay_xy_tower"]       = f.hybrid_mandalay_xy_tower;
-	fp["hybrid_mandalay_rotate"]         = vec3rToJson(f.hybrid_mandalay_rotate);
-	fp["hybrid_mandalay_julia_mode"]     = f.hybrid_mandalay_julia_mode;
-
-	fp["lambdabulb_power"] = f.lambdabulb_power;
-	fp["lambdabulb_c"]     = vec3rToJson(f.lambdabulb_c);
-
-	fp["amosersine_scale"]      = f.amosersine_scale;
-	fp["amosersine_julia_c"]    = vec3rToJson(f.amosersine_julia_c);
-	fp["amosersine_julia_mode"] = f.amosersine_julia_mode;
-
-	fp["octopus_xz_mul"]     = f.octopus_xz_mul;
-	fp["octopus_sq_mul"]     = f.octopus_sq_mul;
-	fp["octopus_julia_mode"] = f.octopus_julia_mode;
-
-	fp["cubicbulb_y_mul"]      = f.cubicbulb_y_mul;
-	fp["cubicbulb_z_mul"]      = f.cubicbulb_z_mul;
-	fp["cubicbulb_aux_mul"]    = f.cubicbulb_aux_mul;
-	fp["cubicbulb_c"]          = vec3rToJson(f.cubicbulb_c);
-	fp["cubicbulb_julia_mode"] = f.cubicbulb_julia_mode;
-
-	fp["benesipine2_scale"]      = f.benesipine2_scale;
-	fp["benesipine2_offset"]     = f.benesipine2_offset;
-	fp["benesipine2_julia_mode"] = f.benesipine2_julia_mode;
-
-	fp["mengersponge_scale"]        = f.mengersponge_scale;
-	fp["mengersponge_scale_centre"] = vec3rToJson(f.mengersponge_scale_centre);
-
-	fp["pseudokleinian_mins"] = { f.pseudokleinian_mins[0], f.pseudokleinian_mins[1], f.pseudokleinian_mins[2], f.pseudokleinian_mins[3] };
-	fp["pseudokleinian_maxs"] = { f.pseudokleinian_maxs[0], f.pseudokleinian_maxs[1], f.pseudokleinian_maxs[2], f.pseudokleinian_maxs[3] };
-
-	fp["riemannsphere_scale"]   = f.riemannsphere_scale;
-	fp["riemannsphere_s_shift"] = f.riemannsphere_s_shift;
-	fp["riemannsphere_t_shift"] = f.riemannsphere_t_shift;
-	fp["riemannsphere_x_shift"] = f.riemannsphere_x_shift;
-	fp["riemannsphere_r_shift"] = f.riemannsphere_r_shift;
-	fp["riemannsphere_r_pow"]   = f.riemannsphere_r_pow;
-
-	fp["hopfbrot_scene_scale"] = f.hopfbrot_scene_scale;
-	fp["sphere_r0"]            = f.sphere_r0;
+	// Objects
+	json objects_json = json::array();
+	for (const auto & obj : params.objects)
+		objects_json.push_back(objectToJson(obj));
+	j["objects"] = objects_json;
+	j["show_box"] = params.show_box;
 
 	// Light
 	auto & lt = j["light"];
@@ -154,7 +246,6 @@ bool loadScene(const std::string & path, SceneParams & params)
 	try { j = json::parse(file); }
 	catch (...) { return false; }
 
-	FractalParams defaults_fp;
 	CameraParams defaults_cam;
 	LightParams defaults_lt;
 	RenderSettings defaults_rs;
@@ -173,98 +264,14 @@ bool loadScene(const std::string & path, SceneParams & params)
 		params.camera.recompute();
 	}
 
-	// Fractal
-	if (j.contains("fractal"))
+	// Objects
+	if (j.contains("objects"))
 	{
-		auto & fr = j["fractal"];
-		params.fractal.formula_name    = get<std::string>(fr, "formula_name", defaults_fp.formula_name);
-		params.fractal.radius          = get(fr, "radius",          defaults_fp.radius);
-		params.fractal.scene_scale     = get(fr, "scene_scale",     defaults_fp.scene_scale);
-		params.fractal.step_scale      = get(fr, "step_scale",      defaults_fp.step_scale);
-		params.fractal.bailout_radius2 = get(fr, "bailout_radius2", defaults_fp.bailout_radius2);
-		params.fractal.max_iters       = get(fr, "max_iters",       defaults_fp.max_iters);
-		params.fractal.show_box        = get(fr, "show_box",        defaults_fp.show_box);
+		params.objects.clear();
+		for (const auto & obj_json : j["objects"])
+			params.objects.push_back(jsonToObject(obj_json));
 	}
-
-	// Material
-	if (j.contains("material"))
-	{
-		auto & mat = j["material"];
-		if (mat.contains("albedo"))   params.fractal.albedo   = jsonToVec3f(mat["albedo"]);
-		if (mat.contains("emission")) params.fractal.emission = jsonToVec3f(mat["emission"]);
-		params.fractal.use_fresnel = get(mat, "use_fresnel", defaults_fp.use_fresnel);
-		params.fractal.r0          = get(mat, "r0",          defaults_fp.r0);
-		params.fractal.use_orbit_trap_colouring = get(mat, "use_orbit_trap_colouring", defaults_fp.use_orbit_trap_colouring);
-	}
-
-	// Formula-specific params
-	if (j.contains("formula_params"))
-	{
-		auto & fp = j["formula_params"];
-		auto & f = params.fractal;
-
-		f.mandalay_scale          = get(fp, "mandalay_scale",          defaults_fp.mandalay_scale);
-		f.mandalay_min_r2         = get(fp, "mandalay_min_r2",         defaults_fp.mandalay_min_r2);
-		f.mandalay_folding_offset = get(fp, "mandalay_folding_offset", defaults_fp.mandalay_folding_offset);
-		f.mandalay_z_tower        = get(fp, "mandalay_z_tower",        defaults_fp.mandalay_z_tower);
-		f.mandalay_xy_tower       = get(fp, "mandalay_xy_tower",       defaults_fp.mandalay_xy_tower);
-		if (fp.contains("mandalay_rotate"))  f.mandalay_rotate = jsonToVec3r(fp["mandalay_rotate"]);
-		if (fp.contains("mandalay_julia_c")) f.mandalay_julia_c = jsonToVec3r(fp["mandalay_julia_c"]);
-		f.mandalay_julia_mode = get(fp, "mandalay_julia_mode", defaults_fp.mandalay_julia_mode);
-
-		f.amazingbox_scale      = get(fp, "amazingbox_scale",      defaults_fp.amazingbox_scale);
-		f.amazingbox_min_r2     = get(fp, "amazingbox_min_r2",     defaults_fp.amazingbox_min_r2);
-		f.amazingbox_fix_r2     = get(fp, "amazingbox_fix_r2",     defaults_fp.amazingbox_fix_r2);
-		f.amazingbox_fold_limit = get(fp, "amazingbox_fold_limit", defaults_fp.amazingbox_fold_limit);
-		f.amazingbox_julia_mode = get(fp, "amazingbox_julia_mode", defaults_fp.amazingbox_julia_mode);
-
-		f.hybrid_amazingbox_scale        = get(fp, "hybrid_amazingbox_scale",        defaults_fp.hybrid_amazingbox_scale);
-		f.hybrid_amazingbox_fold_limit   = get(fp, "hybrid_amazingbox_fold_limit",   defaults_fp.hybrid_amazingbox_fold_limit);
-		f.hybrid_amazingbox_min_r2       = get(fp, "hybrid_amazingbox_min_r2",       defaults_fp.hybrid_amazingbox_min_r2);
-		f.hybrid_mandalay_scale          = get(fp, "hybrid_mandalay_scale",          defaults_fp.hybrid_mandalay_scale);
-		f.hybrid_mandalay_folding_offset = get(fp, "hybrid_mandalay_folding_offset", defaults_fp.hybrid_mandalay_folding_offset);
-		f.hybrid_mandalay_z_tower        = get(fp, "hybrid_mandalay_z_tower",        defaults_fp.hybrid_mandalay_z_tower);
-		f.hybrid_mandalay_xy_tower       = get(fp, "hybrid_mandalay_xy_tower",       defaults_fp.hybrid_mandalay_xy_tower);
-		if (fp.contains("hybrid_mandalay_rotate")) f.hybrid_mandalay_rotate = jsonToVec3r(fp["hybrid_mandalay_rotate"]);
-		f.hybrid_mandalay_julia_mode = get(fp, "hybrid_mandalay_julia_mode", defaults_fp.hybrid_mandalay_julia_mode);
-
-		f.lambdabulb_power = get(fp, "lambdabulb_power", defaults_fp.lambdabulb_power);
-		if (fp.contains("lambdabulb_c")) f.lambdabulb_c = jsonToVec3r(fp["lambdabulb_c"]);
-
-		f.amosersine_scale      = get(fp, "amosersine_scale",      defaults_fp.amosersine_scale);
-		if (fp.contains("amosersine_julia_c")) f.amosersine_julia_c = jsonToVec3r(fp["amosersine_julia_c"]);
-		f.amosersine_julia_mode = get(fp, "amosersine_julia_mode", defaults_fp.amosersine_julia_mode);
-
-		f.octopus_xz_mul     = get(fp, "octopus_xz_mul",     defaults_fp.octopus_xz_mul);
-		f.octopus_sq_mul     = get(fp, "octopus_sq_mul",     defaults_fp.octopus_sq_mul);
-		f.octopus_julia_mode = get(fp, "octopus_julia_mode", defaults_fp.octopus_julia_mode);
-
-		f.cubicbulb_y_mul      = get(fp, "cubicbulb_y_mul",      defaults_fp.cubicbulb_y_mul);
-		f.cubicbulb_z_mul      = get(fp, "cubicbulb_z_mul",      defaults_fp.cubicbulb_z_mul);
-		f.cubicbulb_aux_mul    = get(fp, "cubicbulb_aux_mul",    defaults_fp.cubicbulb_aux_mul);
-		if (fp.contains("cubicbulb_c")) f.cubicbulb_c = jsonToVec3r(fp["cubicbulb_c"]);
-		f.cubicbulb_julia_mode = get(fp, "cubicbulb_julia_mode", defaults_fp.cubicbulb_julia_mode);
-
-		f.benesipine2_scale      = get(fp, "benesipine2_scale",      defaults_fp.benesipine2_scale);
-		f.benesipine2_offset     = get(fp, "benesipine2_offset",     defaults_fp.benesipine2_offset);
-		f.benesipine2_julia_mode = get(fp, "benesipine2_julia_mode", defaults_fp.benesipine2_julia_mode);
-
-		f.mengersponge_scale = get(fp, "mengersponge_scale", defaults_fp.mengersponge_scale);
-		if (fp.contains("mengersponge_scale_centre")) f.mengersponge_scale_centre = jsonToVec3r(fp["mengersponge_scale_centre"]);
-
-		if (fp.contains("pseudokleinian_mins")) { auto & a = fp["pseudokleinian_mins"]; for (int i = 0; i < 4; i++) f.pseudokleinian_mins[i] = a[i]; }
-		if (fp.contains("pseudokleinian_maxs")) { auto & a = fp["pseudokleinian_maxs"]; for (int i = 0; i < 4; i++) f.pseudokleinian_maxs[i] = a[i]; }
-
-		f.riemannsphere_scale   = get(fp, "riemannsphere_scale",   defaults_fp.riemannsphere_scale);
-		f.riemannsphere_s_shift = get(fp, "riemannsphere_s_shift", defaults_fp.riemannsphere_s_shift);
-		f.riemannsphere_t_shift = get(fp, "riemannsphere_t_shift", defaults_fp.riemannsphere_t_shift);
-		f.riemannsphere_x_shift = get(fp, "riemannsphere_x_shift", defaults_fp.riemannsphere_x_shift);
-		f.riemannsphere_r_shift = get(fp, "riemannsphere_r_shift", defaults_fp.riemannsphere_r_shift);
-		f.riemannsphere_r_pow   = get(fp, "riemannsphere_r_pow",   defaults_fp.riemannsphere_r_pow);
-
-		f.hopfbrot_scene_scale = get(fp, "hopfbrot_scene_scale", defaults_fp.hopfbrot_scene_scale);
-		f.sphere_r0            = get(fp, "sphere_r0",            defaults_fp.sphere_r0);
-	}
+	params.show_box = j.value("show_box", false);
 
 	// Light
 	if (j.contains("light"))

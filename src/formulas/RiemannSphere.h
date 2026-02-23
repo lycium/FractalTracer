@@ -76,4 +76,16 @@ struct DualRiemannSphereIteration final : public IterationFunction
 	{
 		return new DualRiemannSphereIteration(*this);
 	}
+
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "Scale",   ParamInfo::Real, &scale,   -3.0f, 3.0f },
+			{ "S Shift", ParamInfo::Real, &s_shift, -2.0f, 2.0f },
+			{ "T Shift", ParamInfo::Real, &t_shift, -2.0f, 2.0f },
+			{ "X Shift", ParamInfo::Real, &x_shift, -2.0f, 2.0f },
+			{ "R Shift", ParamInfo::Real, &r_shift, -2.0f, 2.0f },
+			{ "R Power", ParamInfo::Real, &r_pow,    1.0f, 8.0f },
+		};
+	}
 };

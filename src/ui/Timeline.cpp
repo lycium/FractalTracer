@@ -45,7 +45,7 @@ SceneParams Timeline::evaluate(float t) const
 	{
 		SceneParams result;
 		result.camera = keyframes[0].camera;
-		result.fractal = keyframes[0].fractal;
+		result.objects = keyframes[0].objects;
 		result.light = keyframes[0].light;
 		return result;
 	}
@@ -72,10 +72,8 @@ SceneParams Timeline::evaluate(float t) const
 
 	SceneParams result;
 
-	// String fields: step interpolation (use left keyframe)
-	result.fractal = kf0.fractal;
-	if (local_t >= 0.5f)
-		result.fractal.formula_name = kf1.fractal.formula_name;
+	// Objects: step interpolation (use left keyframe, switch at 0.5)
+	result.objects = (local_t < 0.5f) ? kf0.objects : kf1.objects;
 
 	// Interpolate camera
 	if (kf0.interpolation_mode == 1 && keyframes.size() >= 2)
@@ -97,17 +95,6 @@ SceneParams Timeline::evaluate(float t) const
 	result.camera.fov_deg = (real)catmullRom((float)kf0.camera.fov_deg, (float)kf0.camera.fov_deg, (float)kf1.camera.fov_deg, (float)kf1.camera.fov_deg, local_t);
 	result.camera.world_up = kf0.camera.world_up;
 	result.camera.recompute();
-
-	// Interpolate numeric fractal params
-	result.fractal.radius          = (real)(kf0.fractal.radius * (1 - local_t) + kf1.fractal.radius * local_t);
-	result.fractal.step_scale      = (real)(kf0.fractal.step_scale * (1 - local_t) + kf1.fractal.step_scale * local_t);
-	result.fractal.bailout_radius2 = (real)(kf0.fractal.bailout_radius2 * (1 - local_t) + kf1.fractal.bailout_radius2 * local_t);
-	result.fractal.max_iters = (int)(kf0.fractal.max_iters * (1 - local_t) + kf1.fractal.max_iters * local_t + 0.5f);
-
-	// Interpolate material
-	result.fractal.albedo = interpolateVec3f(kf0.fractal.albedo, kf1.fractal.albedo, local_t);
-	result.fractal.use_fresnel = kf0.fractal.use_fresnel;
-	result.fractal.r0 = kf0.fractal.r0 * (1 - local_t) + kf1.fractal.r0 * local_t;
 
 	// Interpolate light
 	result.light.light_pos       = interpolateVec3r(kf0.light.light_pos, kf1.light.light_pos, local_t);
@@ -166,7 +153,7 @@ bool drawTimelinePanel(Timeline & timeline, SceneParams & params)
 		Keyframe kf;
 		kf.time_seconds = timeline.current_time;
 		kf.camera = params.camera;
-		kf.fractal = params.fractal;
+		kf.objects = params.objects;
 		kf.light = params.light;
 		timeline.addKeyframe(kf);
 	}
@@ -256,7 +243,7 @@ bool drawTimelinePanel(Timeline & timeline, SceneParams & params)
 	{
 		SceneParams interpolated = timeline.evaluate(timeline.current_time);
 		params.camera = interpolated.camera;
-		params.fractal = interpolated.fractal;
+		params.objects = interpolated.objects;
 		params.light = interpolated.light;
 	}
 

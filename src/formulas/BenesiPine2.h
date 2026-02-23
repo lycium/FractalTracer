@@ -10,13 +10,18 @@ struct DualBenesiPine2Iteration final : public IterationFunction
 {
 	real scale = 2.5f;
 	real offset = 0.75f;
-	DualVec3r c = { 0.0f, 0.0f, 0.0f };
+	vec3r julia_c = { 0, 0, 0 };
 	bool julia_mode = true;
 
+private:
+	DualVec3r c = { 0.0f, 0.0f, 0.0f };
 
+public:
 	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
-		if (!julia_mode)
+		if (julia_mode)
+			c = DualVec3r(julia_c.x(), julia_c.y(), julia_c.z());
+		else
 			c = p_0;
 	}
 
@@ -58,6 +63,16 @@ struct DualBenesiPine2Iteration final : public IterationFunction
 	virtual IterationFunction * clone() const override final
 	{
 		return new DualBenesiPine2Iteration(*this);
+	}
+
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "Scale",      ParamInfo::Real, &scale,      0.5f, 5.0f },
+			{ "Offset",     ParamInfo::Real, &offset,     0.0f, 2.0f },
+			{ "Julia C",    ParamInfo::Vec3r, &julia_c },
+			{ "Julia Mode", ParamInfo::Bool, &julia_mode },
+		};
 	}
 
 protected:

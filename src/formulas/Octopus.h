@@ -10,12 +10,18 @@ struct DualOctopusIteration final : public IterationFunction
 {
 	real xz_mul = 1.25f;
 	real sq_mul = 1;
-	DualVec3r c = { 0.0f, 0.0f, 0.0f };
+	vec3r julia_c = { 0, 0, 0 };
 	bool julia_mode = true;
 
+private:
+	DualVec3r c = { 0.0f, 0.0f, 0.0f };
+
+public:
 	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
-		if (!julia_mode)
+		if (julia_mode)
+			c = DualVec3r(julia_c.x(), julia_c.y(), julia_c.z());
+		else
 			c = p_0;
 	}
 
@@ -32,5 +38,15 @@ struct DualOctopusIteration final : public IterationFunction
 	virtual IterationFunction * clone() const override final
 	{
 		return new DualOctopusIteration(*this);
+	}
+
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "XZ Mul",     ParamInfo::Real, &xz_mul,     0.0f, 3.0f },
+			{ "Sq Mul",     ParamInfo::Real, &sq_mul,     0.0f, 3.0f },
+			{ "Julia C",    ParamInfo::Vec3r, &julia_c },
+			{ "Julia Mode", ParamInfo::Bool, &julia_mode },
+		};
 	}
 };
