@@ -435,6 +435,50 @@ static void loadCornellBoxPreset(SceneParams & params)
 	params.selected_object = 6; // Mandelbulb
 }
 
+static void loadCornellBoxAnimPreset(SceneParams & params, Timeline & timeline, AnimationSettings & anim_settings)
+{
+	// Load the base Cornell Box scene
+	loadCornellBoxPreset(params);
+
+	// Set up a looping camera orbit with 5 keyframes (gentle arc inside the box)
+	timeline.keyframes.clear();
+	timeline.duration_seconds = 3.0f;
+	timeline.fps = 30;
+	timeline.current_time = 0;
+	timeline.playing = false;
+
+	struct KfData { float t; vec3r pos; };
+	const KfData kf_data[] =
+	{
+		{ 0.00f, vec3r( 0.0f, 0.0f, -3.5f) },
+		{ 0.75f, vec3r( 1.5f, 0.5f, -3.0f) },
+		{ 1.50f, vec3r( 0.0f, 1.0f, -3.5f) },
+		{ 2.25f, vec3r(-1.5f, 0.5f, -3.0f) },
+		{ 3.00f, vec3r( 0.0f, 0.0f, -3.5f) },
+	};
+
+	for (const auto & kd : kf_data)
+	{
+		Keyframe kf;
+		kf.time_seconds = kd.t;
+		kf.camera = params.camera;
+		kf.camera.position = kd.pos;
+		kf.camera.look_at = vec3r(0, 0, 0);
+		kf.camera.recompute();
+		kf.objects = params.objects;
+		kf.light = params.light;
+		timeline.addKeyframe(kf);
+	}
+
+	// Configure animation settings for the test
+	anim_settings.output_xres = 1280;
+	anim_settings.output_yres = 720;
+	anim_settings.target_spp = 32;
+	anim_settings.output_dir = "cornell_anim";
+	anim_settings.encode_mp4 = true;
+}
+
+
 static void loadDefaultPreset(SceneParams & params)
 {
 	params.objects.clear();
@@ -452,7 +496,7 @@ static void loadDefaultPreset(SceneParams & params)
 }
 
 
-bool drawFileMenu(SceneParams & params)
+bool drawFileMenu(SceneParams & params, Timeline & timeline, AnimationSettings & anim_settings)
 {
 	static char save_path[256] = "scene.json";
 	static char status_msg[256] = "";
@@ -496,6 +540,13 @@ bool drawFileMenu(SceneParams & params)
 			loadCornellBoxPreset(params);
 			loaded = true;
 			snprintf(status_msg, sizeof(status_msg), "Loaded Cornell Box preset");
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Cornell Box Animation"))
+		{
+			loadCornellBoxAnimPreset(params, timeline, anim_settings);
+			loaded = true;
+			snprintf(status_msg, sizeof(status_msg), "Loaded Cornell Box Animation preset (3s, 90 frames)");
 		}
 
 		if (status_msg[0])

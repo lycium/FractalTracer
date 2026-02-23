@@ -13,7 +13,7 @@ bool drawRenderSettingsPanel(RenderSettings & settings);
 bool drawStatsOverlay(int passes, int target_passes, int xres, int yres, float fps);
 
 // File menu: returns true if params were loaded (caller should updateParams)
-bool drawFileMenu(SceneParams & params);
+bool drawFileMenu(SceneParams & params, Timeline & timeline, AnimationSettings & anim_settings);
 
 // Animation rendering panel
 void drawAnimationPanel(AnimationRenderer & anim_renderer, AnimationSettings & anim_settings,

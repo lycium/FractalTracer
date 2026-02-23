@@ -138,7 +138,7 @@ void AnimationRenderer::renderFunc(Timeline timeline, SceneParams base_params,
 
 		frame_params.camera.recompute();
 
-		// Build scene for this frame
+		// Build scene for this frame (geometry stays fixed)
 		Scene scene;
 		if (!buildScene(scene, frame_params))
 		{
@@ -159,6 +159,16 @@ void AnimationRenderer::renderFunc(Timeline timeline, SceneParams base_params,
 			if (cancel_requested.load()) break;
 
 			current_pass = pass;
+
+			// Per-pass camera motion blur: jitter time within frame interval
+			CameraParams pass_camera = frame_params.camera;
+			if (!timeline.keyframes.empty())
+			{
+				const float t01 = (float)RadicalInverse(pass, 2); // quasi-random [0,1)
+				const float world_time = (frame + t01) / (float)fps;
+				pass_camera = timeline.evaluate(world_time).camera;
+				pass_camera.recompute();
+			}
 
 			ThreadControl thread_control = { 1 };
 
@@ -187,7 +197,7 @@ void AnimationRenderer::renderFunc(Timeline timeline, SceneParams base_params,
 
 						for (int y = y0; y < y1; ++y)
 						for (int x = x0; x < x1; ++x)
-							render(x, y, frame, pass, frames, frame_params.camera, frame_params.light,
+							render(x, y, frame, pass, 0, pass_camera, frame_params.light,
 								frame_params.render, local_scene, output, &hdr_env);
 					}
 				});

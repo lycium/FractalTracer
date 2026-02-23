@@ -234,7 +234,7 @@ int main(int argc, char ** argv)
 			}
 
 			ImGui::Separator();
-			if (drawFileMenu(controller.params))
+			if (drawFileMenu(controller.params, timeline, anim_settings))
 			{
 				params_changed = true;
 				interactive_cam.initFromCamera(controller.params.camera);
