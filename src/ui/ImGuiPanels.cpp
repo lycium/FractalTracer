@@ -372,24 +372,24 @@ static void loadCornellBoxPreset(SceneParams & params)
 
 	const real k = 2.0f;
 
-	// Floor (white)
+	// Floor (white) — normal must face up: cross(u,v) = (0,+,0)
 	{
 		SceneObjectDesc q; q.type = "quad"; q.name = "Floor";
-		q.position = vec3r(-k, -k, -k); q.quad_u = vec3r(2*k, 0, 0); q.quad_v = vec3r(0, 0, 2*k);
+		q.position = vec3r(-k, -k, -k); q.quad_u = vec3r(0, 0, 2*k); q.quad_v = vec3r(2*k, 0, 0);
 		q.albedo = { 0.7f, 0.7f, 0.7f }; q.use_fresnel = false;
 		params.objects.push_back(std::move(q));
 	}
-	// Ceiling (white)
+	// Ceiling (white) — normal must face down: cross(u,v) = (0,-,0)
 	{
 		SceneObjectDesc q; q.type = "quad"; q.name = "Ceiling";
-		q.position = vec3r(-k, k, k); q.quad_u = vec3r(2*k, 0, 0); q.quad_v = vec3r(0, 0, -2*k);
+		q.position = vec3r(-k, k, k); q.quad_u = vec3r(0, 0, -2*k); q.quad_v = vec3r(2*k, 0, 0);
 		q.albedo = { 0.7f, 0.7f, 0.7f }; q.use_fresnel = false;
 		params.objects.push_back(std::move(q));
 	}
-	// Back wall (white)
+	// Back wall (white) — normal must face forward: cross(u,v) = (0,0,-)
 	{
 		SceneObjectDesc q; q.type = "quad"; q.name = "Back Wall";
-		q.position = vec3r(-k, -k, k); q.quad_u = vec3r(2*k, 0, 0); q.quad_v = vec3r(0, 2*k, 0);
+		q.position = vec3r(-k, -k, k); q.quad_u = vec3r(0, 2*k, 0); q.quad_v = vec3r(2*k, 0, 0);
 		q.albedo = { 0.7f, 0.7f, 0.7f }; q.use_fresnel = false;
 		params.objects.push_back(std::move(q));
 	}
@@ -407,13 +407,14 @@ static void loadCornellBoxPreset(SceneParams & params)
 		q.albedo = { 0.1f, 0.9f, 0.1f }; q.use_fresnel = false;
 		params.objects.push_back(std::move(q));
 	}
-	// Ceiling light (emissive sphere)
+	// Ceiling light (emissive quad) — normal must face down: cross(u,v) = (0,-,0)
 	{
-		SceneObjectDesc s; s.type = "sphere"; s.name = "Light";
-		s.position = vec3r(0, k - 0.01f, 0); s.radius = 0.5f;
-		s.albedo = { 1, 1, 1 }; s.emission = { 15, 15, 12 };
-		s.use_fresnel = false;
-		params.objects.push_back(std::move(s));
+		const real lk = 0.5f;
+		SceneObjectDesc q; q.type = "quad"; q.name = "Light";
+		q.position = vec3r(-lk, k - 0.01f, lk); q.quad_u = vec3r(0, 0, -2*lk); q.quad_v = vec3r(2*lk, 0, 0);
+		q.albedo = { 1, 1, 1 }; q.emission = { 15, 15, 12 };
+		q.use_fresnel = false;
+		params.objects.push_back(std::move(q));
 	}
 	// Mandelbulb fractal
 	{
