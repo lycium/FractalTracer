@@ -362,16 +362,36 @@ inline constexpr Dual<real_type, vars> log(const Dual<real_type, vars> & x)
 
 
 template <typename real_type, int vars>
+inline constexpr std::pair<Dual<real_type, vars>, Dual<real_type, vars>> sinhcosh(const Dual<real_type, vars> & z)
+{
+	const real_type ep = std::exp(z.v[0]);
+	const real_type en = 1 / ep;
+	const real_type sh = (ep - en) * static_cast<real_type>(0.5);
+	const real_type ch = (ep + en) * static_cast<real_type>(0.5);
+
+	Dual<real_type, vars> s, c;
+	s.v[0] = sh;
+	c.v[0] = ch;
+	for (int i = 0; i < vars; ++i)
+	{
+		s.v[i + 1] = z.v[i + 1] * ch;
+		c.v[i + 1] = z.v[i + 1] * sh;
+	}
+	return { s, c };
+}
+
+
+template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> sinh(const Dual<real_type, vars> & z)
 {
-	return (exp(z) - exp(-z)) / 2; // FIXME catastrophic cancellation near z = 0
+	return sinhcosh(z).first;
 }
 
 
 template <typename real_type, int vars>
 inline constexpr Dual<real_type, vars> cosh(const Dual<real_type, vars> & z)
 {
-	return (exp(z) + exp(-z)) / 2;
+	return sinhcosh(z).second;
 }
 
 

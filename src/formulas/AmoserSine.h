@@ -26,10 +26,14 @@ public:
 
 	virtual void eval(const DualVec3r & p_in, DualVec3r & p_out) const noexcept override final
 	{
+		const auto [sx, cx]   = sincos(p_in.x());
+		const auto [sz, cz]   = sincos(p_in.z());
+		const auto [shy, chy] = sinhcosh(p_in.y());
+
 		p_out = DualVec3r(
-			sin(p_in.x()) * cosh(p_in.y()),
-			cos(p_in.x()) * cos(p_in.z()) * sinh(p_in.y()),
-			sin(p_in.z()) * cosh(p_in.y()));
+			sx * chy,
+			cx * cz * shy,
+			sz * chy);
 
 		p_out = p_out * scale + c;
 	}
