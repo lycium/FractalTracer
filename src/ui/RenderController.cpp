@@ -88,7 +88,7 @@ void RenderController::managerFunc()
 		// Progressive sub-resolution preview: each pass halves the divisor
 		// e.g. divisor=32: pass 0 @ /32, pass 1 @ /16, ... pass 5 @ /1 (full res), pass 6+ accumulate
 		const int divisor = std::max(1, settings.preview_divisor);
-		const int cur_divisor = std::max(1, divisor >> pass);
+		const int cur_divisor = (pass < 32) ? std::max(1, divisor >> pass) : 1;
 		const int target_xres = full_xres.load();
 		const int target_yres = full_yres.load();
 		int render_xres = std::max(1, target_xres / cur_divisor);
