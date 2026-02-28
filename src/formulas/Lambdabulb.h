@@ -14,12 +14,16 @@ struct DualLambdabulbIteration final : public IterationFunction
 	const real cos_phase = cos(phase);
 
 	real power = 4; // 2-5 should look good
-	DualVec3r c = { 1.035f, -0.317f, 0.013f };
+	vec3r c_param = { 1.035f, -0.317f, 0.013f };
 
+private:
+	DualVec3r c;
 
+public:
 	virtual void init(const DualVec3r & p_0) noexcept override final
 	{
 		(void) p_0;
+		c = DualVec3r(c_param.x(), c_param.y(), c_param.z());
 	}
 
 	virtual void eval(const DualVec3r& p_in, DualVec3r& p_out) const noexcept override final
@@ -34,6 +38,14 @@ struct DualLambdabulbIteration final : public IterationFunction
 	virtual IterationFunction * clone() const override final
 	{
 		return new DualLambdabulbIteration(*this);
+	}
+
+	virtual std::vector<ParamInfo> getParams() override
+	{
+		return {
+			{ "Power", ParamInfo::Real, &power,   2.0f, 8.0f },
+			{ "C",     ParamInfo::Vec3r, &c_param },
+		};
 	}
 
 protected:

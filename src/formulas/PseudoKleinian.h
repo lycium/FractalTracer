@@ -26,4 +26,12 @@ struct DualPseudoKleinianIteration final : public IterationFunction
     {
         return new DualPseudoKleinianIteration(*this);
     }
+
+    virtual std::vector<ParamInfo> getParams() override
+    {
+        return {
+            { "Mins", ParamInfo::Real4, mins, -2.0f, 2.0f },
+            { "Maxs", ParamInfo::Real4, maxs, -2.0f, 2.0f },
+        };
+    }
 };

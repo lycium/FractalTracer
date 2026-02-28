@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <vector>
 
 #include "SceneObject.h"
 
@@ -482,6 +483,16 @@ struct DualDEObject : public SceneObject
 };
 
 
+// Descriptor for a single editable parameter on an IterationFunction
+struct ParamInfo
+{
+	const char * name;
+	enum Type { Real, Vec3r, Bool, Real4 } type;
+	void * ptr;
+	float min = 0, max = 1;
+};
+
+
 struct IterationFunction
 {
 	virtual ~IterationFunction() = default;
@@ -491,6 +502,9 @@ struct IterationFunction
 	virtual real getPower() const noexcept = 0;
 
 	virtual IterationFunction * clone() const = 0;
+
+	// Return descriptors for editable parameters (for generic UI and serialization)
+	virtual std::vector<ParamInfo> getParams() { return {}; }
 };
 
 
